@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>单词消消乐</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+/* ===== MODE SELECT ===== */
+.mode-select {
+    background: rgba(255,255,255,0.95);
+    border-radius: 24px;
+    padding: 50px 40px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    max-width: 500px;
+    width: 100%;
+}
+.mode-select h1 { font-size: 26px; color: #5a3d8a; margin-bottom: 12px; }
+.mode-select p { color: #888; margin-bottom: 30px; font-size: 15px; }
+.mode-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+.mode-btn {
+    flex: 1; min-width: 140px;
+    padding: 18px 24px; border-radius: 16px; border: 2px solid #e0d4f5;
+    background: white; cursor: pointer; font-size: 18px; transition: all 0.2s;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.mode-btn:hover { border-color: #667eea; box-shadow: 0 4px 16px rgba(102,126,234,0.3); }
+.mode-btn .icon { font-size: 36px; }
+.mode-btn .label { font-weight: bold; color: #5a3d8a; }
+.mode-btn .hint { font-size: 12px; color: #999; }
+
+/* ===== GAME ===== */
+.game-container {
+    background: rgba(255,255,255,0.95);
+    border-radius: 24px;
+    padding: 30px 25px;
+    max-width: 700px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    position: relative;
+}
+.game-container.hidden, .mode-select.hidden, .dashboard.hidden { display: none; }
+.music-btn {
+    position: absolute; top: 16px; right: 20px; width: 38px; height: 38px;
+    border-radius: 50%; border: 2px solid #e0d4f5; background: white;
+    cursor: pointer; font-size: 18px; display: flex; align-items: center;
+    justify-content: center; transition: all 0.2s; z-index: 10;
+}
+.music-btn:hover { border-color: #667eea; background: #f8f5ff; }
+.music-btn.off { opacity: 0.5; }
+.back-btn {
+    position: absolute; top: 16px; left: 20px;
+    background: none; border: none; cursor: pointer;
+    font-size: 14px; color: #999; transition: color 0.2s; z-index: 10;
+}
+.back-btn:hover { color: #5a3d8a; }
+.header { text-align: center; margin-bottom: 10px; }
+.header h1 { font-size: 28px; color: #5a3d8a; margin-bottom: 8px; }
+.timer-display { font-size: 15px; color: #999; margin-bottom: 4px; }
+.stats-row {
+    display: flex; justify-content: center; gap: 30px; font-size: 15px; color: #666; margin-bottom: 4px;
+}
+.stats-row span { font-weight: bold; color: #764ba2; }
+.round-info { text-align: center; font-size: 14px; color: #999; margin-bottom: 10px; }
+.progress-bar { width:100%; height:8px; background:#e0d4f5; border-radius:4px; overflow:hidden; margin-bottom:18px; }
+.progress-fill { height:100%; background:linear-gradient(90deg,#667eea,#764ba2); border-radius:4px; transition:width 0.4s; }
+.cards-area { display:flex; gap:20px; justify-content:center; }
+.column { flex:1; display:flex; flex-direction:column; gap:10px; min-height:200px; }
+.column-title { text-align:center; font-size:14px; color:#999; margin-bottom:4px; font-weight:bold; letter-spacing:2px; }
+.card {
+    background:white; border:2px solid #e0d4f5; border-radius:12px; padding:14px 12px;
+    text-align:center; cursor:pointer; font-size:16px; transition:all 0.25s;
+    user-select:none; min-height:48px; display:flex; align-items:center; justify-content:center;
+}
+.card:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(102,126,234,0.25); border-color:#667eea; }
+.card.selected { background:linear-gradient(135deg,#667eea,#764ba2); color:white; border-color:#5a3d8a; transform:translateY(-3px); box-shadow:0 8px 25px rgba(102,126,234,0.4); animation:pulse 0.6s infinite alternate; }
+.card.en { background:#f8f5ff; } .card.cn { background:#fff8f0; }
+.card.eliminated { animation:eliminate 0.5s forwards; pointer-events:none; }
+.card.matched { border-color:#4CAF50; background:#e8f5e9; animation:matchFlash 0.4s; }
+.card.placeholder { border:2px dashed #e0d4f5; background:transparent; cursor:default; pointer-events:none; color:#ccc; }
+@keyframes eliminate { 0%{transform:scale(1);opacity:1} 50%{transform:scale(1.15);opacity:0.6;background:#4CAF50;color:white} 100%{transform:scale(0);opacity:0;height:0;padding:0;margin:0;min-height:0;border-width:0} }
+@keyframes matchFlash { 0%{background:#4CAF50;color:white} 100%{background:#e8f5e9;color:inherit} }
+@keyframes pulse { from{box-shadow:0 8px 25px rgba(102,126,234,0.4)} to{box-shadow:0 12px 35px rgba(102,126,234,0.6)} }
+.card.wrong { animation:shake 0.4s; border-color:#f44336!important; background:#ffebee!important; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+.new-round-flash { animation:roundIn 0.6s; }
+@keyframes roundIn { 0%{opacity:0;transform:scale(0.85)} 100%{opacity:1;transform:scale(1)} }
+.victory-overlay {
+    display:none; position:fixed; top:0;left:0;right:0;bottom:0;
+    background:rgba(0,0,0,0.6); z-index:100; justify-content:center; align-items:center;
+}
+.victory-overlay.show { display:flex; }
+.victory-box {
+    background:white; border-radius:24px; padding:40px; text-align:center;
+    animation:bounceIn 0.6s; max-width:420px; width:90%;
+}
+.victory-box h2 { font-size:32px; color:#5a3d8a; margin-bottom:6px; }
+.victory-box .result-summary { font-size:15px; color:#666; margin-bottom:18px; line-height:1.8; }
+.victory-box input[type=text] {
+    width:100%; padding:12px 16px; border:2px solid #e0d4f5; border-radius:12px;
+    font-size:16px; text-align:center; outline:none; margin-bottom:12px;
+    transition:border-color 0.2s;
+}
+.victory-box input[type=text]:focus { border-color:#667eea; }
+.victory-box .submit-btn {
+    background:linear-gradient(135deg,#667eea,#764ba2); color:white; border:none;
+    padding:12px 36px; font-size:18px; border-radius:30px; cursor:pointer; width:100%;
+    transition:transform 0.2s,opacity 0.2s;
+}
+.victory-box .submit-btn:hover { transform:scale(1.03); }
+.victory-box .submit-btn:disabled { opacity:0.5; cursor:default; transform:none; }
+.victory-box .skip-btn {
+    background:none; border:none; color:#999; margin-top:10px; cursor:pointer; font-size:13px;
+}
+.victory-box .skip-btn:hover { color:#5a3d8a; }
+@keyframes bounceIn { 0%{transform:scale(0.3);opacity:0} 50%{transform:scale(1.05)} 100%{transform:scale(1);opacity:1} }
+.sparkle { position:absolute; pointer-events:none; font-size:20px; animation:sparkleUp 0.8s forwards; z-index:50; }
+@keyframes sparkleUp { 0%{transform:translateY(0);opacity:1} 100%{transform:translateY(-60px);opacity:0} }
+.submitted-msg { color:#4CAF50; font-size:14px; margin-top:6px; display:none; }
+
+/* ===== DASHBOARD ===== */
+.dashboard {
+    background: rgba(255,255,255,0.95); border-radius:24px; padding:30px 25px;
+    max-width:750px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,0.3);
+    position:relative;
+}
+.dashboard h1 { font-size:24px; color:#5a3d8a; text-align:center; margin-bottom:4px; }
+.dashboard .subtitle { text-align:center; color:#999; font-size:13px; margin-bottom:18px; }
+.refresh-row { display:flex; justify-content:flex-end; margin-bottom:12px; }
+.refresh-btn {
+    background:#f0ebf8; border:none; padding:8px 18px; border-radius:20px;
+    cursor:pointer; font-size:13px; color:#5a3d8a; transition:all 0.2s;
+}
+.refresh-btn:hover { background:#e0d4f5; }
+.auto-refresh { font-size:12px; color:#999; margin-right:10px; display:flex; align-items:center; gap:4px; }
+.auto-refresh input { accent-color:#764ba2; }
+table { width:100%; border-collapse:collapse; font-size:14px; }
+thead th {
+    background:#f8f5ff; padding:12px 10px; text-align:left; color:#5a3d8a;
+    font-weight:bold; border-bottom:2px solid #e0d4f5;
+}
+thead th:first-child { border-radius:8px 0 0 0; }
+thead th:last-child { border-radius:0 8px 0 0; }
+tbody td { padding:10px; border-bottom:1px solid #f0f0f0; color:#555; }
+tbody tr:hover { background:#faf8ff; }
+.rank-badge {
+    display:inline-block; width:24px; height:24px; border-radius:50%;
+    text-align:center; line-height:24px; font-size:12px; font-weight:bold; color:white;
+}
+.rank-1 { background:linear-gradient(135deg,#FFD700,#FFA000); }
+.rank-2 { background:linear-gradient(135deg,#C0C0C0,#909090); }
+.rank-3 { background:linear-gradient(135deg,#CD7F32,#A0522D); }
+.rank-other { background:#ccc; color:#666; }
+.empty-state { text-align:center; padding:40px; color:#bbb; font-size:15px; }
+.star { color:#FFD700; }
+</style>
+</head>
+<body>
+
+<!-- MODE SELECT -->
+<div class="mode-select" id="modeSelect">
+    <h1>📚 单词消消乐</h1>
+    <p>请选择身份进入</p>
+    <div class="mode-btns">
+        <button class="mode-btn" onclick="startStudent()">
+            <span class="icon">🎒</span>
+            <span class="label">学生端</span>
+            <span class="hint">开始挑战 · 提交成绩</span>
+        </button>
+        <button class="mode-btn" onclick="startParent()">
+            <span class="icon">📊</span>
+            <span class="label">家长端</span>
+            <span class="hint">查看通关看板</span>
+        </button>
+    </div>
+</div>
+
+<!-- GAME -->
+<div class="game-container hidden" id="gameContainer">
+    <button class="back-btn" onclick="goHome()">← 返回</button>
+    <button class="music-btn" id="musicBtn" title="音乐开关" onclick="toggleMusic()">🎵</button>
+    <div class="header">
+        <h1>✨ 单词消消乐</h1>
+        <div class="timer-display">⏱ 用时：<span id="timerDisplay">00:00</span></div>
+        <div class="stats-row">
+            已配对：<span id="matchedCount">0</span>/<span id="totalCount">20</span>
+            &nbsp;&nbsp;|&nbsp;&nbsp; 失误：<span id="wrongCount">0</span> 次
+        </div>
+        <div class="round-info" id="roundInfo">第 1 轮 · 本组 3 对</div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    </div>
+    <div class="cards-area">
+        <div class="column" id="enColumn"><div class="column-title">🔤 English</div></div>
+        <div class="column" id="cnColumn"><div class="column-title">🀄 中文</div></div>
+    </div>
+</div>
+
+<!-- VICTORY OVERLAY -->
+<div class="victory-overlay" id="victoryOverlay">
+    <div class="victory-box" id="victoryBox">
+        <h2>🎉 恭喜通关！</h2>
+        <div class="result-summary" id="resultSummary"></div>
+        <input type="text" id="studentName" placeholder="请输入你的真实姓名" maxlength="20">
+        <button class="submit-btn" id="submitBtn" onclick="submitScore()">提交成绩</button>
+        <button class="skip-btn" onclick="skipSubmit()">跳过，再来一局</button>
+        <div class="submitted-msg" id="submittedMsg">✅ 成绩已提交！</div>
+    </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="dashboard hidden" id="dashboard">
+    <button class="back-btn" onclick="goHome()">← 返回</button>
+    <h1>📊 通关看板</h1>
+    <p class="subtitle">实时查看学生挑战成绩</p>
+    <div class="refresh-row">
+        <label class="auto-refresh"><input type="checkbox" id="autoRefresh" checked onchange="toggleAutoRefresh()"> 自动刷新</label>
+        <button class="refresh-btn" onclick="renderDashboard()">🔄 刷新</button>
+    </div>
+    <div id="dashboardContent"></div>
+</div>
+
+<script>
+// ========== AUDIO ENGINE ==========
+let audioCtx = null, musicOn = true, melodyTimeout = null, melodyPtr = 0;
+
+const melodyNotes = [
+    { freq: 523.25, dur: 0.25 }, { freq: 587.33, dur: 0.25 }, { freq: 659.25, dur: 0.25 }, { freq: 783.99, dur: 0.25 },
+    { freq: 659.25, dur: 0.25 }, { freq: 587.33, dur: 0.25 }, { freq: 523.25, dur: 0.35 }, { freq: 0, dur: 0.15 },
+    { freq: 587.33, dur: 0.25 }, { freq: 659.25, dur: 0.25 }, { freq: 783.99, dur: 0.25 }, { freq: 880.00, dur: 0.25 },
+    { freq: 783.99, dur: 0.25 }, { freq: 659.25, dur: 0.25 }, { freq: 587.33, dur: 0.35 }, { freq: 0, dur: 0.15 },
+    { freq: 659.25, dur: 0.2 }, { freq: 783.99, dur: 0.2 }, { freq: 880.00, dur: 0.2 }, { freq: 1046.50, dur: 0.3 },
+    { freq: 880.00, dur: 0.2 }, { freq: 783.99, dur: 0.2 }, { freq: 659.25, dur: 0.35 }, { freq: 0, dur: 0.25 },
+    { freq: 523.25, dur: 0.3 }, { freq: 659.25, dur: 0.2 }, { freq: 783.99, dur: 0.2 }, { freq: 587.33, dur: 0.3 },
+    { freq: 659.25, dur: 0.2 }, { freq: 523.25, dur: 0.4 }, { freq: 0, dur: 0.3 },
+];
+
+function initAudio() { if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+function playTone(freq, start, dur, vol=0.12) { if(!audioCtx||!musicOn||freq===0) return; const o=audioCtx.createOscillator();const g=audioCtx.createGain();o.type='triangle';o.frequency.setValueAtTime(freq,start);g.gain.setValueAtTime(vol,start);g.gain.exponentialRampToValueAtTime(0.001,start+dur);o.connect(g);g.connect(audioCtx.destination);o.start(start);o.stop(start+dur+0.05); }
+function playChord(base,start,dur,vol=0.06) { if(!audioCtx||!musicOn) return; [1,1.25,1.5,2].forEach(r=>playTone(base*r,start,dur,vol)); }
+function scheduleMelodyNote() { if(!musicOn) return; const n=melodyNotes[melodyPtr]; const now=audioCtx.currentTime; if(n.freq>0){ playTone(n.freq,now,n.dur,0.1); if(melodyPtr%3===0) playChord(n.freq,now,n.dur,0.04); } melodyPtr=(melodyPtr+1)%melodyNotes.length; melodyTimeout=setTimeout(scheduleMelodyNote,n.dur*1000); }
+function startMusic() { initAudio(); if(audioCtx.state==='suspended') audioCtx.resume(); musicOn=true; melodyPtr=0; document.getElementById('musicBtn').textContent='🎵'; document.getElementById('musicBtn').classList.remove('off'); if(melodyTimeout) clearTimeout(melodyTimeout); scheduleMelodyNote(); }
+function stopMusic() { musicOn=false; document.getElementById('musicBtn').textContent='🔇'; document.getElementById('musicBtn').classList.add('off'); if(melodyTimeout) clearTimeout(melodyTimeout); }
+function toggleMusic() { musicOn?stopMusic():startMusic(); }
+function playMatchSfx() { if(!audioCtx||!musicOn) return; const n=audioCtx.currentTime; playTone(1046.50,n,0.08,0.15); playTone(1318.51,n+0.06,0.1,0.15); playTone(1567.98,n+0.12,0.15,0.12); }
+function playWrongSfx() { if(!audioCtx||!musicOn) return; const n=audioCtx.currentTime; playTone(220,n,0.15,0.12); playTone(196,n+0.08,0.15,0.12); }
+function playRoundSfx() { if(!audioCtx||!musicOn) return; const n=audioCtx.currentTime; [523.25,659.25,783.99,1046.50].forEach((f,i)=>playTone(f,n+i*0.08,0.15,0.1)); }
+function playVictorySfx() { if(!audioCtx||!musicOn) return; const n=audioCtx.currentTime; [523.25,659.25,783.99,1046.50,783.99,1046.50,1318.51,1567.98].forEach((f,i)=>{ playTone(f,n+i*0.12,0.3,0.12); if(i%2===0) playChord(f,n+i*0.12,0.3,0.05); }); }
+
+// ========== STORAGE ==========
+const STORAGE_KEY = 'word_game_records';
+function getRecords() { try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]'); }catch(e){ return []; } }
+function saveRecord(record) { const r=getRecords(); r.push(record); localStorage.setItem(STORAGE_KEY,JSON.stringify(r)); }
+
+// ========== WORDS ==========
+const words = [
+    { en: 'police woman', cn: '警察（女）', id: 0 },{ en: 'driver', cn: '司机', id: 1 },{ en: 'worker', cn: '工人', id: 2 },
+    { en: 'farmer', cn: '农民', id: 3 },{ en: 'time', cn: '时间', id: 4 },{ en: 'year', cn: '年', id: 5 },
+    { en: 'month', cn: '月', id: 6 },{ en: 'week', cn: '周', id: 7 },{ en: 'day', cn: '天；白天', id: 8 },
+    { en: 'hour', cn: '小时', id: 9 },{ en: 'February', cn: '二月', id: 10 },{ en: 'March', cn: '三月', id: 11 },
+    { en: 'April', cn: '四月', id: 12 },{ en: 'May', cn: '五月', id: 13 },{ en: 'June', cn: '六月', id: 14 },
+    { en: 'July', cn: '七月', id: 15 },{ en: 'August', cn: '八月', id: 16 },{ en: 'September', cn: '九月', id: 17 },
+    { en: 'October', cn: '十月', id: 18 },{ en: 'November', cn: '十一月', id: 19 }
+];
+
+// ========== GAME STATE ==========
+const ROUND_SIZE = 3;
+let pool=[], currentRound=[], currentRoundMatched=0, totalMatched=0, roundNumber=0, selectedEn=null, selectedCn=null;
+let wrongAttempts=0, gameStartTime=0, gameEndTime=0, timerInterval=null;
+let currentMode=null;
+
+function shuffle(arr) { const a=[...arr]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+function goHome() {
+    stopMusic(); if(timerInterval) clearInterval(timerInterval);
+    document.getElementById('gameContainer').classList.add('hidden');
+    document.getElementById('dashboard').classList.add('hidden');
+    document.getElementById('modeSelect').classList.remove('hidden');
+    currentMode=null;
+}
+
+function startStudent() {
+    initAudio();
+    currentMode='student';
+    document.getElementById('modeSelect').classList.add('hidden');
+    document.getElementById('gameContainer').classList.remove('hidden');
+    startMusic();
+    resetGameState();
+    nextRound();
+    startTimer();
+}
+
+function startParent() {
+    currentMode='parent';
+    document.getElementById('modeSelect').classList.add('hidden');
+    document.getElementById('dashboard').classList.remove('hidden');
+    stopMusic();
+    renderDashboard();
+    startAutoRefresh();
+}
+
+function startTimer() {
+    gameStartTime=Date.now();
+    if(timerInterval) clearInterval(timerInterval);
+    timerInterval=setInterval(updateTimer,1000);
+    updateTimer();
+}
+
+function updateTimer() {
+    const elapsed=Math.floor((Date.now()-gameStartTime)/1000);
+    const m=String(Math.floor(elapsed/60)).padStart(2,'0');
+    const s=String(elapsed%60).padStart(2,'0');
+    document.getElementById('timerDisplay').textContent=m+':'+s;
+}
+
+function stopTimer() { gameEndTime=Date.now(); if(timerInterval) clearInterval(timerInterval); }
+
+function resetGameState() {
+    totalMatched=0; roundNumber=0; wrongAttempts=0; selectedEn=null; selectedCn=null;
+    pool=shuffle(words.map(w=>w.id));
+    document.getElementById('matchedCount').textContent='0';
+    document.getElementById('totalCount').textContent=words.length;
+    document.getElementById('wrongCount').textContent='0';
+    document.getElementById('progressFill').style.width='0%';
+    document.getElementById('victoryOverlay').classList.remove('show');
+    startTimer();
+}
+
+function nextRound() {
+    if(pool.length===0) return;
+    roundNumber++;
+    currentRound=pool.splice(0,ROUND_SIZE); currentRoundMatched=0; selectedEn=null; selectedCn=null;
+    document.getElementById('roundInfo').textContent=`第 ${roundNumber} 轮 · 本组 ${currentRound.length} 对`;
+    playRoundSfx();
+    const enCol=document.getElementById('enColumn'), cnCol=document.getElementById('cnColumn');
+    enCol.querySelectorAll('.card').forEach(c=>c.remove());
+    cnCol.querySelectorAll('.card').forEach(c=>c.remove());
+    const enS=shuffle([...currentRound]), cnS=shuffle([...currentRound]);
+    enS.forEach(id=>{
+        const w=words.find(x=>x.id===id), card=document.createElement('div');
+        card.className='card en new-round-flash'; card.textContent=w.en; card.dataset.id=id;
+        card.onclick=()=>selectCard(card,'en',id); enCol.appendChild(card);
+    });
+    for(let i=enS.length;i<3;i++){ const ph=document.createElement('div'); ph.className='card placeholder'; ph.textContent='—'; enCol.appendChild(ph); }
+    cnS.forEach(id=>{
+        const w=words.find(x=>x.id===id), card=document.createElement('div');
+        card.className='card cn new-round-flash'; card.textContent=w.cn; card.dataset.id=id;
+        card.onclick=()=>selectCard(card,'cn',id); cnCol.appendChild(card);
+    });
+    for(let i=cnS.length;i<3;i++){ const ph=document.createElement('div'); ph.className='card placeholder'; ph.textContent='—'; cnCol.appendChild(ph); }
+}
+
+function selectCard(card,type,id) {
+    if(card.classList.contains('eliminated')||card.classList.contains('matched')) return; initAudio();
+    if(type==='en'){ document.querySelectorAll('#enColumn .card.en.selected').forEach(c=>c.classList.remove('selected')); selectedEn={card,id}; card.classList.add('selected'); }
+    else{ document.querySelectorAll('#cnColumn .card.cn.selected').forEach(c=>c.classList.remove('selected')); selectedCn={card,id}; card.classList.add('selected'); }
+    if(selectedEn&&selectedCn) checkMatch();
+}
+
+function checkMatch() {
+    const enCard=selectedEn.card, cnCard=selectedCn.card;
+    if(selectedEn.id===selectedCn.id){
+        enCard.classList.remove('selected'); cnCard.classList.remove('selected');
+        enCard.classList.add('matched'); cnCard.classList.add('matched');
+        playMatchSfx(); spawnSparkle(enCard); spawnSparkle(cnCard);
+        setTimeout(()=>{ enCard.classList.add('eliminated'); cnCard.classList.add('eliminated'); },300);
+        totalMatched++; currentRoundMatched++;
+        document.getElementById('matchedCount').textContent=totalMatched;
+        document.getElementById('progressFill').style.width=(totalMatched/words.length*100)+'%';
+        if(currentRoundMatched===currentRound.length){
+            setTimeout(()=>{
+                if(pool.length===0){ onVictory(); } else nextRound();
+            },600);
+        }
+    } else {
+        wrongAttempts++;
+        document.getElementById('wrongCount').textContent=wrongAttempts;
+        playWrongSfx();
+        enCard.classList.add('wrong'); cnCard.classList.add('wrong');
+        setTimeout(()=>{ enCard.classList.remove('wrong','selected'); cnCard.classList.remove('wrong','selected'); },400);
+    }
+    selectedEn=null; selectedCn=null;
+}
+
+function onVictory() {
+    stopTimer(); playVictorySfx();
+    const elapsed=Math.floor((gameEndTime-Date.now()>0?0:Date.now()-gameStartTime)/1000);
+    const m=String(Math.floor(elapsed/60)).padStart(2,'0'), s=String(elapsed%60).padStart(2,'0');
+    document.getElementById('resultSummary').innerHTML=`⏱ 用时：${m}:${s}<br>❌ 失误：${wrongAttempts} 次`;
+    document.getElementById('victoryOverlay').classList.add('show');
+    document.getElementById('studentName').value='';
+    document.getElementById('submitBtn').disabled=false;
+    document.getElementById('submittedMsg').style.display='none';
+}
+
+function submitScore() {
+    const name=document.getElementById('studentName').value.trim();
+    if(!name){ document.getElementById('studentName').style.borderColor='#f44336'; setTimeout(()=>document.getElementById('studentName').style.borderColor='#e0d4f5',1500); return; }
+    const elapsed=Math.floor((gameEndTime-Date.now()>0?0:Date.now()-gameStartTime)/1000);
+    saveRecord({ name, time:elapsed, wrong:wrongAttempts, date:new Date().toLocaleString('zh-CN') });
+    document.getElementById('submitBtn').disabled=true;
+    document.getElementById('submittedMsg').style.display='block';
+    setTimeout(()=>{ document.getElementById('victoryOverlay').classList.remove('show'); resetGameState(); nextRound(); startTimer(); },1500);
+}
+
+function skipSubmit() {
+    document.getElementById('victoryOverlay').classList.remove('show');
+    resetGameState(); nextRound(); startTimer();
+}
+
+function spawnSparkle(el) {
+    const rect=el.getBoundingClientRect(), sparkle=document.createElement('div');
+    sparkle.className='sparkle'; sparkle.textContent='⭐';
+    sparkle.style.left=(rect.left+rect.width/2-10)+'px'; sparkle.style.top=rect.top+'px';
+    document.body.appendChild(sparkle); setTimeout(()=>sparkle.remove(),800);
+}
+
+// ========== DASHBOARD ==========
+let autoRefreshInterval=null;
+
+function renderDashboard() {
+    const records=getRecords();
+    const container=document.getElementById('dashboardContent');
+    if(records.length===0){ container.innerHTML='<div class="empty-state">📭 暂无通关记录<br><small>学生通关并提交姓名后，成绩将显示在这里</small></div>'; return; }
+    // Sort by time ascending
+    records.sort((a,b)=>a.time-b.time);
+    let html=`<table><thead><tr><th>排名</th><th>姓名</th><th>用时</th><th>失误</th><th>提交时间</th></tr></thead><tbody>`;
+    records.forEach((r,i)=>{
+        const m=String(Math.floor(r.time/60)).padStart(2,'0'), s=String(r.time%60).padStart(2,'0');
+        let rankBadge='';
+        if(i===0) rankBadge='<span class="rank-badge rank-1">🥇</span>';
+        else if(i===1) rankBadge='<span class="rank-badge rank-2">🥈</span>';
+        else if(i===2) rankBadge='<span class="rank-badge rank-3">🥉</span>';
+        else rankBadge=`<span class="rank-badge rank-other">${i+1}</span>`;
+        html+=`<tr><td>${rankBadge}</td><td><strong>${escapeHtml(r.name)}</strong></td><td>⏱ ${m}:${s}</td><td>${r.wrong} 次</td><td style="font-size:12px;color:#999">${r.date}</td></tr>`;
+    });
+    html+='</tbody></table>';
+    container.innerHTML=html;
+}
+
+function escapeHtml(str) { const d=document.createElement('div'); d.textContent=str; return d.innerHTML; }
+
+function startAutoRefresh() { if(!autoRefreshInterval) autoRefreshInterval=setInterval(renderDashboard,5000); }
+function toggleAutoRefresh() {
+    if(document.getElementById('autoRefresh').checked){ startAutoRefresh(); }else{ if(autoRefreshInterval) clearInterval(autoRefreshInterval); autoRefreshInterval=null; }
+}
+
+// ========== INIT ==========
+document.addEventListener('click', ()=>{ initAudio(); if(!musicOn&&currentMode==='student') startMusic(); }, {once:true});
+</script>
+</body>
+</html>
