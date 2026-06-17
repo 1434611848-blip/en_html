@@ -251,24 +251,96 @@ h1{
 
 <script>
 // ==================== Audio Engine ====================
-const AudioEngine = (()=>{
-  let ctx=null,musicGain=null,sfxGain=null,musicOn=true,sfxOn=true,musicInterval=null,currentMelodyNote=0;
-  const melody=[262,294,330,349,392,349,330,294,330,392,440,392,349,330,294,262,294,330,349,392,440,392,349,330,392,440,523,440,392,349,330,294];
-  const melodyTiming=[0.25,0.25,0.25,0.25,0.5,0.25,0.25,0.25,0.25,0.5,0.25,0.25,0.25,0.25,0.5,0.5,0.25,0.25,0.25,0.25,0.5,0.25,0.25,0.25,0.25,0.5,0.5,0.25,0.25,0.25,0.25,0.5];
-  function init(){if(ctx)return;ctx=new(window.AudioContext||window.webkitAudioContext)();musicGain=ctx.createGain();musicGain.gain.value=0.08;musicGain.connect(ctx.destination);sfxGain=ctx.createGain();sfxGain.gain.value=0.15;sfxGain.connect(ctx.destination)}
-  function playNote(freq,dur,gain,type='sine'){if(!ctx)return;const o=ctx.createOscillator(),e=ctx.createGain();o.type=type;o.frequency.value=freq;e.gain.setValueAtTime(0.3,ctx.currentTime);e.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);o.connect(e);e.connect(gain);o.start(ctx.currentTime);o.stop(ctx.currentTime+dur+0.05)}
-  function playMelody(freq,dur){if(!ctx||!musicOn)return;const o=ctx.createOscillator(),e=ctx.createGain(),f=ctx.createBiquadFilter();o.type='triangle';o.frequency.value=freq;e.gain.setValueAtTime(0.25,ctx.currentTime);e.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);f.type='lowpass';f.frequency.value=800;o.connect(f);f.connect(e);e.connect(musicGain);o.start(ctx.currentTime);o.stop(ctx.currentTime+dur+0.1)}
-  function startMusic(){if(!ctx||!musicOn)return;stopMusic();currentMelodyNote=0;function next(){if(!musicOn){musicInterval=null;return}const f=melody[currentMelodyNote%melody.length],d=melodyTiming[currentMelodyNote%melodyTiming.length];playMelody(f,d);currentMelodyNote++;musicInterval=setTimeout(next,d*1000+80)}next()}
-  function stopMusic(){if(musicInterval){clearTimeout(musicInterval);musicInterval=null}}
-  return{init,startMusic,stopMusic,
-    playMatchSuccess(){if(!ctx||!sfxOn)return;playNote(523,0.15,sfxGain,'square');setTimeout(()=>playNote(659,0.15,sfxGain,'square'),100);setTimeout(()=>playNote(784,0.25,sfxGain,'square'),200)},
-    playMatchFail(){if(!ctx||!sfxOn)return;playNote(200,0.3,sfxGain,'sawtooth');setTimeout(()=>playNote(160,0.35,sfxGain,'sawtooth'),150)},
-    playCardFlip(){if(!ctx||!sfxOn)return;playNote(440,0.08,sfxGain,'sine')},
-    playRoundComplete(){if(!ctx||!sfxOn)return;[523,659,784,1047].forEach((n,i)=>setTimeout(()=>playNote(n,0.2,sfxGain,'square'),i*120))},
-    toggleMusic(){musicOn=!musicOn;if(musicOn)startMusic();else stopMusic();return musicOn},
-    toggleSfx(){sfxOn=!sfxOn;return sfxOn},
-    get musicOn(){return musicOn},get sfxOn(){return sfxOn},
-    resume(){if(ctx&&ctx.state==='suspended')ctx.resume()}
+const AudioEngine = (function() {
+  var ctx = null, musicGain = null, sfxGain = null, musicOn = true, sfxOn = true, musicInterval = null, currentMelodyNote = 0;
+  var melody = [262,294,330,349,392,349,330,294,330,392,440,392,349,330,294,262,294,330,349,392,440,392,349,330,392,440,523,440,392,349,330,294];
+  var melodyTiming = [0.25,0.25,0.25,0.25,0.5,0.25,0.25,0.25,0.25,0.5,0.25,0.25,0.25,0.25,0.5,0.5,0.25,0.25,0.25,0.25,0.5,0.25,0.25,0.25,0.25,0.5,0.5,0.25,0.25,0.25,0.25,0.5];
+
+  function init() {
+    if (ctx) return;
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    musicGain = ctx.createGain(); musicGain.gain.value = 0.08; musicGain.connect(ctx.destination);
+    sfxGain = ctx.createGain(); sfxGain.gain.value = 0.15; sfxGain.connect(ctx.destination);
+  }
+
+  function playNote(freq, dur, gain, type) {
+    if (!ctx) return;
+    type = type || 'sine';
+    var o = ctx.createOscillator(), e = ctx.createGain();
+    o.type = type; o.frequency.value = freq;
+    e.gain.setValueAtTime(0.3, ctx.currentTime);
+    e.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    o.connect(e); e.connect(gain);
+    o.start(ctx.currentTime); o.stop(ctx.currentTime + dur + 0.05);
+  }
+
+  function playMelody(freq, dur) {
+    if (!ctx || !musicOn) return;
+    var o = ctx.createOscillator(), e = ctx.createGain(), f = ctx.createBiquadFilter();
+    o.type = 'triangle'; o.frequency.value = freq;
+    e.gain.setValueAtTime(0.25, ctx.currentTime);
+    e.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    f.type = 'lowpass'; f.frequency.value = 800;
+    o.connect(f); f.connect(e); e.connect(musicGain);
+    o.start(ctx.currentTime); o.stop(ctx.currentTime + dur + 0.1);
+  }
+
+  function startMusic() {
+    if (!ctx || !musicOn) return;
+    stopMusic();
+    currentMelodyNote = 0;
+    function next() {
+      if (!musicOn) { musicInterval = null; return; }
+      var f = melody[currentMelodyNote % melody.length];
+      var d = melodyTiming[currentMelodyNote % melodyTiming.length];
+      playMelody(f, d);
+      currentMelodyNote++;
+      musicInterval = setTimeout(next, d * 1000 + 80);
+    }
+    next();
+  }
+
+  function stopMusic() {
+    if (musicInterval) { clearTimeout(musicInterval); musicInterval = null; }
+  }
+
+  return {
+    init: init,
+    startMusic: startMusic,
+    stopMusic: stopMusic,
+    playMatchSuccess: function() {
+      if (!ctx || !sfxOn) return;
+      playNote(523, 0.15, sfxGain, 'square');
+      setTimeout(function() { playNote(659, 0.15, sfxGain, 'square'); }, 100);
+      setTimeout(function() { playNote(784, 0.25, sfxGain, 'square'); }, 200);
+    },
+    playMatchFail: function() {
+      if (!ctx || !sfxOn) return;
+      playNote(200, 0.3, sfxGain, 'sawtooth');
+      setTimeout(function() { playNote(160, 0.35, sfxGain, 'sawtooth'); }, 150);
+    },
+    playCardFlip: function() {
+      if (!ctx || !sfxOn) return;
+      playNote(440, 0.08, sfxGain, 'sine');
+    },
+    playRoundComplete: function() {
+      if (!ctx || !sfxOn) return;
+      [523, 659, 784, 1047].forEach(function(n, i) {
+        setTimeout(function() { playNote(n, 0.2, sfxGain, 'square'); }, i * 120);
+      });
+    },
+    toggleMusic: function() {
+      musicOn = !musicOn;
+      if (musicOn) startMusic(); else stopMusic();
+      return musicOn;
+    },
+    toggleSfx: function() {
+      sfxOn = !sfxOn;
+      return sfxOn;
+    },
+    resume: function() {
+      if (ctx && ctx.state === 'suspended') ctx.resume();
+    }
   };
 })();
 
