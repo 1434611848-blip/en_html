@@ -183,6 +183,10 @@ tbody tr:hover{background:#f8fafc}
 .status-active{background:#dcfce7;color:#166534}
 .status-inactive{background:#f1f5f9;color:#64748b}
 .edition-actions{display:flex;gap:6px;flex-wrap:wrap}
+.edition-note{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-muted);font-size:0.85em;cursor:pointer;display:flex;align-items:center;gap:4px}
+.edition-note:hover{color:var(--accent)}
+.edition-note .note-icon{flex-shrink:0;font-size:1em}
+.edition-note-input{border:1px solid var(--accent);border-radius:6px;padding:4px 8px;font-size:0.85em;background:white;color:var(--text);width:130px;outline:none}
 
 /* Modal */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease}
@@ -591,7 +595,7 @@ function addEdition(words){
   const editions=getEditions();
   const name=generateEditionName();
   const id='ed_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
-  const edition={id,name,words,createdAt:new Date().toISOString()};
+  const edition={id,name,words,createdAt:new Date().toISOString(),note:''};
   editions.push(edition);
   setStorage(KEYS.editions,editions);
   // 首次上传自动激活
@@ -671,7 +675,7 @@ function renderEditions(){
   const sorted=[...editions].reverse();
   container.innerHTML=`
     <table class="edition-table">
-      <thead><tr><th>期次名称</th><th>单词数</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead>
+      <thead><tr><th>期次名称</th><th>单词数</th><th>状态</th><th>创建时间</th><th>备注</th><th>操作</th></tr></thead>
       <tbody>${sorted.map(e=>{
         const isActive=e.id===activeId;
         const date=new Date(e.createdAt);
@@ -681,6 +685,7 @@ function renderEditions(){
           <td>${e.words.length} 组</td>
           <td><span class="status-tag ${isActive?'status-active':'status-inactive'}">${isActive?'激活中':'未激活'}</span></td>
           <td style="color:var(--text-muted);font-size:0.85em">${dateStr}</td>
+          <td><span class="edition-note" onclick="startEditNote('${e.id}',this)" title="${e.note||'点击添加备注'}"><span class="note-icon">✏️</span>${e.note||'—'}</span></td>
           <td><div class="edition-actions">
             ${isActive
               ?`<button class="btn btn-outline btn-small" onclick="deactivateEdition()">下架</button>`
@@ -692,6 +697,29 @@ function renderEditions(){
         </tr>`;
       }).join('')}</tbody>
     </table>`;
+}
+
+function startEditNote(editionId,el){
+  const editions=getEditions();
+  const ed=editions.find(e=>e.id===editionId);
+  if(!ed)return;
+  const input=document.createElement('input');
+  input.className='edition-note-input';
+  input.value=ed.note||'';
+  input.placeholder='输入备注...';
+  el.replaceWith(input);
+  input.focus();
+  input.addEventListener('blur',()=>saveEditionNote(editionId,input.value,input,el));
+  input.addEventListener('keydown',function(e){if(e.key==='Enter'){saveEditionNote(editionId,input.value,input,el)}});
+}
+function saveEditionNote(editionId,value,inputEl,originalEl){
+  const editions=getEditions();
+  const ed=editions.find(e=>e.id===editionId);
+  if(!ed)return;
+  ed.note=value.trim();
+  setStorage(KEYS.editions,editions);
+  inputEl.replaceWith(originalEl);
+  renderEditions();
 }
 
 // Click outside modal to close
