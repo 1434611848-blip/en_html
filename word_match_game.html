@@ -440,9 +440,8 @@ function onCardClick(el,card){
   // Click same card → deselect
   if(prev&&prev.el===el){el.classList.remove('selected');state.selectedCard=null;return}
 
-  // No card selected: only allow English cards
+  // No card selected: select any card
   if(!prev){
-    if(card.type!=='en'){showToast('请先点击英文单词！','error');return}
     el.classList.add('selected');state.selectedCard={el,card};return
   }
 
