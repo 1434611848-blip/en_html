@@ -354,6 +354,16 @@ function getTeachers(){
 }
 function getRecords(){return getStorage(STORAGE_KEYS.records,[])}
 function getWords(){
+  // 优先读取激活期单词
+  try{
+    const activeId=localStorage.getItem('active_edition_id');
+    if(activeId){
+      const editions=JSON.parse(localStorage.getItem('word_editions')||'[]');
+      const active=editions.find(function(e){return e.id===activeId});
+      if(active&&active.words&&active.words.length>0)return active.words;
+    }
+  }catch(e){}
+  // fallback 到默认单词表
   const raw=getStorage(STORAGE_KEYS.words,DEFAULT_WORDS);
   return (Array.isArray(raw)&&raw.length>0)?raw:DEFAULT_WORDS;
 }
