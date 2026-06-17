@@ -428,6 +428,7 @@ function renderCards(cards){
 function startRound(){
   state.isLocked=false;state.selectedCard=null;state.roundNum++;
   $roundNum.textContent=state.roundNum;
+  if(state.roundNum>10){endGame();return}
   const rw=pickRoundWords();
   if(rw.length<3){endGame();return}
   state.currentRoundWords=rw;currentCards=buildCards(rw);renderCards(currentCards);updateProgress();
