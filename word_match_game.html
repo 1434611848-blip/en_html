@@ -269,6 +269,7 @@ const AudioEngine = (()=>{
     toggleSfx(){sfxOn=!sfxOn;return sfxOn},
     get musicOn(){return musicOn},get sfxOn(){return sfxOn},
     resume(){if(ctx&&ctx.state==='suspended')ctx.resume()}
+  };
 })();
 
 // ==================== Storage ====================
