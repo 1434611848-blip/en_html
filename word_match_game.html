@@ -290,7 +290,11 @@ const AudioEngine = (function() {
       currentMelodyNote++;
       musicInterval = setTimeout(next, d * 1000 + 80);
     }
-    next();
+    if (ctx.state === 'suspended') {
+      ctx.resume().then(next);
+    } else {
+      next();
+    }
   }
 
   function stopMusic() {
