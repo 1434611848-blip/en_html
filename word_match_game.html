@@ -201,21 +201,31 @@ h1{
   <!-- ===== Student Screen ===== -->
   <div class="screen" id="studentScreen">
     <div class="card-panel">
-      <h1>🎮 学生入口</h1>
-      <p class="subtitle">准备好了吗？开始挑战吧！</p>
-      <div class="form-group">
-        <label>你的名字</label>
-        <input type="text" id="playerName" placeholder="请输入你的名字" maxlength="20" autofocus>
+      <!-- Step 1: Name -->
+      <div id="studentStep1">
+        <h1>你的名字</h1>
+        <p class="subtitle">请输入你的名字开始挑战</p>
+        <div class="form-group">
+          <label>名字</label>
+          <input type="text" id="playerName" placeholder="请输入你的名字" maxlength="20" autofocus>
+        </div>
+        <button class="btn btn-primary" id="step1NextBtn">下一步</button>
+        <button class="btn btn-outline" style="width:100%;margin-top:10px" onclick="goEntry()">返回首页</button>
       </div>
-      <div class="form-group">
-        <label>选择辅导老师</label>
-        <select id="teacherSelect"></select>
+      <!-- Step 2: Teacher -->
+      <div id="studentStep2" style="display:none">
+        <h1>你好，<span id="step2Greeting"></span>！</h1>
+        <p class="subtitle">选择辅导老师，开始游戏</p>
+        <div class="form-group">
+          <label>选择辅导老师</label>
+          <select id="teacherSelect"></select>
+        </div>
+        <div style="font-size:0.8em;color:rgba(255,255,255,0.4);margin-bottom:18px;text-align:center">
+          当前词汇池：<span id="vocabCount">32</span> 组单词
+        </div>
+        <button class="btn btn-primary" id="startBtn">开始游戏</button>
+        <button class="btn btn-outline" style="width:100%;margin-top:10px" id="backToStep1Btn">返回修改名字</button>
       </div>
-      <div style="font-size:0.8em;color:rgba(255,255,255,0.4);margin-bottom:18px;text-align:center">
-        当前词汇池：<span id="vocabCount">32</span> 组单词
-      </div>
-      <button class="btn btn-primary" id="startBtn">🚀 开始游戏</button>
-      <button class="btn btn-outline" style="width:100%;margin-top:10px" onclick="goEntry()">← 返回首页</button>
     </div>
   </div>
 
@@ -448,13 +458,35 @@ function stopTimer(){if(timerInterval){clearInterval(timerInterval);timerInterva
 
 // ==================== Student Flow ====================
 function showStudent(){refreshStudentScreen();showScreen('student')}
-function refreshStudentScreen(){populateTeacherSelect();document.getElementById('vocabCount').textContent=getWords().length}
+function refreshStudentScreen(){
+  document.getElementById('studentStep1').style.display='block';
+  document.getElementById('studentStep2').style.display='none';
+  document.getElementById('playerName').value='';
+  populateTeacherSelect();
+  document.getElementById('vocabCount').textContent=getWords().length;
+}
 
+// Step 1 -> Step 2
+document.getElementById('step1NextBtn').addEventListener('click',()=>{
+  const name=document.getElementById('playerName').value.trim();
+  if(!name){showToast('请输入你的名字！','error');return}
+  document.getElementById('step2Greeting').textContent=name;
+  document.getElementById('studentStep1').style.display='none';
+  document.getElementById('studentStep2').style.display='block';
+});
+
+// Step 2 -> Step 1
+document.getElementById('backToStep1Btn').addEventListener('click',()=>{
+  document.getElementById('studentStep1').style.display='block';
+  document.getElementById('studentStep2').style.display='none';
+  document.getElementById('playerName').focus();
+});
+
+// Start game (from step 2)
 document.getElementById('startBtn').addEventListener('click',()=>{
   AudioEngine.init();AudioEngine.resume();
   const name=document.getElementById('playerName').value.trim();
   const teacher=document.getElementById('teacherSelect').value;
-  if(!name){showToast('请输入你的名字！','error');return}
   if(!teacher){showToast('请选择辅导老师！','error');return}
   state.playerName=name;state.teacher=teacher;state.words=[...getWords()];
   state.roundNum=0;state.correctCount=0;state.wrongCount=0;state.pairLog=[];
