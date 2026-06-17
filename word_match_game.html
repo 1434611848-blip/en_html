@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>单词消消乐 - Word Match</title>
+<style>
+:root {
+  --bg: #1a1a2e;
+  --accent: #e94560;
+  --gold: #f5c518;
+  --pink: #ff6b9d;
+  --blue: #4ecdc4;
+  --purple: #a855f7;
+  --green: #22c55e;
+  --orange: #f97316;
+  --text: #f1f5f9;
+  --text-dark: #1e293b;
+  --surface: rgba(255,255,255,0.08);
+  --radius: 16px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+  background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);
+  min-height:100vh;color:var(--text);overflow-x:hidden;
+}
+.particles{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.particle{position:absolute;border-radius:50%;opacity:0.3;animation:floatUp 8s infinite}
+@keyframes floatUp{
+  0%{transform:translateY(100vh) scale(0);opacity:0}
+  20%{opacity:0.4}
+  80%{opacity:0.1}
+  100%{transform:translateY(-10vh) scale(1.5);opacity:0}
+}
+.container{position:relative;z-index:1;max-width:800px;margin:0 auto;padding:20px}
+.screen{display:none}
+.screen.active{display:block}
+
+/* Cards */
+.card-panel{
+  background:linear-gradient(145deg,rgba(255,255,255,0.1),rgba(255,255,255,0.03));
+  border:1px solid rgba(255,255,255,0.12);border-radius:var(--radius);
+  padding:32px 28px;backdrop-filter:blur(10px);box-shadow:0 8px 32px rgba(0,0,0,0.3);
+  animation:slideUp 0.5s ease;
+}
+@keyframes slideUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+
+h1{
+  text-align:center;font-size:2.2em;margin-bottom:8px;
+  background:linear-gradient(135deg,var(--pink),var(--blue),var(--purple));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.subtitle{text-align:center;color:rgba(255,255,255,0.6);margin-bottom:28px;font-size:0.95em}
+.form-group{margin-bottom:18px}
+.form-group label{display:block;margin-bottom:6px;font-weight:600;color:rgba(255,255,255,0.85);font-size:0.95em}
+.form-group input,.form-group select{
+  width:100%;padding:12px 16px;border:1px solid rgba(255,255,255,0.2);
+  border-radius:10px;background:rgba(255,255,255,0.06);color:var(--text);font-size:1em;outline:none;
+  transition:border 0.2s;
+}
+.form-group input:focus,.form-group select:focus{border-color:var(--pink)}
+.btn{
+  display:inline-block;padding:12px 32px;border:none;border-radius:10px;
+  font-size:1.05em;font-weight:700;cursor:pointer;transition:all 0.3s;color:#fff;
+}
+.btn-primary{background:linear-gradient(135deg,var(--pink),var(--accent));width:100%;box-shadow:0 4px 16px rgba(233,68,96,0.4)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(233,68,96,0.5)}
+.btn-secondary{background:linear-gradient(135deg,var(--blue),#2dd4bf);box-shadow:0 4px 16px rgba(78,205,196,0.3)}
+.btn-secondary:hover{transform:translateY(-2px)}
+.btn-small{padding:8px 20px;font-size:0.9em}
+.btn-outline{background:transparent;border:1px solid rgba(255,255,255,0.3);color:var(--text)}
+.btn-outline:hover{background:rgba(255,255,255,0.1)}
+.btn-danger{background:linear-gradient(135deg,#ef4444,#dc2626)}
+.btn-danger:hover{transform:translateY(-2px)}
+
+/* Entry button */
+.entry-btn{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:40px 20px;border-radius:var(--radius);border:2px solid rgba(255,255,255,0.15);
+  background:linear-gradient(145deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02));
+  cursor:pointer;transition:all 0.35s;text-decoration:none;color:var(--text);
+  backdrop-filter:blur(10px);max-width:340px;margin:40px auto 0;
+}
+.entry-btn:hover{transform:translateY(-6px);border-color:var(--pink);box-shadow:0 12px 40px rgba(0,0,0,0.4)}
+.entry-btn .icon{font-size:3.5em;margin-bottom:12px}
+.entry-btn .title{font-size:1.4em;font-weight:700;margin-bottom:6px}
+.entry-btn .desc{font-size:0.85em;color:rgba(255,255,255,0.5)}
+
+/* Admin link - tiny, bottom corner */
+.admin-link{
+  position:fixed;bottom:12px;right:16px;z-index:50;
+  font-size:0.7em;color:rgba(255,255,255,0.18);cursor:pointer;
+  text-decoration:none;transition:color 0.3s;
+}
+.admin-link:hover{color:rgba(255,255,255,0.4)}
+
+/* Game Screen */
+.game-header{
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;
+  margin-bottom:24px;padding:16px 20px;background:var(--surface);
+  border-radius:12px;border:1px solid rgba(255,255,255,0.1);
+}
+.stat{text-align:center;min-width:65px}
+.stat .val{font-size:1.5em;font-weight:700}
+.stat .lbl{font-size:0.75em;color:rgba(255,255,255,0.5)}
+.stat.timer .val{color:var(--gold)}
+.stat.score .val{color:var(--green)}
+.stat.round .val{color:var(--blue)}
+.cards-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+@media(max-width:600px){.cards-grid{grid-template-columns:repeat(2,1fr);gap:10px}}
+.card{aspect-ratio:1;perspective:600px;cursor:pointer}
+.card-inner{width:100%;height:100%;transition:transform 0.5s cubic-bezier(0.4,0,0.2,1);transform-style:preserve-3d;position:relative}
+.card.flipped .card-inner{transform:rotateY(180deg)}
+.card.matched{animation:matchPop 0.5s ease forwards;pointer-events:none}
+@keyframes matchPop{
+  0%{transform:scale(1);opacity:1}
+  50%{transform:scale(1.15);opacity:0.8}
+  100%{transform:scale(0);opacity:0}
+}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.card.wrong{animation:shake 0.4s ease}
+.card-face{
+  position:absolute;width:100%;height:100%;backface-visibility:hidden;
+  border-radius:14px;display:flex;align-items:center;justify-content:center;
+  font-size:1.3em;font-weight:700;text-align:center;padding:12px;
+  box-shadow:0 6px 20px rgba(0,0,0,0.3);
+}
+.card-front{
+  background:linear-gradient(145deg,#2d2d5e,#1a1a3e);border:2px solid rgba(255,255,255,0.15);
+  color:var(--gold);font-size:2em;
+}
+.card-back{transform:rotateY(180deg);border:2px solid rgba(255,255,255,0.2)}
+.card-back.en{background:linear-gradient(145deg,var(--pink),#e94560)}
+.card-back.cn{background:linear-gradient(145deg,var(--blue),#2dd4bf);color:var(--text-dark)}
+.progress-bar{width:100%;height:6px;background:rgba(255,255,255,0.1);border-radius:3px;margin-bottom:24px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--pink),var(--blue));transition:width 0.4s ease}
+
+/* Results */
+.results-card{padding:28px;animation:slideUp 0.5s ease}
+.results-card h2{text-align:center;margin-bottom:20px;background:linear-gradient(135deg,var(--gold),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-size:1.6em}
+.result-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:14px;margin-bottom:20px}
+.result-stat{text-align:center;padding:14px;background:var(--surface);border-radius:12px}
+.result-stat .val{font-size:1.7em;font-weight:700}
+.result-stat .lbl{font-size:0.78em;color:rgba(255,255,255,0.5);margin-top:4px}
+.btn-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:16px}
+
+/* Admin panel */
+.admin-section{margin-bottom:24px}
+.admin-section h3{color:var(--purple);margin-bottom:12px;font-size:1.1em;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:8px}
+.teacher-tag{
+  display:inline-flex;align-items:center;gap:8px;padding:8px 14px;
+  background:rgba(168,85,247,0.2);border:1px solid rgba(168,85,247,0.3);
+  border-radius:20px;margin:4px 6px 4px 0;font-size:0.9em;
+}
+.teacher-tag .remove-btn{
+  cursor:pointer;color:#f87171;font-weight:700;font-size:1.1em;
+  line-height:1;transition:color 0.2s;
+}
+.teacher-tag .remove-btn:hover{color:#ef4444}
+.add-teacher-row{display:flex;gap:8px;margin-top:10px}
+.add-teacher-row input{flex:1;padding:10px 14px;border:1px solid rgba(255,255,255,0.2);border-radius:10px;background:rgba(255,255,255,0.06);color:var(--text);font-size:0.95em;outline:none}
+.add-teacher-row input:focus{border-color:var(--purple)}
+
+.file-upload-area{
+  border:2px dashed rgba(255,255,255,0.25);border-radius:12px;padding:28px;text-align:center;
+  cursor:pointer;transition:all 0.3s;background:rgba(255,255,255,0.03);
+}
+.file-upload-area:hover{border-color:var(--blue);background:rgba(78,205,196,0.08)}
+.file-upload-area .icon{font-size:2.5em;margin-bottom:8px}
+.file-upload-area .text{color:rgba(255,255,255,0.6);font-size:0.9em}
+.file-upload-area .hint{color:rgba(255,255,255,0.35);font-size:0.8em;margin-top:4px}
+.file-info{color:var(--green);font-size:0.85em;margin-top:6px;display:none}
+
+/* Leaderboard table */
+.leaderboard table{width:100%;border-collapse:collapse;margin-top:12px}
+.leaderboard th,.leaderboard td{padding:10px 12px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.9em}
+.leaderboard th{color:rgba(255,255,255,0.5);font-weight:500}
+.rank-badge{display:inline-block;width:26px;height:26px;border-radius:50%;line-height:26px;font-weight:700;font-size:0.85em}
+.rank-1{background:var(--gold);color:#1a1a2e}
+.rank-2{background:#c0c0c0;color:#1a1a2e}
+.rank-3{background:#cd7f32;color:#fff}
+
+/* Sound toggle */
+.sound-toggle{
+  position:fixed;top:16px;right:16px;z-index:100;width:44px;height:44px;
+  border-radius:50%;background:var(--surface);border:1px solid rgba(255,255,255,0.2);
+  color:var(--text);cursor:pointer;font-size:1.2em;
+  display:flex;align-items:center;justify-content:center;transition:all 0.3s;
+}
+.sound-toggle:hover{background:rgba(255,255,255,0.15)}
+.sound-toggle.muted{opacity:0.5}
+.back-btn{
+  position:fixed;top:16px;left:16px;z-index:100;padding:8px 16px;
+  border-radius:8px;background:var(--surface);border:1px solid rgba(255,255,255,0.2);
+  color:var(--text);cursor:pointer;font-size:0.85em;transition:all 0.3s;
+}
+.back-btn:hover{background:rgba(255,255,255,0.15)}
+
+/* Toast */
+.toast{
+  position:fixed;top:20px;left:50%;transform:translateX(-50%);padding:12px 28px;
+  border-radius:10px;font-weight:600;z-index:200;
+  animation:toastIn 0.3s ease,toastOut 0.3s ease 2.3s forwards;
+  pointer-events:none;font-size:0.95em;
+}
+.toast.success{background:var(--green);color:#fff}
+.toast.error{background:var(--accent);color:#fff}
+.toast.info{background:var(--blue);color:#1a1a2e}
+@keyframes toastIn{from{opacity:0;top:0}to{opacity:1;top:20px}}
+@keyframes toastOut{from{opacity:1}to{opacity:0}}
+
+/* Modal */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:150;
+  display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s;
+}
+@keyframes fadeIn{from{opacity:0}}
+.modal-box{
+  background:linear-gradient(145deg,#1e1e3e,#16162e);border:1px solid rgba(255,255,255,0.15);
+  border-radius:16px;padding:28px;max-width:400px;width:90%;
+  box-shadow:0 16px 48px rgba(0,0,0,0.5);
+}
+.modal-box h3{text-align:center;margin-bottom:20px;color:var(--purple)}
+.modal-box input{width:100%;padding:12px 16px;border:1px solid rgba(255,255,255,0.2);border-radius:10px;background:rgba(255,255,255,0.06);color:var(--text);font-size:1em;outline:none;margin-bottom:16px}
+.modal-box input:focus{border-color:var(--purple)}
+.modal-btns{display:flex;gap:10px}
+.modal-btns .btn{flex:1}
+</style>
+</head>
+<body>
+<div class="particles" id="particles"></div>
+<button class="sound-toggle" id="soundToggle" title="音效开关">♪</button>
+<button class="back-btn" id="backBtn" style="display:none" title="返回">← 返回</button>
+
+<div class="container">
+
+  <!-- ===== Entry Screen ===== -->
+  <div class="screen active" id="entryScreen">
+    <div class="card-panel" style="text-align:center">
+      <h1>🌟 单词消消乐</h1>
+      <p class="subtitle">Word Match Adventure</p>
+      <div class="entry-btn" onclick="showStudent()">
+        <div class="icon">🎮</div>
+        <div class="title">开始游戏</div>
+        <div class="desc">输入名字，选择老师，开始挑战</div>
+      </div>
+    </div>
+    <span class="admin-link" onclick="showAdminModal()">教师管理</span>
+  </div>
+
+  <!-- ===== Student Screen ===== -->
+  <div class="screen" id="studentScreen">
+    <div class="card-panel">
+      <h1>🎮 学生入口</h1>
+      <p class="subtitle">准备好了吗？开始挑战吧！</p>
+      <div class="form-group">
+        <label>👦👧 你的名字</label>
+        <input type="text" id="playerName" placeholder="请输入你的名字" maxlength="20">
+      </div>
+      <div class="form-group">
+        <label>👩‍🏫 选择辅导老师</label>
+        <select id="teacherSelect"></select>
+      </div>
+      <div style="font-size:0.8em;color:rgba(255,255,255,0.4);margin-bottom:18px;text-align:center">
+        当前词汇池：<span id="vocabCount">32</span> 组单词
+      </div>
+      <button class="btn btn-primary" id="startBtn">🚀 开始游戏</button>
+      <button class="btn btn-outline" style="width:100%;margin-top:10px" onclick="goEntry()">← 返回首页</button>
+    </div>
+  </div>
+
+  <!-- ===== Game Screen ===== -->
+  <div class="screen" id="gameScreen">
+    <div class="game-header">
+      <div class="stat timer"><div class="val" id="timer">00:00</div><div class="lbl">用时</div></div>
+      <div class="stat score"><div class="val" id="correctCount">0</div><div class="lbl">正确</div></div>
+      <div class="stat"><div class="val" id="wrongCount">0</div><div class="lbl" style="color:#f87171">错误</div></div>
+      <div class="stat round"><div class="val" id="roundNum">1</div><div class="lbl">轮次</div></div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <div class="cards-grid" id="cardsGrid"></div>
+    <button class="btn btn-outline btn-small" style="display:block;margin:0 auto" onclick="confirmEndGame()">⏹ 结束游戏</button>
+  </div>
+
+  <!-- ===== Results Screen ===== -->
+  <div class="screen" id="resultsScreen">
+    <div class="card-panel results-card" id="resultsContent"></div>
+  </div>
+
+  <!-- ===== Admin Screen ===== -->
+  <div class="screen" id="adminScreen">
+    <div class="card-panel">
+      <h1>⚙️ 教师后台</h1>
+      <p class="subtitle">管理单词库、老师名单、查看学生记录</p>
+
+      <!-- Word Upload -->
+      <div class="admin-section">
+        <h3>📂 单词文件上传</h3>
+        <div class="file-upload-area" id="uploadArea">
+          <div class="icon">📂</div>
+          <div class="text">点击上传单词文件</div>
+          <div class="hint">支持 .txt / .json / .docx / .pdf</div>
+          <div class="file-info" id="fileInfo"></div>
+        </div>
+        <input type="file" id="fileInput" accept=".txt,.json,.docx,.pdf" style="display:none">
+        <div style="font-size:0.8em;color:rgba(255,255,255,0.4);margin-top:8px">
+          当前词汇池：<span id="adminVocabCount">32</span> 组单词
+        </div>
+      </div>
+
+      <!-- Teacher Management -->
+      <div class="admin-section">
+        <h3>👩‍🏫 老师名单管理</h3>
+        <div id="teacherTags"></div>
+        <div class="add-teacher-row">
+          <input type="text" id="newTeacherName" placeholder="输入新老师名字" maxlength="20">
+          <button class="btn btn-secondary btn-small" onclick="addTeacher()">+ 添加</button>
+        </div>
+      </div>
+
+      <!-- Change Password -->
+      <div class="admin-section">
+        <h3>🔒 修改密码</h3>
+        <div class="add-teacher-row">
+          <input type="text" id="newPassword" placeholder="输入新密码" maxlength="20">
+          <button class="btn btn-secondary btn-small" onclick="changePassword()">保存</button>
+        </div>
+      </div>
+
+      <!-- Records & Leaderboard -->
+      <div class="admin-section">
+        <h3>📊 排行榜 TOP 5</h3>
+        <div class="leaderboard" id="adminLeaderboard">
+          <p style="color:rgba(255,255,255,0.4);text-align:center">暂无记录</p>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary btn-small" onclick="downloadAllCSV()">📥 下载全部学生记录</button>
+        <button class="btn btn-outline btn-small" onclick="goEntry()">← 返回首页</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Admin Password Modal -->
+<div class="modal-overlay" id="adminModal" style="display:none">
+  <div class="modal-box">
+    <h3>🔒 教师后台</h3>
+    <input type="password" id="adminPasswordInput" placeholder="请输入管理密码" maxlength="30">
+    <div class="modal-btns">
+      <button class="btn btn-outline btn-small" onclick="closeAdminModal()">取消</button>
+      <button class="btn btn-primary btn-small" onclick="verifyPassword()">确认</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== Audio Engine ====================
+const AudioEngine = (()=>{
+  let ctx=null,musicGain=null,sfxGain=null,musicOn=true,sfxOn=true,musicInterval=null,currentMelodyNote=0;
+  const melody=[262,294,330,349,392,349,330,294,330,392,440,392,349,330,294,262,294,330,349,392,440,392,349,330,392,440,523,440,392,349,330,294];
+  const melodyTiming=[0.25,0.25,0.25,0.25,0.5,0.25,0.25,0.25,0.25,0.5,0.25,0.25,0.25,0.25,0.5,0.5,0.25,0.25,0.25,0.25,0.5,0.25,0.25,0.25,0.25,0.5,0.5,0.25,0.25,0.25,0.25,0.5];
+  function init(){if(ctx)return;ctx=new(window.AudioContext||window.webkitAudioContext)();musicGain=ctx.createGain();musicGain.gain.value=0.08;musicGain.connect(ctx.destination);sfxGain=ctx.createGain();sfxGain.gain.value=0.15;sfxGain.connect(ctx.destination)}
+  function playNote(freq,dur,gain,type='sine'){if(!ctx)return;const o=ctx.createOscillator(),e=ctx.createGain();o.type=type;o.frequency.value=freq;e.gain.setValueAtTime(0.3,ctx.currentTime);e.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);o.connect(e);e.connect(gain);o.start(ctx.currentTime);o.stop(ctx.currentTime+dur+0.05)}
+  function playMelody(freq,dur){if(!ctx||!musicOn)return;const o=ctx.createOscillator(),e=ctx.createGain(),f=ctx.createBiquadFilter();o.type='triangle';o.frequency.value=freq;e.gain.setValueAtTime(0.25,ctx.currentTime);e.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);f.type='lowpass';f.frequency.value=800;o.connect(f);f.connect(e);e.connect(musicGain);o.start(ctx.currentTime);o.stop(ctx.currentTime+dur+0.1)}
+  function startMusic(){if(!ctx||!musicOn)return;stopMusic();currentMelodyNote=0;function next(){if(!musicOn){musicInterval=null;return}const f=melody[currentMelodyNote%melody.length],d=melodyTiming[currentMelodyNote%melodyTiming.length];playMelody(f,d);currentMelodyNote++;musicInterval=setTimeout(next,d*1000+80)}next()}
+  function stopMusic(){if(musicInterval){clearTimeout(musicInterval);musicInterval=null}}
+  return{init,startMusic,stopMusic,
+    playMatchSuccess(){if(!ctx||!sfxOn)return;playNote(523,0.15,sfxGain,'square');setTimeout(()=>playNote(659,0.15,sfxGain,'square'),100);setTimeout(()=>playNote(784,0.25,sfxGain,'square'),200)},
+    playMatchFail(){if(!ctx||!sfxOn)return;playNote(200,0.3,sfxGain,'sawtooth');setTimeout(()=>playNote(160,0.35,sfxGain,'sawtooth'),150)},
+    playCardFlip(){if(!ctx||!sfxOn)return;playNote(440,0.08,sfxGain,'sine')},
+    playRoundComplete(){if(!ctx||!sfxOn)return;[523,659,784,1047].forEach((n,i)=>setTimeout(()=>playNote(n,0.2,sfxGain,'square'),i*120))},
+    toggleMusic(){musicOn=!musicOn;if(musicOn)startMusic();else stopMusic();return musicOn},
+    toggleSfx(){sfxOn=!sfxOn;return sfxOn},
+    get musicOn(){return musicOn},get sfxOn(){return sfxOn},
+    resume(){if(ctx&&ctx.state==='suspended')ctx.resume()}
+})();
+
+// ==================== Storage ====================
+const STORAGE_KEYS={records:'word_match_records',teachers:'teacher_list',password:'admin_password',words:'custom_word_list'};
+const DEFAULT_TEACHERS=['亚楠老师','佳萌老师','亚飞老师'];
+const DEFAULT_WORDS=[{en:'apple',cn:'苹果'},{en:'book',cn:'书'},{en:'cat',cn:'猫'},{en:'dog',cn:'狗'},{en:'elephant',cn:'大象'},{en:'flower',cn:'花'},{en:'garden',cn:'花园'},{en:'house',cn:'房子'},{en:'ice cream',cn:'冰淇淋'},{en:'juice',cn:'果汁'},{en:'kite',cn:'风筝'},{en:'lion',cn:'狮子'},{en:'moon',cn:'月亮'},{en:'night',cn:'夜晚'},{en:'orange',cn:'橙子'},{en:'pencil',cn:'铅笔'},{en:'queen',cn:'女王'},{en:'rainbow',cn:'彩虹'},{en:'school',cn:'学校'},{en:'teacher',cn:'老师'},{en:'umbrella',cn:'雨伞'},{en:'village',cn:'村庄'},{en:'water',cn:'水'},{en:'yellow',cn:'黄色'},{en:'zoo',cn:'动物园'},{en:'friend',cn:'朋友'},{en:'happy',cn:'快乐的'},{en:'beautiful',cn:'美丽的'},{en:'morning',cn:'早晨'},{en:'afternoon',cn:'下午'},{en:'family',cn:'家庭'},{en:'music',cn:'音乐'}];
+
+function getStorage(key,def){try{const v=localStorage.getItem(key);return v?JSON.parse(v):def}catch(e){return def}}
+function setStorage(key,val){localStorage.setItem(key,JSON.stringify(val))}
+function getTeachers(){return getStorage(STORAGE_KEYS.teachers,DEFAULT_TEACHERS)}
+function getRecords(){return getStorage(STORAGE_KEYS.records,[])}
+function getWords(){return getStorage(STORAGE_KEYS.words,DEFAULT_WORDS)}
+function getPassword(){return getStorage(STORAGE_KEYS.password,'admin123')}
+
+// ==================== State ====================
+const state={
+  playerName:'',teacher:'',words:[],currentRoundWords:[],roundNum:0,
+  correctCount:0,wrongCount:0,roundStartTime:0,gameStartTime:0,totalTime:0,
+  pairLog:[],selectedCard:null,isLocked:false
+};
+
+// ==================== DOM ====================
+const $entry=document.getElementById('entryScreen');
+const $student=document.getElementById('studentScreen');
+const $game=document.getElementById('gameScreen');
+const $results=document.getElementById('resultsScreen');
+const $admin=document.getElementById('adminScreen');
+const $cardsGrid=document.getElementById('cardsGrid');
+const $timer=document.getElementById('timer');
+const $correctCount=document.getElementById('correctCount');
+const $wrongCount=document.getElementById('wrongCount');
+const $roundNum=document.getElementById('roundNum');
+const $progressFill=document.getElementById('progressFill');
+const $resultsContent=document.getElementById('resultsContent');
+const $soundToggle=document.getElementById('soundToggle');
+const $backBtn=document.getElementById('backBtn');
+
+function showScreen(name){
+  [$entry,$student,$game,$results,$admin].forEach(s=>s.classList.remove('active'));
+  const map={entry:$entry,student:$student,game:$game,results:$results,admin:$admin};
+  if(map[name])map[name].classList.add('active');
+  $backBtn.style.display=(name==='entry'||name==='results')?'none':'block';
+}
+function goEntry(){stopTimer();AudioEngine.stopMusic();showScreen('entry');refreshStudentScreen()}
+
+function showToast(msg,type='info'){
+  const t=document.createElement('div');t.className=`toast ${type}`;t.textContent=msg;
+  document.body.appendChild(t);setTimeout(()=>t.remove(),2600);
+}
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+function formatTime(ms){const sec=Math.floor(ms/1000);return `${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`}
+
+// ==================== Teacher Management ====================
+function populateTeacherSelect(){
+  const sel=document.getElementById('teacherSelect');
+  sel.innerHTML=getTeachers().map(t=>`<option value="${t}">${t}</option>`).join('');
+}
+
+function renderTeacherTags(){
+  const container=document.getElementById('teacherTags');
+  container.innerHTML=getTeachers().map((t,i)=>
+    `<span class="teacher-tag">${t}<span class="remove-btn" onclick="removeTeacher(${i})" title="删除">×</span></span>`
+  ).join('');
+}
+
+function addTeacher(){
+  const input=document.getElementById('newTeacherName'),name=input.value.trim();
+  if(!name){showToast('请输入老师名字','error');return}
+  const teachers=getTeachers();
+  if(teachers.includes(name)){showToast('该老师已存在','error');return}
+  teachers.push(name);setStorage(STORAGE_KEYS.teachers,teachers);
+  input.value='';renderTeacherTags();populateTeacherSelect();
+  showToast(`已添加：${name}`,'success');
+}
+
+function removeTeacher(idx){
+  const teachers=getTeachers(),name=teachers[idx];
+  teachers.splice(idx,1);setStorage(STORAGE_KEYS.teachers,teachers);
+  renderTeacherTags();populateTeacherSelect();
+  showToast(`已移除：${name}`,'info');
+}
+
+function changePassword(){
+  const input=document.getElementById('newPassword'),pw=input.value.trim();
+  if(!pw){showToast('请输入新密码','error');return}
+  setStorage(STORAGE_KEYS.password,pw);input.value='';
+  showToast('密码已更新','success');
+}
+
+// ==================== Admin ====================
+function showAdminModal(){
+  document.getElementById('adminModal').style.display='flex';
+  document.getElementById('adminPasswordInput').value='';
+  document.getElementById('adminPasswordInput').focus();
+}
+function closeAdminModal(){document.getElementById('adminModal').style.display='none'}
+function verifyPassword(){
+  if(document.getElementById('adminPasswordInput').value.trim()===getPassword()){
+    closeAdminModal();showAdmin();
+  }else{showToast('密码错误','error')}
+}
+
+function showAdmin(){
+  showScreen('admin');renderTeacherTags();renderAdminLeaderboard();
+  document.getElementById('adminVocabCount').textContent=getWords().length;
+}
+
+function renderAdminLeaderboard(){
+  const container=document.getElementById('adminLeaderboard');
+  const records=getRecords();
+  if(records.length===0){
+    container.innerHTML='<p style="color:rgba(255,255,255,0.4);text-align:center">暂无记录</p>';return;
+  }
+  const sorted=[...records].sort((a,b)=>{if(b.accuracy!==a.accuracy)return b.accuracy-a.accuracy;return a.time-b.time}).slice(0,5);
+  container.innerHTML=`<table><thead><tr><th>排名</th><th>姓名</th><th>老师</th><th>用时</th><th>正确率</th><th>日期</th></tr></thead>
+    <tbody>${sorted.map((e,i)=>`<tr><td><span class="rank-badge rank-${i+1}">${i+1}</span></td><td>${e.name}</td><td>${e.teacher}</td><td>${formatTime(e.time)}</td><td>${e.accuracy}%</td><td>${e.date}</td></tr>`).join('')}</tbody></table>`;
+}
+
+function downloadAllCSV(){
+  const records=getRecords();
+  if(records.length===0){showToast('暂无学生记录','error');return}
+  let csv='\uFEFF姓名,老师,日期,用时(秒),正确数,错误数,正确率(%),轮次\n';
+  records.forEach(r=>{csv+=`${r.name},${r.teacher},${r.date},${(r.time/1000).toFixed(1)},${r.correct},${r.wrong},${r.accuracy},${r.rounds}\n`});
+  csv+='\n\n--- 各学生配对详情 ---\n';
+  records.forEach(r=>{csv+=`\n${r.name} (${r.date}):\n英文,中文,结果\n`;(r.pairLog||[]).forEach(p=>{csv+=`${p.en},${p.cn},${p.result}\n`})});
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=`全部学生记录_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+  URL.revokeObjectURL(url);showToast('全部记录已下载！','success');
+}
+
+// ==================== File Parsing ====================
+async function parseTxt(text){
+  const lines=text.split(/[\r\n]+/).filter(l=>l.trim()),words=[];
+  for(const line of lines){const p=line.split(/[,，\t|]/);if(p.length>=2&&p[0].trim()&&p[1].trim())words.push({en:p[0].trim(),cn:p[1].trim()})}
+  return words;
+}
+async function parseJson(text){
+  const data=JSON.parse(text);
+  if(Array.isArray(data))return data.map(item=>{
+    if(typeof item==='object'&&item.en&&item.cn)return{en:item.en,cn:item.cn};
+    if(typeof item==='object'&&item.english&&item.chinese)return{en:item.english,cn:item.chinese};
+    if(Array.isArray(item)&&item.length>=2)return{en:item[0],cn:item[1]};return null;
+  }).filter(Boolean);
+  return [];
+}
+async function parseDocx(file){
+  const s=await fetch('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszszip.min.js').then(r=>r.text()).catch(()=>null);
+  if(!s)throw new Error('无法加载 JSZip');eval(s);
+  const ab=await file.arrayBuffer(),zip=await JSZip.loadAsync(ab);
+  const docXml=await zip.file('word/document.xml')?.async('string');
+  if(!docXml)throw new Error('无效的 DOCX');
+  const xml=new DOMParser().parseFromString(docXml,'text/xml');
+  const ps=xml.getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','t');
+  let text='';for(const p of ps)text+=p.textContent;
+  const lines=text.split(/[\r\n]+/).filter(l=>l.trim()),words=[];
+  for(const line of lines){const p=line.split(/[,，\t|]/);if(p.length>=2&&p[0].trim()&&p[1].trim())words.push({en:p[0].trim(),cn:p[1].trim()})}
+  return words;
+}
+async function parsePdf(file){
+  const s=await fetch('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js').then(r=>r.text()).catch(()=>null);
+  if(!s)throw new Error('无法加载 PDF.js');eval(s);
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+  let full='';for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i);const c=await pg.getTextContent();full+=c.items.map(it=>it.str).join(' ')+'\n'}
+  const lines=full.split(/[\r\n]+/).filter(l=>l.trim()),words=[];
+  for(const line of lines){const p=line.split(/[,，\t|]/);if(p.length>=2&&p[0].trim()&&p[1].trim())words.push({en:p[0].trim(),cn:p[1].trim()})}
+  return words;
+}
+async function parseFile(file){
+  const ext=file.name.split('.').pop().toLowerCase();
+  if(ext==='txt')return parseTxt(await file.text());
+  if(ext==='json')return parseJson(await file.text());
+  if(ext==='docx')return parseDocx(file);
+  if(ext==='pdf')return parsePdf(file);
+  throw new Error('不支持的文件格式');
+}
+
+async function handleFile(file){
+  try{
+    const words=await parseFile(file);
+    if(words.length<6){showToast('单词数量不足，至少需要6组单词！','error');return}
+    setStorage(STORAGE_KEYS.words,words);
+    document.getElementById('fileInfo').style.display='block';
+    document.getElementById('fileInfo').textContent=`已加载 ${words.length} 组单词`;
+    document.getElementById('adminVocabCount').textContent=words.length;
+    document.getElementById('vocabCount').textContent=words.length;
+    showToast(`成功加载 ${words.length} 组单词！`,'success');
+  }catch(err){showToast('文件解析失败: '+err.message,'error')}
+}
+
+// ==================== Game Logic ====================
+function pickRoundWords(){
+  const pool=[...state.words],picked=[];
+  for(let i=0;i<3;i++){if(pool.length===0)break;const idx=Math.floor(Math.random()*pool.length);picked.push(pool.splice(idx,1)[0])}
+  state.words=pool;return picked;
+}
+function buildCards(rw){
+  const cards=[];rw.forEach(w=>{cards.push({type:'en',word:w.en,pairId:w.en,cn:w.cn});cards.push({type:'cn',word:w.cn,pairId:w.en,en:w.en})});
+  return shuffle(cards);
+}
+let currentCards=[];
+function renderCards(cards){
+  $cardsGrid.innerHTML='';
+  cards.forEach((card,idx)=>{
+    const div=document.createElement('div');div.className='card';
+    div.dataset.index=idx;div.dataset.type=card.type;div.dataset.pairId=card.pairId;
+    div.innerHTML=`<div class="card-inner"><div class="card-face card-front"></div><div class="card-face card-back ${card.type}">${card.word}</div></div>`;
+    div.addEventListener('click',()=>onCardClick(div,card));
+    $cardsGrid.appendChild(div);
+  });
+}
+function startRound(){
+  state.isLocked=false;state.selectedCard=null;state.roundNum++;
+  $roundNum.textContent=state.roundNum;
+  const rw=pickRoundWords();
+  if(rw.length<3){endGame();return}
+  state.currentRoundWords=rw;currentCards=buildCards(rw);renderCards(currentCards);updateProgress();
+}
+function onCardClick(el,card){
+  if(state.isLocked)return;if(el.classList.contains('flipped')||el.classList.contains('matched'))return;
+  AudioEngine.init();AudioEngine.resume();AudioEngine.playCardFlip();
+  el.classList.add('flipped');
+  if(!state.selectedCard){state.selectedCard={el,card};return}
+  const prev=state.selectedCard;if(prev.el===el)return;
+  state.isLocked=true;
+  const match=prev.card.type!==card.type&&prev.card.pairId===card.pairId;
+  if(match){
+    state.correctCount++;$correctCount.textContent=state.correctCount;
+    state.pairLog.push({en:card.en||prev.card.en,cn:card.cn||prev.card.cn,result:'correct'});
+    AudioEngine.playMatchSuccess();
+    setTimeout(()=>{prev.el.classList.add('matched');el.classList.add('matched');state.selectedCard=null;state.isLocked=false;checkRoundComplete()},400);
+  }else{
+    state.wrongCount++;$wrongCount.textContent=state.wrongCount;AudioEngine.playMatchFail();
+    setTimeout(()=>{prev.el.classList.add('wrong');el.classList.add('wrong')},100);
+    setTimeout(()=>{prev.el.classList.remove('flipped','wrong');el.classList.remove('flipped','wrong');state.selectedCard=null;state.isLocked=false},700);
+  }
+}
+function checkRoundComplete(){
+  if([...document.querySelectorAll('.card')].every(c=>c.classList.contains('matched'))){
+    AudioEngine.playRoundComplete();
+    setTimeout(()=>{if(state.words.length<3)endGame();else startRound()},800);
+  }
+}
+function updateProgress(){
+  const startWords=getWords().length,totalRounds=Math.ceil(startWords/3);
+  const pct=Math.min(100,Math.round((state.roundNum/totalRounds)*100));
+  $progressFill.style.width=pct+'%';
+}
+function confirmEndGame(){
+  if(state.correctCount===0){showToast('还没有正确配对哦，继续加油！','info');return}
+  endGame();
+}
+
+function endGame(){
+  state.totalTime=Date.now()-state.gameStartTime;stopTimer();
+  const totalAttempts=state.correctCount+state.wrongCount;
+  const accuracy=totalAttempts>0?Math.round((state.correctCount/totalAttempts)*100):0;
+  const entry={name:state.playerName,teacher:state.teacher,date:new Date().toLocaleDateString('zh-CN'),time:state.totalTime,accuracy,correct:state.correctCount,wrong:state.wrongCount,rounds:state.roundNum,pairLog:[...state.pairLog]};
+  const records=getRecords();records.push(entry);setStorage(STORAGE_KEYS.records,records);
+  AudioEngine.stopMusic();
+  showScreen('results');renderResults(entry);
+}
+
+function renderResults(entry){
+  const records=getRecords();
+  const sorted=[...records].sort((a,b)=>{if(b.accuracy!==a.accuracy)return b.accuracy-a.accuracy;return a.time-b.time});
+  const rank=sorted.findIndex(e=>e.name===entry.name&&e.time===entry.time&&e.accuracy===entry.accuracy)+1;
+  $resultsContent.innerHTML=`
+    <h2>🎉 游戏结束！</h2>
+    <div class="result-stats">
+      <div class="result-stat"><div class="val">${entry.name}</div><div class="lbl">玩家</div></div>
+      <div class="result-stat"><div class="val">${entry.teacher}</div><div class="lbl">老师</div></div>
+      <div class="result-stat"><div class="val">${formatTime(entry.time)}</div><div class="lbl">总用时</div></div>
+      <div class="result-stat"><div class="val" style="color:var(--green)">${entry.correct}</div><div class="lbl">正确配对</div></div>
+      <div class="result-stat"><div class="val" style="color:#f87171">${entry.wrong}</div><div class="lbl">错误次数</div></div>
+      <div class="result-stat"><div class="val" style="color:var(--gold)">${entry.accuracy}%</div><div class="lbl">正确率</div></div>
+      <div class="result-stat"><div class="val">${entry.rounds}</div><div class="lbl">完成轮次</div></div>
+    </div>
+    ${rank>0?`<p style="text-align:center;color:var(--gold);margin-bottom:14px">🏆 当前排名：第 <strong>${rank}</strong> 名（共 ${records.length} 人）</p>`:''}
+    <div class="leaderboard"><h3>🏅 排行榜 TOP 5</h3>
+      <table><thead><tr><th>排名</th><th>姓名</th><th>老师</th><th>用时</th><th>正确率</th><th>日期</th></tr></thead>
+      <tbody>${sorted.slice(0,5).map((e,i)=>`
+        <tr><td><span class="rank-badge rank-${i+1}">${i+1}</span></td><td>${e.name}</td><td>${e.teacher}</td>
+        <td>${formatTime(e.time)}</td><td>${e.accuracy}%</td><td>${e.date}</td></tr>`).join('')}</tbody></table></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary btn-small" onclick="downloadStudentCSV()">📥 下载我的记录</button>
+      <button class="btn btn-outline btn-small" onclick="playAgain()">🔄 再来一局</button>
+    </div>`;
+}
+
+function downloadStudentCSV(){
+  const entry={name:state.playerName,teacher:state.teacher,date:new Date().toLocaleDateString('zh-CN'),time:state.totalTime,accuracy:Math.round((state.correctCount/(state.correctCount+state.wrongCount||1))*100),correct:state.correctCount,wrong:state.wrongCount,rounds:state.roundNum,pairLog:state.pairLog};
+  let csv='\uFEFF姓名,老师,日期,用时(秒),正确数,错误数,正确率(%),轮次\n';
+  csv+=`${entry.name},${entry.teacher},${entry.date},${(entry.time/1000).toFixed(1)},${entry.correct},${entry.wrong},${entry.accuracy},${entry.rounds}\n\n配对详情\n英文,中文,结果\n`;
+  entry.pairLog.forEach(p=>{csv+=`${p.en},${p.cn},${p.result}\n`});
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=`${entry.name}_单词消消乐记录_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+  URL.revokeObjectURL(url);showToast('记录已下载！','success');
+}
+
+function playAgain(){
+  state.roundNum=0;state.correctCount=0;state.wrongCount=0;state.totalTime=0;state.pairLog=[];state.selectedCard=null;state.isLocked=false;
+  state.words=[...getWords()];$correctCount.textContent='0';$wrongCount.textContent='0';$roundNum.textContent='1';$progressFill.style.width='0%';
+  state.gameStartTime=Date.now();showScreen('game');startTimer();startRound();
+  AudioEngine.init();AudioEngine.resume();AudioEngine.startMusic();
+}
+
+// ==================== Timer ====================
+let timerInterval=null;
+function startTimer(){if(timerInterval)clearInterval(timerInterval);const start=state.gameStartTime;timerInterval=setInterval(()=>{$timer.textContent=formatTime(Date.now()-start)},200)}
+function stopTimer(){if(timerInterval){clearInterval(timerInterval);timerInterval=null}}
+
+// ==================== Student Flow ====================
+function showStudent(){refreshStudentScreen();showScreen('student')}
+function refreshStudentScreen(){populateTeacherSelect();document.getElementById('vocabCount').textContent=getWords().length}
+
+document.getElementById('startBtn').addEventListener('click',()=>{
+  AudioEngine.init();AudioEngine.resume();
+  const name=document.getElementById('playerName').value.trim();
+  const teacher=document.getElementById('teacherSelect').value;
+  if(!name){showToast('请输入你的名字！','error');return}
+  if(!teacher){showToast('请选择辅导老师！','error');return}
+  state.playerName=name;state.teacher=teacher;state.words=[...getWords()];
+  state.roundNum=0;state.correctCount=0;state.wrongCount=0;state.pairLog=[];
+  state.gameStartTime=Date.now();$correctCount.textContent='0';$wrongCount.textContent='0';$roundNum.textContent='1';$progressFill.style.width='0%';
+  showScreen('game');startTimer();startRound();AudioEngine.startMusic();
+});
+
+// ==================== Upload (Admin) ====================
+document.getElementById('uploadArea').addEventListener('click',()=>document.getElementById('fileInput').click());
+document.getElementById('uploadArea').addEventListener('dragover',e=>{e.preventDefault();e.currentTarget.style.borderColor='var(--pink)'});
+document.getElementById('uploadArea').addEventListener('dragleave',e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.25)'});
+document.getElementById('uploadArea').addEventListener('drop',async e=>{e.preventDefault();e.currentTarget.style.borderColor='rgba(255,255,255,0.25)';const f=e.dataTransfer.files[0];if(f)await handleFile(f)});
+document.getElementById('fileInput').addEventListener('change',async e=>{const f=e.target.files[0];if(f)await handleFile(f)});
+
+// ==================== Sound Toggle ====================
+$soundToggle.addEventListener('click',()=>{AudioEngine.init();AudioEngine.resume();const on=AudioEngine.toggleMusic();AudioEngine.toggleSfx();$soundToggle.textContent=on?'♪':'♪';$soundToggle.classList.toggle('muted',!on)});
+$backBtn.addEventListener('click',()=>goEntry());
+
+// ==================== Particles ====================
+function createParticles(){
+  const c=document.getElementById('particles');
+  const colors=['#ff6b9d','#4ecdc4','#f5c518','#a855f7','#22c55e','#f97316'];
+  for(let i=0;i<30;i++){const p=document.createElement('div');p.className='particle';p.style.left=Math.random()*100+'%';p.style.width=p.style.height=(Math.random()*10+4)+'px';p.style.background=colors[Math.floor(Math.random()*colors.length)];p.style.animationDelay=Math.random()*8+'s';p.style.animationDuration=(Math.random()*6+6)+'s';c.appendChild(p)}
+}
+
+// ==================== Init ====================
+createParticles();populateTeacherSelect();
+document.getElementById('adminPasswordInput').addEventListener('keydown',e=>{if(e.key==='Enter')verifyPassword()});
+</script>
+</body>
+</html>
