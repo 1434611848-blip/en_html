@@ -377,14 +377,29 @@ function downloadAllCSV(){
 }
 
 // ==================== File Parsing ====================
-async function parseTxt(text){
-  const lines=text.split(/[\r\n]+/).filter(l=>l.trim()),words=[];
-  for(const line of lines){
-    const p=line.split(/[,，\t|]/);
-    if(p.length>=2&&p[0].trim()&&p[1].trim())words.push({en:p[0].trim(),cn:p[1].trim()});
+// ==================== Shared Pair Extraction ====================
+function extractPairs(text){
+  const regex=/([A-Za-z]+(?:[\s-]+[A-Za-z]+)*)[,，\t\s|]+([\u4e00-\u9fff]+(?:[\u4e00-\u9fff\s]*[\u4e00-\u9fff])?)/g;
+  const seen=new Set(),words=[];
+  let m;while((m=regex.exec(text))!==null){
+    const en=m[1].trim(),cn=m[2].trim();
+    if(!seen.has(en.toLowerCase())){seen.add(en.toLowerCase());words.push({en,cn})}
+  }
+  // 正则匹配不足时，降级按行分割兜底
+  if(words.length<3){
+    const lines=text.split(/[\r\n]+/).filter(l=>l.trim());
+    for(const line of lines){
+      const p=line.split(/[,，\t|]/);
+      if(p.length>=2&&p[0].trim()&&p[1].trim()){
+        const en=p[0].trim(),cn=p[1].trim();
+        if(!seen.has(en.toLowerCase())){seen.add(en.toLowerCase());words.push({en,cn})}
+      }
+    }
   }
   return words;
 }
+
+async function parseTxt(text){return extractPairs(text)}
 async function parseJson(text){
   const data=JSON.parse(text);
   if(Array.isArray(data))return data.map(item=>{
@@ -403,12 +418,7 @@ async function parseDocx(file){
   const xml=new DOMParser().parseFromString(docXml,'text/xml');
   const ps=xml.getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','t');
   let text='';for(const p of ps)text+=p.textContent;
-  const lines=text.split(/[\r\n]+/).filter(l=>l.trim()),words=[];
-  for(const line of lines){
-    const p=line.split(/[,，\t|]/);
-    if(p.length>=2&&p[0].trim()&&p[1].trim())words.push({en:p[0].trim(),cn:p[1].trim()});
-  }
-  return words;
+  return extractPairs(text);
 }
 async function parsePdf(file){
   const s=await fetch('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js').then(r=>r.text()).catch(()=>null);
@@ -419,12 +429,7 @@ async function parsePdf(file){
     const pg=await pdf.getPage(i);const c=await pg.getTextContent();
     full+=c.items.map(it=>it.str).join(' ')+'\n';
   }
-  const lines=full.split(/[\r\n]+/).filter(l=>l.trim()),words=[];
-  for(const line of lines){
-    const p=line.split(/[,，\t|]/);
-    if(p.length>=2&&p[0].trim()&&p[1].trim())words.push({en:p[0].trim(),cn:p[1].trim()});
-  }
-  return words;
+  return extractPairs(full);
 }
 async function parseFile(file){
   const ext=file.name.split('.').pop().toLowerCase();
