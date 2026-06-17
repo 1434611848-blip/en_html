@@ -71,8 +71,6 @@ h1{
 .btn-small{padding:8px 20px;font-size:0.9em}
 .btn-outline{background:transparent;border:1px solid rgba(255,255,255,0.3);color:var(--text)}
 .btn-outline:hover{background:rgba(255,255,255,0.1)}
-.btn-danger{background:linear-gradient(135deg,#ef4444,#dc2626)}
-.btn-danger:hover{transform:translateY(-2px)}
 
 /* Entry button */
 .entry-btn{
@@ -86,14 +84,6 @@ h1{
 .entry-btn .icon{font-size:3.5em;margin-bottom:12px}
 .entry-btn .title{font-size:1.4em;font-weight:700;margin-bottom:6px}
 .entry-btn .desc{font-size:0.85em;color:rgba(255,255,255,0.5)}
-
-/* Admin link - tiny, bottom corner */
-.admin-link{
-  position:fixed;bottom:12px;right:16px;z-index:50;
-  font-size:0.7em;color:rgba(255,255,255,0.18);cursor:pointer;
-  text-decoration:none;transition:color 0.3s;
-}
-.admin-link:hover{color:rgba(255,255,255,0.4)}
 
 /* Game Screen */
 .game-header{
@@ -145,33 +135,6 @@ h1{
 .result-stat .lbl{font-size:0.78em;color:rgba(255,255,255,0.5);margin-top:4px}
 .btn-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:16px}
 
-/* Admin panel */
-.admin-section{margin-bottom:24px}
-.admin-section h3{color:var(--purple);margin-bottom:12px;font-size:1.1em;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:8px}
-.teacher-tag{
-  display:inline-flex;align-items:center;gap:8px;padding:8px 14px;
-  background:rgba(168,85,247,0.2);border:1px solid rgba(168,85,247,0.3);
-  border-radius:20px;margin:4px 6px 4px 0;font-size:0.9em;
-}
-.teacher-tag .remove-btn{
-  cursor:pointer;color:#f87171;font-weight:700;font-size:1.1em;
-  line-height:1;transition:color 0.2s;
-}
-.teacher-tag .remove-btn:hover{color:#ef4444}
-.add-teacher-row{display:flex;gap:8px;margin-top:10px}
-.add-teacher-row input{flex:1;padding:10px 14px;border:1px solid rgba(255,255,255,0.2);border-radius:10px;background:rgba(255,255,255,0.06);color:var(--text);font-size:0.95em;outline:none}
-.add-teacher-row input:focus{border-color:var(--purple)}
-
-.file-upload-area{
-  border:2px dashed rgba(255,255,255,0.25);border-radius:12px;padding:28px;text-align:center;
-  cursor:pointer;transition:all 0.3s;background:rgba(255,255,255,0.03);
-}
-.file-upload-area:hover{border-color:var(--blue);background:rgba(78,205,196,0.08)}
-.file-upload-area .icon{font-size:2.5em;margin-bottom:8px}
-.file-upload-area .text{color:rgba(255,255,255,0.6);font-size:0.9em}
-.file-upload-area .hint{color:rgba(255,255,255,0.35);font-size:0.8em;margin-top:4px}
-.file-info{color:var(--green);font-size:0.85em;margin-top:6px;display:none}
-
 /* Leaderboard table */
 .leaderboard table{width:100%;border-collapse:collapse;margin-top:12px}
 .leaderboard th,.leaderboard td{padding:10px 12px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.9em}
@@ -209,23 +172,6 @@ h1{
 .toast.info{background:var(--blue);color:#1a1a2e}
 @keyframes toastIn{from{opacity:0;top:0}to{opacity:1;top:20px}}
 @keyframes toastOut{from{opacity:1}to{opacity:0}}
-
-/* Modal */
-.modal-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:150;
-  display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s;
-}
-@keyframes fadeIn{from{opacity:0}}
-.modal-box{
-  background:linear-gradient(145deg,#1e1e3e,#16162e);border:1px solid rgba(255,255,255,0.15);
-  border-radius:16px;padding:28px;max-width:400px;width:90%;
-  box-shadow:0 16px 48px rgba(0,0,0,0.5);
-}
-.modal-box h3{text-align:center;margin-bottom:20px;color:var(--purple)}
-.modal-box input{width:100%;padding:12px 16px;border:1px solid rgba(255,255,255,0.2);border-radius:10px;background:rgba(255,255,255,0.06);color:var(--text);font-size:1em;outline:none;margin-bottom:16px}
-.modal-box input:focus{border-color:var(--purple)}
-.modal-btns{display:flex;gap:10px}
-.modal-btns .btn{flex:1}
 </style>
 </head>
 <body>
@@ -246,7 +192,6 @@ h1{
         <div class="desc">输入名字，选择老师，开始挑战</div>
       </div>
     </div>
-    <span class="admin-link" onclick="showAdminModal()">教师管理</span>
   </div>
 
   <!-- ===== Student Screen ===== -->
@@ -288,73 +233,6 @@ h1{
     <div class="card-panel results-card" id="resultsContent"></div>
   </div>
 
-  <!-- ===== Admin Screen ===== -->
-  <div class="screen" id="adminScreen">
-    <div class="card-panel">
-      <h1>⚙️ 教师后台</h1>
-      <p class="subtitle">管理单词库、老师名单、查看学生记录</p>
-
-      <!-- Word Upload -->
-      <div class="admin-section">
-        <h3>📂 单词文件上传</h3>
-        <div class="file-upload-area" id="uploadArea">
-          <div class="icon">📂</div>
-          <div class="text">点击上传单词文件</div>
-          <div class="hint">支持 .txt / .json / .docx / .pdf</div>
-          <div class="file-info" id="fileInfo"></div>
-        </div>
-        <input type="file" id="fileInput" accept=".txt,.json,.docx,.pdf" style="display:none">
-        <div style="font-size:0.8em;color:rgba(255,255,255,0.4);margin-top:8px">
-          当前词汇池：<span id="adminVocabCount">32</span> 组单词
-        </div>
-      </div>
-
-      <!-- Teacher Management -->
-      <div class="admin-section">
-        <h3>👩‍🏫 老师名单管理</h3>
-        <div id="teacherTags"></div>
-        <div class="add-teacher-row">
-          <input type="text" id="newTeacherName" placeholder="输入新老师名字" maxlength="20">
-          <button class="btn btn-secondary btn-small" onclick="addTeacher()">+ 添加</button>
-        </div>
-      </div>
-
-      <!-- Change Password -->
-      <div class="admin-section">
-        <h3>🔒 修改密码</h3>
-        <div class="add-teacher-row">
-          <input type="text" id="newPassword" placeholder="输入新密码" maxlength="20">
-          <button class="btn btn-secondary btn-small" onclick="changePassword()">保存</button>
-        </div>
-      </div>
-
-      <!-- Records & Leaderboard -->
-      <div class="admin-section">
-        <h3>📊 排行榜 TOP 5</h3>
-        <div class="leaderboard" id="adminLeaderboard">
-          <p style="color:rgba(255,255,255,0.4);text-align:center">暂无记录</p>
-        </div>
-      </div>
-
-      <div class="btn-row">
-        <button class="btn btn-secondary btn-small" onclick="downloadAllCSV()">📥 下载全部学生记录</button>
-        <button class="btn btn-outline btn-small" onclick="goEntry()">← 返回首页</button>
-      </div>
-    </div>
-  </div>
-
-</div>
-
-<!-- Admin Password Modal -->
-<div class="modal-overlay" id="adminModal" style="display:none">
-  <div class="modal-box">
-    <h3>🔒 教师后台</h3>
-    <input type="password" id="adminPasswordInput" placeholder="请输入管理密码" maxlength="30">
-    <div class="modal-btns">
-      <button class="btn btn-outline btn-small" onclick="closeAdminModal()">取消</button>
-      <button class="btn btn-primary btn-small" onclick="verifyPassword()">确认</button>
-    </div>
-  </div>
 </div>
 
 <script>
@@ -380,7 +258,7 @@ const AudioEngine = (()=>{
 })();
 
 // ==================== Storage ====================
-const STORAGE_KEYS={records:'word_match_records',teachers:'teacher_list',password:'admin_password',words:'custom_word_list'};
+const STORAGE_KEYS={records:'word_match_records',teachers:'teacher_list',words:'custom_word_list'};
 const DEFAULT_TEACHERS=['亚楠老师','佳萌老师','亚飞老师'];
 const DEFAULT_WORDS=[{en:'apple',cn:'苹果'},{en:'book',cn:'书'},{en:'cat',cn:'猫'},{en:'dog',cn:'狗'},{en:'elephant',cn:'大象'},{en:'flower',cn:'花'},{en:'garden',cn:'花园'},{en:'house',cn:'房子'},{en:'ice cream',cn:'冰淇淋'},{en:'juice',cn:'果汁'},{en:'kite',cn:'风筝'},{en:'lion',cn:'狮子'},{en:'moon',cn:'月亮'},{en:'night',cn:'夜晚'},{en:'orange',cn:'橙子'},{en:'pencil',cn:'铅笔'},{en:'queen',cn:'女王'},{en:'rainbow',cn:'彩虹'},{en:'school',cn:'学校'},{en:'teacher',cn:'老师'},{en:'umbrella',cn:'雨伞'},{en:'village',cn:'村庄'},{en:'water',cn:'水'},{en:'yellow',cn:'黄色'},{en:'zoo',cn:'动物园'},{en:'friend',cn:'朋友'},{en:'happy',cn:'快乐的'},{en:'beautiful',cn:'美丽的'},{en:'morning',cn:'早晨'},{en:'afternoon',cn:'下午'},{en:'family',cn:'家庭'},{en:'music',cn:'音乐'}];
 
@@ -389,7 +267,6 @@ function setStorage(key,val){localStorage.setItem(key,JSON.stringify(val))}
 function getTeachers(){return getStorage(STORAGE_KEYS.teachers,DEFAULT_TEACHERS)}
 function getRecords(){return getStorage(STORAGE_KEYS.records,[])}
 function getWords(){return getStorage(STORAGE_KEYS.words,DEFAULT_WORDS)}
-function getPassword(){return getStorage(STORAGE_KEYS.password,'admin123')}
 
 // ==================== State ====================
 const state={
@@ -403,7 +280,6 @@ const $entry=document.getElementById('entryScreen');
 const $student=document.getElementById('studentScreen');
 const $game=document.getElementById('gameScreen');
 const $results=document.getElementById('resultsScreen');
-const $admin=document.getElementById('adminScreen');
 const $cardsGrid=document.getElementById('cardsGrid');
 const $timer=document.getElementById('timer');
 const $correctCount=document.getElementById('correctCount');
@@ -415,8 +291,8 @@ const $soundToggle=document.getElementById('soundToggle');
 const $backBtn=document.getElementById('backBtn');
 
 function showScreen(name){
-  [$entry,$student,$game,$results,$admin].forEach(s=>s.classList.remove('active'));
-  const map={entry:$entry,student:$student,game:$game,results:$results,admin:$admin};
+  [$entry,$student,$game,$results].forEach(s=>s.classList.remove('active'));
+  const map={entry:$entry,student:$student,game:$game,results:$results};
   if(map[name])map[name].classList.add('active');
   $backBtn.style.display=(name==='entry'||name==='results')?'none':'block';
 }
@@ -429,143 +305,10 @@ function showToast(msg,type='info'){
 function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
 function formatTime(ms){const sec=Math.floor(ms/1000);return `${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`}
 
-// ==================== Teacher Management ====================
+// ==================== Teacher Select ====================
 function populateTeacherSelect(){
   const sel=document.getElementById('teacherSelect');
   sel.innerHTML=getTeachers().map(t=>`<option value="${t}">${t}</option>`).join('');
-}
-
-function renderTeacherTags(){
-  const container=document.getElementById('teacherTags');
-  container.innerHTML=getTeachers().map((t,i)=>
-    `<span class="teacher-tag">${t}<span class="remove-btn" onclick="removeTeacher(${i})" title="删除">×</span></span>`
-  ).join('');
-}
-
-function addTeacher(){
-  const input=document.getElementById('newTeacherName'),name=input.value.trim();
-  if(!name){showToast('请输入老师名字','error');return}
-  const teachers=getTeachers();
-  if(teachers.includes(name)){showToast('该老师已存在','error');return}
-  teachers.push(name);setStorage(STORAGE_KEYS.teachers,teachers);
-  input.value='';renderTeacherTags();populateTeacherSelect();
-  showToast(`已添加：${name}`,'success');
-}
-
-function removeTeacher(idx){
-  const teachers=getTeachers(),name=teachers[idx];
-  teachers.splice(idx,1);setStorage(STORAGE_KEYS.teachers,teachers);
-  renderTeacherTags();populateTeacherSelect();
-  showToast(`已移除：${name}`,'info');
-}
-
-function changePassword(){
-  const input=document.getElementById('newPassword'),pw=input.value.trim();
-  if(!pw){showToast('请输入新密码','error');return}
-  setStorage(STORAGE_KEYS.password,pw);input.value='';
-  showToast('密码已更新','success');
-}
-
-// ==================== Admin ====================
-function showAdminModal(){
-  document.getElementById('adminModal').style.display='flex';
-  document.getElementById('adminPasswordInput').value='';
-  document.getElementById('adminPasswordInput').focus();
-}
-function closeAdminModal(){document.getElementById('adminModal').style.display='none'}
-function verifyPassword(){
-  if(document.getElementById('adminPasswordInput').value.trim()===getPassword()){
-    closeAdminModal();showAdmin();
-  }else{showToast('密码错误','error')}
-}
-
-function showAdmin(){
-  showScreen('admin');renderTeacherTags();renderAdminLeaderboard();
-  document.getElementById('adminVocabCount').textContent=getWords().length;
-}
-
-function renderAdminLeaderboard(){
-  const container=document.getElementById('adminLeaderboard');
-  const records=getRecords();
-  if(records.length===0){
-    container.innerHTML='<p style="color:rgba(255,255,255,0.4);text-align:center">暂无记录</p>';return;
-  }
-  const sorted=[...records].sort((a,b)=>{if(b.accuracy!==a.accuracy)return b.accuracy-a.accuracy;return a.time-b.time}).slice(0,5);
-  container.innerHTML=`<table><thead><tr><th>排名</th><th>姓名</th><th>老师</th><th>用时</th><th>正确率</th><th>日期</th></tr></thead>
-    <tbody>${sorted.map((e,i)=>`<tr><td><span class="rank-badge rank-${i+1}">${i+1}</span></td><td>${e.name}</td><td>${e.teacher}</td><td>${formatTime(e.time)}</td><td>${e.accuracy}%</td><td>${e.date}</td></tr>`).join('')}</tbody></table>`;
-}
-
-function downloadAllCSV(){
-  const records=getRecords();
-  if(records.length===0){showToast('暂无学生记录','error');return}
-  let csv='\uFEFF姓名,老师,日期,用时(秒),正确数,错误数,正确率(%),轮次\n';
-  records.forEach(r=>{csv+=`${r.name},${r.teacher},${r.date},${(r.time/1000).toFixed(1)},${r.correct},${r.wrong},${r.accuracy},${r.rounds}\n`});
-  csv+='\n\n--- 各学生配对详情 ---\n';
-  records.forEach(r=>{csv+=`\n${r.name} (${r.date}):\n英文,中文,结果\n`;(r.pairLog||[]).forEach(p=>{csv+=`${p.en},${p.cn},${p.result}\n`})});
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
-  const url=URL.createObjectURL(blob),a=document.createElement('a');
-  a.href=url;a.download=`全部学生记录_${new Date().toISOString().slice(0,10)}.csv`;a.click();
-  URL.revokeObjectURL(url);showToast('全部记录已下载！','success');
-}
-
-// ==================== File Parsing ====================
-async function parseTxt(text){
-  const lines=text.split(/[\r\n]+/).filter(l=>l.trim()),words=[];
-  for(const line of lines){const p=line.split(/[,，\t|]/);if(p.length>=2&&p[0].trim()&&p[1].trim())words.push({en:p[0].trim(),cn:p[1].trim()})}
-  return words;
-}
-async function parseJson(text){
-  const data=JSON.parse(text);
-  if(Array.isArray(data))return data.map(item=>{
-    if(typeof item==='object'&&item.en&&item.cn)return{en:item.en,cn:item.cn};
-    if(typeof item==='object'&&item.english&&item.chinese)return{en:item.english,cn:item.chinese};
-    if(Array.isArray(item)&&item.length>=2)return{en:item[0],cn:item[1]};return null;
-  }).filter(Boolean);
-  return [];
-}
-async function parseDocx(file){
-  const s=await fetch('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszszip.min.js').then(r=>r.text()).catch(()=>null);
-  if(!s)throw new Error('无法加载 JSZip');eval(s);
-  const ab=await file.arrayBuffer(),zip=await JSZip.loadAsync(ab);
-  const docXml=await zip.file('word/document.xml')?.async('string');
-  if(!docXml)throw new Error('无效的 DOCX');
-  const xml=new DOMParser().parseFromString(docXml,'text/xml');
-  const ps=xml.getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','t');
-  let text='';for(const p of ps)text+=p.textContent;
-  const lines=text.split(/[\r\n]+/).filter(l=>l.trim()),words=[];
-  for(const line of lines){const p=line.split(/[,，\t|]/);if(p.length>=2&&p[0].trim()&&p[1].trim())words.push({en:p[0].trim(),cn:p[1].trim()})}
-  return words;
-}
-async function parsePdf(file){
-  const s=await fetch('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js').then(r=>r.text()).catch(()=>null);
-  if(!s)throw new Error('无法加载 PDF.js');eval(s);
-  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
-  let full='';for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i);const c=await pg.getTextContent();full+=c.items.map(it=>it.str).join(' ')+'\n'}
-  const lines=full.split(/[\r\n]+/).filter(l=>l.trim()),words=[];
-  for(const line of lines){const p=line.split(/[,，\t|]/);if(p.length>=2&&p[0].trim()&&p[1].trim())words.push({en:p[0].trim(),cn:p[1].trim()})}
-  return words;
-}
-async function parseFile(file){
-  const ext=file.name.split('.').pop().toLowerCase();
-  if(ext==='txt')return parseTxt(await file.text());
-  if(ext==='json')return parseJson(await file.text());
-  if(ext==='docx')return parseDocx(file);
-  if(ext==='pdf')return parsePdf(file);
-  throw new Error('不支持的文件格式');
-}
-
-async function handleFile(file){
-  try{
-    const words=await parseFile(file);
-    if(words.length<6){showToast('单词数量不足，至少需要6组单词！','error');return}
-    setStorage(STORAGE_KEYS.words,words);
-    document.getElementById('fileInfo').style.display='block';
-    document.getElementById('fileInfo').textContent=`已加载 ${words.length} 组单词`;
-    document.getElementById('adminVocabCount').textContent=words.length;
-    document.getElementById('vocabCount').textContent=words.length;
-    showToast(`成功加载 ${words.length} 组单词！`,'success');
-  }catch(err){showToast('文件解析失败: '+err.message,'error')}
 }
 
 // ==================== Game Logic ====================
@@ -706,13 +449,6 @@ document.getElementById('startBtn').addEventListener('click',()=>{
   showScreen('game');startTimer();startRound();AudioEngine.startMusic();
 });
 
-// ==================== Upload (Admin) ====================
-document.getElementById('uploadArea').addEventListener('click',()=>document.getElementById('fileInput').click());
-document.getElementById('uploadArea').addEventListener('dragover',e=>{e.preventDefault();e.currentTarget.style.borderColor='var(--pink)'});
-document.getElementById('uploadArea').addEventListener('dragleave',e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.25)'});
-document.getElementById('uploadArea').addEventListener('drop',async e=>{e.preventDefault();e.currentTarget.style.borderColor='rgba(255,255,255,0.25)';const f=e.dataTransfer.files[0];if(f)await handleFile(f)});
-document.getElementById('fileInput').addEventListener('change',async e=>{const f=e.target.files[0];if(f)await handleFile(f)});
-
 // ==================== Sound Toggle ====================
 $soundToggle.addEventListener('click',()=>{AudioEngine.init();AudioEngine.resume();const on=AudioEngine.toggleMusic();AudioEngine.toggleSfx();$soundToggle.textContent=on?'♪':'♪';$soundToggle.classList.toggle('muted',!on)});
 $backBtn.addEventListener('click',()=>goEntry());
@@ -726,7 +462,6 @@ function createParticles(){
 
 // ==================== Init ====================
 createParticles();populateTeacherSelect();
-document.getElementById('adminPasswordInput').addEventListener('keydown',e=>{if(e.key==='Enter')verifyPassword()});
 </script>
 </body>
 </html>

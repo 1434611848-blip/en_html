@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>单词消消乐 - 教师后台</title>
+<style>
+:root {
+  --bg: #f5f7fa;
+  --surface: #ffffff;
+  --border: #e2e8f0;
+  --text: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --radius: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.06);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;
+}
+
+/* Login */
+.login-overlay{
+  position:fixed;inset:0;background:linear-gradient(135deg,#1e1b4b,#312e81,#4338ca);
+  display:flex;align-items:center;justify-content:center;z-index:1000;
+}
+.login-box{
+  background:var(--surface);border-radius:12px;padding:40px 36px;width:400px;max-width:90%;
+  box-shadow:var(--shadow-lg);
+}
+.login-box h1{text-align:center;font-size:1.5em;margin-bottom:8px;color:var(--text)}
+.login-box .sub{text-align:center;color:var(--text-muted);font-size:0.9em;margin-bottom:28px}
+.login-box .field{margin-bottom:18px}
+.login-box label{display:block;margin-bottom:6px;font-size:0.9em;font-weight:600;color:var(--text-secondary)}
+.login-box input{
+  width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius);
+  font-size:1em;outline:none;transition:border 0.2s;
+}
+.login-box input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,0.1)}
+.login-box .btn{width:100%;padding:11px;margin-top:4px}
+.login-box .error{color:var(--danger);font-size:0.85em;text-align:center;margin-top:10px;display:none}
+
+/* Layout */
+header{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;
+  box-shadow:var(--shadow);position:sticky;top:0;z-index:100;
+}
+header h1{font-size:1.15em;font-weight:700}
+header .user-info{font-size:0.9em;color:var(--text-secondary)}
+header .btn-logout{padding:6px 16px;font-size:0.85em}
+
+main{max-width:1100px;margin:0 auto;padding:28px 24px}
+
+/* Cards */
+.section{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:24px;margin-bottom:20px;box-shadow:var(--shadow);
+}
+.section h3{
+  font-size:1.05em;margin-bottom:16px;padding-bottom:12px;
+  border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;
+}
+.section h3 .dot{width:8px;height:8px;border-radius:50%;background:var(--primary)}
+
+/* Buttons */
+.btn{
+  display:inline-block;padding:9px 20px;border:none;border-radius:var(--radius);
+  font-size:0.9em;font-weight:600;cursor:pointer;transition:all 0.2s;color:#fff;
+  white-space:nowrap;
+}
+.btn-primary{background:var(--primary)}
+.btn-primary:hover{background:var(--primary-hover)}
+.btn-danger{background:var(--danger)}
+.btn-danger:hover{background:var(--danger-hover)}
+.btn-outline{
+  background:transparent;border:1px solid var(--border);color:var(--text);
+}
+.btn-outline:hover{background:#f8fafc}
+.btn-small{padding:5px 12px;font-size:0.82em}
+.btn:disabled{opacity:0.5;cursor:not-allowed}
+
+/* Forms */
+.form-row{display:flex;gap:10px;align-items:center}
+.form-row input{
+  flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius);
+  font-size:0.9em;outline:none;transition:border 0.2s;
+}
+.form-row input:focus{border-color:var(--primary)}
+
+/* Tags */
+.tag{
+  display:inline-flex;align-items:center;gap:6px;padding:5px 12px;
+  background:#eef2ff;border:1px solid #c7d2fe;border-radius:20px;
+  margin:0 8px 8px 0;font-size:0.88em;color:#3730a3;
+}
+.tag .del{cursor:pointer;color:#ef4444;font-weight:700;font-size:1.1em;line-height:1}
+.tag .del:hover{color:#dc2626}
+
+/* File upload */
+.upload-area{
+  border:2px dashed var(--border);border-radius:var(--radius);padding:32px;
+  text-align:center;cursor:pointer;transition:all 0.25s;margin-bottom:12px;
+}
+.upload-area:hover{border-color:var(--primary);background:#eef2ff}
+.upload-area .icon{font-size:2.2em;margin-bottom:8px}
+.upload-area .text{color:var(--text-secondary);font-size:0.9em}
+.upload-area .hint{color:var(--text-muted);font-size:0.8em;margin-top:4px}
+.upload-info{color:var(--success);font-size:0.85em;margin-top:6px;display:none}
+
+/* Tables */
+table{width:100%;border-collapse:collapse;font-size:0.9em}
+thead th{
+  text-align:left;padding:10px 12px;background:#f8fafc;border-bottom:2px solid var(--border);
+  font-weight:600;color:var(--text-secondary);font-size:0.85em;text-transform:uppercase;letter-spacing:0.05em;
+}
+tbody td{padding:10px 12px;border-bottom:1px solid var(--border)}
+tbody tr:hover{background:#f8fafc}
+.badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:24px;height:24px;border-radius:50%;font-size:0.78em;font-weight:700;
+}
+.badge-1{background:#fbbf24;color:#1e293b}
+.badge-2{background:#cbd5e1;color:#1e293b}
+.badge-3{background:#d6a074;color:#fff}
+.badge-n{background:#e2e8f0;color:#64748b}
+
+/* Toast */
+.toast{
+  position:fixed;top:24px;left:50%;transform:translateX(-50%);padding:10px 24px;
+  border-radius:var(--radius);font-weight:600;z-index:999;
+  animation:toastIn 0.3s ease,toastOut 0.3s ease 2.5s forwards;
+  pointer-events:none;font-size:0.9em;box-shadow:var(--shadow-lg);
+}
+.toast.success{background:var(--success);color:#fff}
+.toast.error{background:var(--danger);color:#fff}
+.toast.info{background:var(--primary);color:#fff}
+@keyframes toastIn{from{opacity:0;top:0}to{opacity:1;top:24px}}
+@keyframes toastOut{from{opacity:1}to{opacity:0}}
+
+.empty-state{text-align:center;color:var(--text-muted);padding:24px 0;font-size:0.9em}
+
+/* Row for stats */
+.stat-row{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px}
+.stat-item{background:#f8fafc;border-radius:var(--radius);padding:14px 20px;min-width:120px;text-align:center}
+.stat-item .val{font-size:1.6em;font-weight:700;color:var(--primary)}
+.stat-item .lbl{font-size:0.78em;color:var(--text-muted);margin-top:4px}
+</style>
+</head>
+<body>
+
+<!-- Login Overlay -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <h1>🔒 教师后台</h1>
+    <p class="sub">单词消消乐管理系统</p>
+    <div class="field">
+      <label>管理员密码</label>
+      <input type="password" id="loginPassword" placeholder="请输入密码" maxlength="30">
+    </div>
+    <button class="btn btn-primary" onclick="doLogin()">登 录</button>
+    <p class="error" id="loginError">密码错误，请重试</p>
+  </div>
+</div>
+
+<!-- Main App (hidden until login) -->
+<div id="mainApp" style="display:none">
+  <header>
+    <h1>📋 单词消消乐 · 教师后台</h1>
+    <div class="user-info">
+      <span>已登录</span>
+      <button class="btn btn-outline btn-small btn-logout" onclick="logout()" style="margin-left:12px">退出登录</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Stats -->
+    <div class="stat-row" id="statRow"></div>
+
+    <!-- Word Upload -->
+    <div class="section">
+      <h3><span class="dot"></span> 单词文件上传</h3>
+      <div class="upload-area" id="uploadArea">
+        <div class="icon">📂</div>
+        <div class="text">点击上传或拖拽单词文件到此处</div>
+        <div class="hint">支持 .txt / .json / .docx / .pdf 格式</div>
+        <div class="upload-info" id="uploadInfo"></div>
+      </div>
+      <input type="file" id="fileInput" accept=".txt,.json,.docx,.pdf" style="display:none">
+      <p style="font-size:0.85em;color:var(--text-muted)">
+        当前词汇池：<strong id="adminVocabCount">32</strong> 组单词
+      </p>
+    </div>
+
+    <!-- Teacher Management -->
+    <div class="section">
+      <h3><span class="dot" style="background:#10b981"></span> 老师名单管理</h3>
+      <div id="teacherTags"></div>
+      <div class="form-row" style="margin-top:12px">
+        <input type="text" id="newTeacherName" placeholder="输入新老师名字" maxlength="20">
+        <button class="btn btn-primary btn-small" onclick="addTeacher()">+ 添加</button>
+      </div>
+    </div>
+
+    <!-- Change Password -->
+    <div class="section">
+      <h3><span class="dot" style="background:#f59e0b"></span> 修改登录密码</h3>
+      <div class="form-row">
+        <input type="text" id="newPassword" placeholder="输入新密码" maxlength="20">
+        <button class="btn btn-primary btn-small" onclick="changePassword()">保存密码</button>
+      </div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="section">
+      <h3><span class="dot" style="background:#ef4444"></span> 排行榜 TOP 5</h3>
+      <p style="font-size:0.85em;color:var(--text-muted);margin-bottom:12px">
+        排序规则：正确率降序 > 用时升序
+      </p>
+      <div id="adminLeaderboard">
+        <div class="empty-state">暂无学生参与记录</div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="section">
+      <h3><span class="dot" style="background:#8b5cf6"></span> 数据操作</h3>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="downloadAllCSV()">📥 一键下载全部学生记录 (CSV)</button>
+        <button class="btn btn-outline" onclick="refreshAll()">🔄 刷新数据</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ==================== Storage Keys ====================
+const KEYS={records:'word_match_records',teachers:'teacher_list',password:'admin_password',words:'custom_word_list'};
+const DEFAULT_TEACHERS=['亚楠老师','佳萌老师','亚飞老师'];
+const DEFAULT_PASSWORD='admin123';
+
+function getStorage(key,def){try{const v=localStorage.getItem(key);return v?JSON.parse(v):def}catch(e){return def}}
+function setStorage(key,val){localStorage.setItem(key,JSON.stringify(val))}
+function getTeachers(){return getStorage(KEYS.teachers,DEFAULT_TEACHERS)}
+function getRecords(){return getStorage(KEYS.records,[])}
+function getWords(){return getStorage(KEYS.words,[])}
+function getPassword(){return getStorage(KEYS.password,DEFAULT_PASSWORD)}
+
+// ==================== Toast ====================
+function showToast(msg,type='info'){
+  const t=document.createElement('div');t.className=`toast ${type}`;t.textContent=msg;
+  document.body.appendChild(t);setTimeout(()=>t.remove(),2800);
+}
+
+function formatTime(ms){const sec=Math.floor(ms/1000);return `${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`}
+
+// ==================== Login ====================
+function doLogin(){
+  const pw=document.getElementById('loginPassword').value.trim();
+  if(pw===getPassword()){
+    document.getElementById('loginOverlay').style.display='none';
+    document.getElementById('mainApp').style.display='block';
+    refreshAll();
+  }else{
+    document.getElementById('loginError').style.display='block';
+    document.getElementById('loginPassword').value='';
+  }
+}
+function logout(){
+  document.getElementById('loginOverlay').style.display='flex';
+  document.getElementById('mainApp').style.display='none';
+  document.getElementById('loginPassword').value='';
+  document.getElementById('loginError').style.display='none';
+}
+document.getElementById('loginPassword').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+
+// ==================== Refresh All ====================
+function refreshAll(){
+  renderTeacherTags();
+  renderLeaderboard();
+  renderStats();
+  document.getElementById('adminVocabCount').textContent=getWords().length;
+}
+
+function renderStats(){
+  const records=getRecords();
+  document.getElementById('statRow').innerHTML=`
+    <div class="stat-item"><div class="val">${records.length}</div><div class="lbl">总参与人次</div></div>
+    <div class="stat-item"><div class="val">${getTeachers().length}</div><div class="lbl">老师数量</div></div>
+    <div class="stat-item"><div class="val">${getWords().length}</div><div class="lbl">词汇组数</div></div>
+  `;
+}
+
+// ==================== Teacher Management ====================
+function renderTeacherTags(){
+  const container=document.getElementById('teacherTags');
+  container.innerHTML=getTeachers().map((t,i)=>
+    `<span class="tag">${t}<span class="del" onclick="removeTeacher(${i})" title="删除">×</span></span>`
+  ).join('');
+}
+
+function addTeacher(){
+  const input=document.getElementById('newTeacherName'),name=input.value.trim();
+  if(!name){showToast('请输入老师名字','error');return}
+  const teachers=getTeachers();
+  if(teachers.includes(name)){showToast('该老师已存在','error');return}
+  teachers.push(name);setStorage(KEYS.teachers,teachers);
+  input.value='';renderTeacherTags();renderStats();
+  showToast(`已添加：${name}`,'success');
+}
+
+function removeTeacher(idx){
+  const teachers=getTeachers(),name=teachers[idx];
+  teachers.splice(idx,1);setStorage(KEYS.teachers,teachers);
+  renderTeacherTags();renderStats();
+  showToast(`已移除：${name}`,'info');
+}
+
+function changePassword(){
+  const input=document.getElementById('newPassword'),pw=input.value.trim();
+  if(!pw){showToast('请输入新密码','error');return}
+  setStorage(KEYS.password,pw);input.value='';
+  showToast('密码已更新','success');
+}
+
+// ==================== Leaderboard ====================
+function renderLeaderboard(){
+  const container=document.getElementById('adminLeaderboard');
+  const records=getRecords();
+  if(records.length===0){
+    container.innerHTML='<div class="empty-state">暂无学生参与记录</div>';return;
+  }
+  const sorted=[...records].sort((a,b)=>{
+    if(b.accuracy!==a.accuracy)return b.accuracy-a.accuracy;
+    return a.time-b.time;
+  }).slice(0,5);
+  const badgeClass=i=>i<3?`badge-${i+1}`:'badge-n';
+  container.innerHTML=`
+    <table>
+      <thead><tr><th>排名</th><th>姓名</th><th>老师</th><th>用时</th><th>正确数</th><th>错误数</th><th>正确率</th><th>日期</th></tr></thead>
+      <tbody>${sorted.map((e,i)=>`
+        <tr>
+          <td><span class="badge ${badgeClass(i)}">${i+1}</span></td>
+          <td>${e.name}</td><td>${e.teacher}</td>
+          <td>${formatTime(e.time)}</td><td>${e.correct}</td><td>${e.wrong}</td>
+          <td><strong>${e.accuracy}%</strong></td><td>${e.date}</td>
+        </tr>`).join('')}</tbody>
+    </table>`;
+}
+
+// ==================== CSV Download ====================
+function downloadAllCSV(){
+  const records=getRecords();
+  if(records.length===0){showToast('暂无学生记录','error');return}
+  let csv='\uFEFF姓名,老师,日期,用时(秒),正确数,错误数,正确率(%),轮次\n';
+  records.forEach(r=>{
+    csv+=`${r.name},${r.teacher},${r.date},${(r.time/1000).toFixed(1)},${r.correct},${r.wrong},${r.accuracy},${r.rounds}\n`;
+  });
+  csv+='\n\n--- 各学生配对详情 ---\n';
+  records.forEach(r=>{
+    csv+=`\n${r.name} (${r.date}):\n英文,中文,结果\n`;
+    (r.pairLog||[]).forEach(p=>{csv+=`${p.en},${p.cn},${p.result}\n`});
+  });
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=`全部学生记录_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+  URL.revokeObjectURL(url);showToast('全部记录已下载！','success');
+}
+
+// ==================== File Parsing ====================
+async function parseTxt(text){
+  const lines=text.split(/[\r\n]+/).filter(l=>l.trim()),words=[];
+  for(const line of lines){
+    const p=line.split(/[,，\t|]/);
+    if(p.length>=2&&p[0].trim()&&p[1].trim())words.push({en:p[0].trim(),cn:p[1].trim()});
+  }
+  return words;
+}
+async function parseJson(text){
+  const data=JSON.parse(text);
+  if(Array.isArray(data))return data.map(item=>{
+    if(typeof item==='object'&&item.en&&item.cn)return{en:item.en,cn:item.cn};
+    if(typeof item==='object'&&item.english&&item.chinese)return{en:item.english,cn:item.chinese};
+    if(Array.isArray(item)&&item.length>=2)return{en:item[0],cn:item[1]};return null;
+  }).filter(Boolean);
+  return [];
+}
+async function parseDocx(file){
+  const s=await fetch('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js').then(r=>r.text()).catch(()=>null);
+  if(!s)throw new Error('无法加载 JSZip');eval(s);
+  const ab=await file.arrayBuffer(),zip=await JSZip.loadAsync(ab);
+  const docXml=await zip.file('word/document.xml')?.async('string');
+  if(!docXml)throw new Error('无效的 DOCX');
+  const xml=new DOMParser().parseFromString(docXml,'text/xml');
+  const ps=xml.getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','t');
+  let text='';for(const p of ps)text+=p.textContent;
+  const lines=text.split(/[\r\n]+/).filter(l=>l.trim()),words=[];
+  for(const line of lines){
+    const p=line.split(/[,，\t|]/);
+    if(p.length>=2&&p[0].trim()&&p[1].trim())words.push({en:p[0].trim(),cn:p[1].trim()});
+  }
+  return words;
+}
+async function parsePdf(file){
+  const s=await fetch('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js').then(r=>r.text()).catch(()=>null);
+  if(!s)throw new Error('无法加载 PDF.js');eval(s);
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+  let full='';for(let i=1;i<=pdf.numPages;i++){
+    const pg=await pdf.getPage(i);const c=await pg.getTextContent();
+    full+=c.items.map(it=>it.str).join(' ')+'\n';
+  }
+  const lines=full.split(/[\r\n]+/).filter(l=>l.trim()),words=[];
+  for(const line of lines){
+    const p=line.split(/[,，\t|]/);
+    if(p.length>=2&&p[0].trim()&&p[1].trim())words.push({en:p[0].trim(),cn:p[1].trim()});
+  }
+  return words;
+}
+async function parseFile(file){
+  const ext=file.name.split('.').pop().toLowerCase();
+  if(ext==='txt')return parseTxt(await file.text());
+  if(ext==='json')return parseJson(await file.text());
+  if(ext==='docx')return parseDocx(file);
+  if(ext==='pdf')return parsePdf(file);
+  throw new Error('不支持的文件格式');
+}
+
+async function handleFile(file){
+  try{
+    const words=await parseFile(file);
+    if(words.length<6){showToast('单词数量不足，至少需要6组单词！','error');return}
+    setStorage(KEYS.words,words);
+    document.getElementById('uploadInfo').style.display='block';
+    document.getElementById('uploadInfo').textContent=`已加载 ${words.length} 组单词`;
+    document.getElementById('adminVocabCount').textContent=words.length;
+    renderStats();
+    showToast(`成功加载 ${words.length} 组单词！`,'success');
+  }catch(err){showToast('文件解析失败: '+err.message,'error')}
+}
+
+// ==================== Upload Events ====================
+document.getElementById('uploadArea').addEventListener('click',()=>document.getElementById('fileInput').click());
+document.getElementById('uploadArea').addEventListener('dragover',e=>{e.preventDefault();e.currentTarget.style.borderColor='var(--primary)'});
+document.getElementById('uploadArea').addEventListener('dragleave',e=>{e.currentTarget.style.borderColor='var(--border)'});
+document.getElementById('uploadArea').addEventListener('drop',async e=>{
+  e.preventDefault();e.currentTarget.style.borderColor='var(--border)';
+  const f=e.dataTransfer.files[0];if(f)await handleFile(f);
+});
+document.getElementById('fileInput').addEventListener('change',async e=>{
+  const f=e.target.files[0];if(f)await handleFile(f);
+});
+</script>
+</body>
+</html>
