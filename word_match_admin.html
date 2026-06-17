@@ -117,6 +117,25 @@ main{max-width:1100px;margin:0 auto;padding:28px 24px}
 .upload-area .hint{color:var(--text-muted);font-size:0.8em;margin-top:4px}
 .upload-info{color:var(--success);font-size:0.85em;margin-top:6px;display:none}
 
+/* Manual input */
+.manual-toggle{
+  display:block;width:100%;padding:10px;margin-top:12px;border:1px solid var(--border);
+  border-radius:var(--radius);background:#f8fafc;cursor:pointer;text-align:center;
+  font-size:0.88em;color:var(--text-secondary);transition:all 0.2s;
+}
+.manual-toggle:hover{background:#eef2ff;color:var(--primary)}
+.manual-toggle .arrow{display:inline-block;transition:transform 0.25s;margin-right:6px}
+.manual-toggle.open .arrow{transform:rotate(90deg)}
+.manual-panel{display:none;margin-top:12px;padding:16px;border:1px solid var(--border);border-radius:var(--radius);background:#f8fafc}
+.manual-panel.open{display:block}
+.manual-panel textarea{
+  width:100%;min-height:160px;padding:10px 12px;border:1px solid var(--border);
+  border-radius:var(--radius);font-family:'SF Mono','Monaco','Consolas',monospace;
+  font-size:0.88em;line-height:1.6;resize:vertical;outline:none;
+}
+.manual-panel textarea:focus{border-color:var(--primary)}
+.manual-panel .hint{color:var(--text-muted);font-size:0.82em;margin:8px 0}
+
 /* Tables */
 table{width:100%;border-collapse:collapse;font-size:0.9em}
 thead th{
@@ -196,6 +215,17 @@ tbody tr:hover{background:#f8fafc}
         <div class="upload-info" id="uploadInfo"></div>
       </div>
       <input type="file" id="fileInput" accept=".txt,.json,.docx,.pdf" style="display:none">
+
+      <!-- Manual Input -->
+      <button class="manual-toggle" id="manualToggle" onclick="toggleManual()">
+        <span class="arrow">▶</span> 手动输入单词
+      </button>
+      <div class="manual-panel" id="manualPanel">
+        <textarea id="manualText" placeholder="apple,苹果&#10;book,书&#10;cat,猫&#10;dog,狗&#10;..."></textarea>
+        <p class="hint">每行一组，英文和中文用逗号、空格或制表符分隔</p>
+        <button class="btn btn-primary btn-small" onclick="importManual()">导入单词</button>
+      </div>
+
       <p style="font-size:0.85em;color:var(--text-muted)">
         当前词汇池：<strong id="adminVocabCount">32</strong> 组单词
       </p>
@@ -443,14 +473,35 @@ async function parseFile(file){
 async function handleFile(file){
   try{
     const words=await parseFile(file);
-    if(words.length<18){showToast(`单词数量不足，请确保文件包含至少18组单词（当前仅识别到 ${words.length} 组）`,'error');return}
+    if(words.length<18){showToast(`单词数量不足，请确保文件包含至少18组单词（当前仅识别到 ${words.length} 组），建议尝试手动输入`,'error');return}
     setStorage(KEYS.words,words);
     document.getElementById('uploadInfo').style.display='block';
     document.getElementById('uploadInfo').textContent=`已加载 ${words.length} 组单词`;
     document.getElementById('adminVocabCount').textContent=words.length;
     renderStats();
     showToast(`成功加载 ${words.length} 组单词！`,'success');
-  }catch(err){showToast('文件解析失败: '+err.message,'error')}
+  }catch(err){showToast('文件解析失败: '+err.message+'，建议尝试手动输入单词','error')}
+}
+
+// ==================== Manual Input ====================
+function toggleManual(){
+  const panel=document.getElementById('manualPanel');
+  const toggle=document.getElementById('manualToggle');
+  panel.classList.toggle('open');
+  toggle.classList.toggle('open');
+}
+
+function importManual(){
+  const text=document.getElementById('manualText').value.trim();
+  if(!text){showToast('请输入单词内容','error');return}
+  const words=extractPairs(text);
+  if(words.length<18){showToast(`单词数量不足，请确保输入至少18组单词（当前仅识别到 ${words.length} 组）`,'error');return}
+  setStorage(KEYS.words,words);
+  document.getElementById('uploadInfo').style.display='block';
+  document.getElementById('uploadInfo').textContent=`已加载 ${words.length} 组单词`;
+  document.getElementById('adminVocabCount').textContent=words.length;
+  renderStats();
+  showToast(`成功导入 ${words.length} 组单词！`,'success');
 }
 
 // ==================== Upload Events ====================
