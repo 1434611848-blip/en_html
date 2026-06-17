@@ -438,7 +438,7 @@ async function parseFile(file){
 async function handleFile(file){
   try{
     const words=await parseFile(file);
-    if(words.length<6){showToast('单词数量不足，至少需要6组单词！','error');return}
+    if(words.length<18){showToast(`单词数量不足，请确保文件包含至少18组单词（当前仅识别到 ${words.length} 组）`,'error');return}
     setStorage(KEYS.words,words);
     document.getElementById('uploadInfo').style.display='block';
     document.getElementById('uploadInfo').textContent=`已加载 ${words.length} 组单词`;
