@@ -355,7 +355,9 @@ function getTeachers(){
 }
 function getRecords(){return getStorage(STORAGE_KEYS.records,[])}
 function getWords(){
-  // 优先读取激活期单词
+  // 优先级1：外部 words.js 注入（跨设备统一）
+  if(window.GAME_WORDS&&Array.isArray(window.GAME_WORDS)&&window.GAME_WORDS.length>0)return window.GAME_WORDS;
+  // 优先级2：本地激活期单词
   try{
     const activeId=localStorage.getItem('active_edition_id');
     if(activeId){
