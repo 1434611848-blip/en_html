@@ -351,6 +351,7 @@ function formatTime(ms){const sec=Math.floor(ms/1000);return `${String(Math.floo
 function doLogin(){
   const pw=document.getElementById('loginPassword').value.trim();
   if(pw===getPassword()){
+    localStorage.setItem('admin_logged_in','1');
     document.getElementById('loginOverlay').style.display='none';
     document.getElementById('mainApp').style.display='block';
     refreshAll();
@@ -360,11 +361,19 @@ function doLogin(){
   }
 }
 function logout(){
+  localStorage.removeItem('admin_logged_in');
   document.getElementById('loginOverlay').style.display='flex';
   document.getElementById('mainApp').style.display='none';
   document.getElementById('loginPassword').value='';
   document.getElementById('loginError').style.display='none';
 }
+// 页面加载时检查登录状态
+(function(){
+  if(localStorage.getItem('admin_logged_in')==='1'){
+    document.getElementById('loginOverlay').style.display='none';
+    document.getElementById('mainApp').style.display='block';
+  }
+})();
 document.getElementById('loginPassword').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
 
 // ==================== Refresh All ====================
