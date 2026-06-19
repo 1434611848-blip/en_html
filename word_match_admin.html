@@ -374,8 +374,8 @@ document.addEventListener('DOMContentLoaded',function(){
     document.getElementById('mainApp').style.display='block';
     refreshAll();
   }
+  document.getElementById('loginPassword').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
 });
-document.getElementById('loginPassword').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
 
 // ==================== Refresh All ====================
 async function refreshAll(){
