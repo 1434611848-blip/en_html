@@ -133,9 +133,35 @@ h1{
 .btn-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:16px}
 
 /* Leaderboard table */
-.leaderboard table{width:100%;border-collapse:collapse;margin-top:12px}
-.leaderboard th,.leaderboard td{padding:10px 12px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.9em}
-.leaderboard th{color:rgba(255,255,255,0.5);font-weight:500}
+.leaderboard{margin-top:16px}
+.leaderboard h3{text-align:center;margin-bottom:12px;font-size:1.1em;color:var(--gold)}
+.leaderboard-container{
+  background:rgba(255,255,255,0.06);border-radius:var(--radius);
+  padding:12px 6px;border:1px solid rgba(255,255,255,0.1);
+}
+.leaderboard-table-wrapper{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.leaderboard table{width:100%;border-collapse:collapse;min-width:520px}
+.leaderboard th,.leaderboard td{
+  padding:10px 4px;text-align:center;vertical-align:middle;
+  border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.85em;
+  white-space:nowrap;
+}
+.leaderboard th{
+  color:#bbb;font-weight:600;font-size:0.8em;text-transform:uppercase;
+  letter-spacing:0.5px;padding-bottom:12px;
+}
+.leaderboard .col-rank{width:46px}
+.leaderboard .col-name{min-width:56px}
+.leaderboard .col-teacher{
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:72px;
+}
+.leaderboard .col-time{min-width:68px}
+.leaderboard .col-accuracy{min-width:58px}
+.leaderboard .col-date{min-width:80px}
+.leaderboard .me-row{
+  background:rgba(245,197,24,0.12);border-left:3px solid var(--gold);
+}
+.leaderboard .me-row td:first-child{border-left:none}
 .rank-badge{display:inline-block;width:26px;height:26px;border-radius:50%;line-height:26px;font-weight:700;font-size:0.85em}
 .rank-1{background:var(--gold);color:#1a1a2e}
 .rank-2{background:#c0c0c0;color:#1a1a2e}
@@ -540,10 +566,12 @@ async function renderResults(entry){
     </div>
     ${rank>0?`<p style="text-align:center;color:var(--gold);margin-bottom:14px">🏆 当前排名：第 <strong>${rank}</strong> 名（共 ${records.length} 人）</p>`:''}
     <div class="leaderboard"><h3>🏅 排行榜 TOP 5</h3>
-      <table><thead><tr><th>排名</th><th>姓名</th><th>老师</th><th>用时</th><th>正确率</th><th>日期</th></tr></thead>
-      <tbody>${records.slice(0,5).map((e,i)=>`
-        <tr><td><span class="rank-badge rank-${i+1}">${i+1}</span></td><td>${e.name}</td><td>${e.teacher}</td>
-        <td>${formatTime(e.time)}</td><td>${e.accuracy}%</td><td>${e.date}</td></tr>`).join('')}</tbody></table></div>
+      <div class="leaderboard-container"><div class="leaderboard-table-wrapper">
+      <table><thead><tr><th class="col-rank">排名</th><th class="col-name">姓名</th><th class="col-teacher">老师</th><th class="col-time">用时</th><th class="col-accuracy">正确率</th><th class="col-date">日期</th></tr></thead>
+      <tbody>${records.slice(0,5).map((e,i)=>{const isMe=e.name===entry.name&&e.teacher===entry.teacher&&e.time===entry.time;return`
+        <tr${isMe?' class="me-row"':''}><td><span class="rank-badge rank-${i+1}">${i+1}</span></td><td>${e.name}</td><td class="col-teacher">${e.teacher}</td>
+        <td>${formatTime(e.time)}</td><td>${e.accuracy}%</td><td>${e.date}</td></tr>`}).join('')}</tbody></table>
+      </div></div></div>
     <div class="btn-row">
       <button class="btn btn-secondary btn-small" onclick="downloadStudentCSV()">📥 下载我的记录</button>
       <button class="btn btn-outline btn-small" onclick="playAgain()">🔄 再来一局</button>
