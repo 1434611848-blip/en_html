@@ -722,6 +722,22 @@ function saveEditionNote(editionId,value,inputEl,originalEl){
   renderEditions();
 }
 
+// ==================== Sync to Game ====================
+function syncToGame(){
+  const activeId=getActiveEditionId();
+  if(!activeId){showToast('请先激活一个期次','error');return}
+  const editions=getEditions();
+  const active=editions.find(e=>e.id===activeId);
+  if(!active||!active.words||active.words.length===0){showToast('激活期次无单词数据','error');return}
+  const jsContent='window.GAME_WORDS = '+JSON.stringify(active.words)+';';
+  navigator.clipboard.writeText(jsContent).then(()=>{
+    showToast('已复制激活期单词数据，请回到 Marvis 对话中粘贴给我（或说「同步」），我将更新游戏文件并发布。','success');
+  }).catch(()=>{
+    showToast('剪贴板复制失败，请手动复制控制台输出','error');
+    console.log(jsContent);
+  });
+}
+
 // Click outside modal to close
 document.getElementById('detailModal').addEventListener('click',function(e){if(e.target===this)closeDetailModal()});
 document.getElementById('deleteConfirm').addEventListener('click',function(e){if(e.target===this)closeDeleteConfirm()});
