@@ -328,7 +328,7 @@ const supabaseAdmin = window.supabase.createClient(
 );
 
 // ==================== Storage Keys ====================
-const KEYS={records:'word_match_records',teachers:'teacher_list',password:'admin_password',words:'custom_word_list',editions:'word_editions',activeEditionId:'active_edition_id'};
+const KEYS={records:'word_match_records',teachers:'teacher_list',password:'admin_password',words:'custom_word_list'};
 const DEFAULT_TEACHERS=['亚楠老师','佳萌老师','亚飞老师'];
 const DEFAULT_PASSWORD='admin123';
 
@@ -444,7 +444,10 @@ async function deleteRecord(id){
 async function renderLeaderboard(){
   const container=document.getElementById('adminLeaderboard');
   try{
-    const {data:records}=await supabaseAdmin.from('game_records').select('*').order('accuracy',{ascending:false}).order('time',{ascending:true});
+    const activeId=await getActiveEditionId();
+    let query=supabaseAdmin.from('game_records').select('*').order('accuracy',{ascending:false}).order('time',{ascending:true});
+    if(activeId)query=query.eq('edition_id',activeId);
+    const {data:records}=await query;
     if(!records||records.length===0){
       container.innerHTML='<div class="empty-state">暂无学生参与记录</div>';return;
     }
@@ -594,19 +597,28 @@ document.getElementById('fileInput').addEventListener('change',async e=>{
   const f=e.target.files[0];if(f)await handleFile(f);
 });
 
-// ==================== Edition Management ====================
-function getEditions(){return getStorage(KEYS.editions,[])}
-function getActiveEditionId(){return localStorage.getItem(KEYS.activeEditionId)||null}
-function setActiveEditionId(id){
-  if(id){localStorage.setItem(KEYS.activeEditionId,id)}
-  else{localStorage.removeItem(KEYS.activeEditionId)}
+// ==================== Edition Management (Supabase) ====================
+async function getEditions(){
+  try{const{data}=await supabaseAdmin.from('word_editions').select('*').order('created_at',{ascending:false});return data||[]}
+  catch(e){console.error(e);return[]}
+}
+async function getActiveEditionId(){
+  try{const{data}=await supabaseAdmin.from('app_settings').select('value').eq('key','active_edition_id').single();return data?.value||null}
+  catch(e){return null}
+}
+async function setActiveEditionId(name){
+  if(name){
+    await supabaseAdmin.from('app_settings').upsert({key:'active_edition_id',value:name},{onConflict:'key'});
+  }else{
+    await supabaseAdmin.from('app_settings').delete().eq('key','active_edition_id');
+  }
 }
 
-function generateEditionName(){
+async function generateEditionName(){
   const today=new Date();
   const base=`${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}`;
-  const editions=getEditions();
-  const sameDay=editions.filter(e=>e.name.startsWith(base));
+  const editions=await getEditions();
+  const sameDay=editions.filter(e=>e.name&&e.name.startsWith(base));
   if(sameDay.length===0)return base;
   const maxSuffix=Math.max(...sameDay.map(e=>{
     const parts=e.name.split('-');
@@ -616,57 +628,53 @@ function generateEditionName(){
   return `${base}-${String(nxt).padStart(3,'0')}`;
 }
 
-function addEdition(words){
-  const editions=getEditions();
-  const name=generateEditionName();
-  const id='ed_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
-  const edition={id,name,words,createdAt:new Date().toISOString(),note:''};
-  editions.push(edition);
-  setStorage(KEYS.editions,editions);
+async function addEdition(words){
+  const name=await generateEditionName();
+  const{data,error}=await supabaseAdmin.from('word_editions').insert({name,words,note:'',created_at:new Date().toISOString()}).select();
+  if(error){showToast('上传失败: '+error.message,'error');return null}
   // 首次上传自动激活
-  if(!getActiveEditionId()){setActiveEditionId(id)}
+  const activeId=await getActiveEditionId();
+  if(!activeId){await setActiveEditionId(name)}
+  return data[0];
 }
 
-function activateEdition(id){
-  setActiveEditionId(id);
-  renderEditions();
+async function activateEdition(name){
+  await setActiveEditionId(name);
+  await renderEditions();
   // 同步更新 custom_word_list
-  const editions=getEditions();
-  const active=editions.find(e=>e.id===id);
+  const editions=await getEditions();
+  const active=editions.find(e=>e.name===name);
   if(active){setStorage(KEYS.words,active.words)}
   document.getElementById('adminVocabCount').textContent=getWords().length;
-  renderStats();
-  showToast(`已激活：${active?active.name:id}`,'success');
+  await renderStats();
+  showToast(`已激活：${name}`,'success');
 }
 
-function deactivateEdition(){
-  setActiveEditionId(null);
+async function deactivateEdition(){
+  await setActiveEditionId(null);
   // 同步清空 custom_word_list，使游戏端回到默认单词表
   setStorage(KEYS.words,[]);
-  renderEditions();
+  await renderEditions();
   document.getElementById('adminVocabCount').textContent=getWords().length;
-  renderStats();
+  await renderStats();
   showToast('已下架激活期，游戏端将使用默认单词表','info');
 }
 
 let pendingDeleteId=null;
-function confirmDeleteEdition(id){
-  const editions=getEditions();
+async function confirmDeleteEdition(id){
+  const editions=await getEditions();
   const edition=editions.find(e=>e.id===id);
   if(!edition)return;
-  if(id===getActiveEditionId()){showToast('无法删除激活中的期次，请先下架','error');return}
+  const activeId=await getActiveEditionId();
+  if(edition.name===activeId){showToast('无法删除激活中的期次，请先下架','error');return}
   pendingDeleteId=id;
   document.getElementById('deleteConfirmText').textContent=`确定删除期次「${edition.name}」（${edition.words.length} 组单词）吗？此操作不可恢复。`;
   document.getElementById('deleteConfirm').classList.remove('hidden');
-  document.getElementById('deleteConfirmBtn').onclick=function(){
-    const editions=getEditions();
-    const idx=editions.findIndex(e=>e.id===pendingDeleteId);
-    if(idx<0)return;
-    editions.splice(idx,1);
-    setStorage(KEYS.editions,editions);
+  document.getElementById('deleteConfirmBtn').onclick=async function(){
+    await supabaseAdmin.from('word_editions').delete().eq('id',pendingDeleteId);
     pendingDeleteId=null;
     closeDeleteConfirm();
-    renderEditions();
+    await renderEditions();
     showToast('期次已删除','info');
   };
 }
@@ -675,8 +683,8 @@ function closeDeleteConfirm(){
   pendingDeleteId=null;
 }
 
-function viewEditionDetail(id){
-  const editions=getEditions();
+async function viewEditionDetail(id){
+  const editions=await getEditions();
   const edition=editions.find(e=>e.id===id);
   if(!edition)return;
   document.getElementById('detailTitle').textContent=edition.name+'（'+edition.words.length+' 组单词）';
@@ -689,21 +697,20 @@ function closeDetailModal(){
   document.getElementById('detailModal').classList.add('hidden');
 }
 
-function renderEditions(){
+async function renderEditions(){
   const container=document.getElementById('editionsContainer');
-  const editions=getEditions();
-  const activeId=getActiveEditionId();
+  const editions=await getEditions();
+  const activeId=await getActiveEditionId();
   if(editions.length===0){
     container.innerHTML='<div class="empty-state">暂无单词期次，上传单词后将自动生成</div>';
     return;
   }
-  const sorted=[...editions].reverse();
   container.innerHTML=`
     <table class="edition-table">
       <thead><tr><th>期次名称</th><th>单词数</th><th>状态</th><th>创建时间</th><th>备注</th><th>操作</th></tr></thead>
-      <tbody>${sorted.map(e=>{
-        const isActive=e.id===activeId;
-        const date=new Date(e.createdAt);
+      <tbody>${editions.map(e=>{
+        const isActive=e.name===activeId;
+        const date=new Date(e.created_at);
         const dateStr=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
         return `<tr>
           <td><strong>${e.name}</strong></td>
@@ -714,7 +721,7 @@ function renderEditions(){
           <td><div class="edition-actions">
             ${isActive
               ?`<button class="btn btn-outline btn-small" onclick="deactivateEdition()">下架</button>`
-              :`<button class="btn btn-primary btn-small" onclick="activateEdition('${e.id}')">上架</button>`
+              :`<button class="btn btn-primary btn-small" onclick="activateEdition('${e.name}')">上架</button>`
             }
             <button class="btn btn-outline btn-small" onclick="viewEditionDetail('${e.id}')">详情</button>
             ${!isActive?`<button class="btn btn-danger btn-small" onclick="confirmDeleteEdition('${e.id}')">删除</button>`:''}
@@ -722,12 +729,12 @@ function renderEditions(){
         </tr>`;
       }).join('')}</tbody>
     </table>
-    <div class="sync-bar"><button class="btn btn-primary btn-small" onclick="syncToGame()">📤 同步到游戏</button><span class="sync-hint">复制激活期单词到剪贴板，回 Marvis 说「同步」即可更新游戏端</span></div>
+    <div class="sync-bar"><button class="btn btn-primary btn-small" onclick="syncToGame()">📤 同步到游戏</button><span class="sync-hint">生成 words.js 并自动发布到游戏端</span></div>
   `;
 }
 
-function startEditNote(editionId,el){
-  const editions=getEditions();
+async function startEditNote(editionId,el){
+  const editions=await getEditions();
   const ed=editions.find(e=>e.id===editionId);
   if(!ed)return;
   const input=document.createElement('input');
@@ -739,29 +746,26 @@ function startEditNote(editionId,el){
   input.addEventListener('blur',()=>saveEditionNote(editionId,input.value,input,el));
   input.addEventListener('keydown',function(e){if(e.key==='Enter'){saveEditionNote(editionId,input.value,input,el)}});
 }
-function saveEditionNote(editionId,value,inputEl,originalEl){
-  const editions=getEditions();
-  const ed=editions.find(e=>e.id===editionId);
-  if(!ed)return;
-  ed.note=value.trim();
-  setStorage(KEYS.editions,editions);
+async function saveEditionNote(editionId,value,inputEl,originalEl){
+  const note=value.trim();
+  await supabaseAdmin.from('word_editions').update({note}).eq('id',editionId);
   inputEl.replaceWith(originalEl);
-  renderEditions();
+  await renderEditions();
 }
 
 // ==================== Sync to Game ====================
-function syncToGame(){
-  const activeId=getActiveEditionId();
+async function syncToGame(){
+  const activeId=await getActiveEditionId();
   if(!activeId){showToast('请先激活一个期次','error');return}
-  const editions=getEditions();
-  const active=editions.find(e=>e.id===activeId);
+  const editions=await getEditions();
+  const active=editions.find(e=>e.name===activeId);
   if(!active||!active.words||active.words.length===0){showToast('激活期次无单词数据','error');return}
-  const jsContent='window.GAME_WORDS = '+JSON.stringify(active.words)+';';
+  const jsContent='window.ACTIVE_EDITION_ID = '+JSON.stringify(activeId)+';\nwindow.GAME_WORDS = '+JSON.stringify(active.words)+';';
   navigator.clipboard.writeText(jsContent).then(()=>{
-    showToast('已复制激活期单词数据，请回到 Marvis 对话中粘贴给我（或说「同步」），我将更新游戏文件并发布。','success');
+    showToast('words.js 内容已复制到剪贴板，请回到 Marvis 说「同步发布」即可更新游戏端','success');
   }).catch(()=>{
-    showToast('剪贴板复制失败，请手动复制控制台输出','error');
-    console.log(jsContent);
+    showToast('剪贴板复制失败，内容已输出到控制台','error');
+    console.log('[Sync] words.js content:\n'+jsContent);
   });
 }
 
