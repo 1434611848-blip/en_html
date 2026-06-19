@@ -368,12 +368,13 @@ function logout(){
   document.getElementById('loginError').style.display='none';
 }
 // 页面加载时检查登录状态
-(function(){
+document.addEventListener('DOMContentLoaded',function(){
   if(localStorage.getItem('admin_logged_in')==='1'){
     document.getElementById('loginOverlay').style.display='none';
     document.getElementById('mainApp').style.display='block';
+    refreshAll();
   }
-})();
+});
 document.getElementById('loginPassword').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
 
 // ==================== Refresh All ====================
