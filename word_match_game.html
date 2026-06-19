@@ -369,39 +369,36 @@ const AudioEngine = (function() {
 })();
 
 // ==================== Storage ====================
-const STORAGE_KEYS={records:'word_match_records',teachers:'teacher_list',words:'custom_word_list'};
 const DEFAULT_TEACHERS=['亚楠老师','佳萌老师','亚飞老师'];
 const DEFAULT_WORDS=[{en:'apple',cn:'苹果'},{en:'book',cn:'书'},{en:'cat',cn:'猫'},{en:'dog',cn:'狗'},{en:'elephant',cn:'大象'},{en:'flower',cn:'花'},{en:'garden',cn:'花园'},{en:'house',cn:'房子'},{en:'ice cream',cn:'冰淇淋'},{en:'juice',cn:'果汁'},{en:'kite',cn:'风筝'},{en:'lion',cn:'狮子'},{en:'moon',cn:'月亮'},{en:'night',cn:'夜晚'},{en:'orange',cn:'橙子'},{en:'pencil',cn:'铅笔'},{en:'queen',cn:'女王'},{en:'rainbow',cn:'彩虹'},{en:'school',cn:'学校'},{en:'teacher',cn:'老师'},{en:'umbrella',cn:'雨伞'},{en:'village',cn:'村庄'},{en:'water',cn:'水'},{en:'yellow',cn:'黄色'},{en:'zoo',cn:'动物园'},{en:'friend',cn:'朋友'},{en:'happy',cn:'快乐的'},{en:'beautiful',cn:'美丽的'},{en:'morning',cn:'早晨'},{en:'afternoon',cn:'下午'},{en:'family',cn:'家庭'},{en:'music',cn:'音乐'}];
-
-function getStorage(key,def){try{const v=localStorage.getItem(key);return v?JSON.parse(v):def}catch(e){return def}}
-function setStorage(key,val){localStorage.setItem(key,JSON.stringify(val))}
-function getTeachers(){
-  const raw=getStorage(STORAGE_KEYS.teachers,DEFAULT_TEACHERS);
-  return (Array.isArray(raw)&&raw.length>0)?raw:DEFAULT_TEACHERS;
-}
-function getRecords(){return getStorage(STORAGE_KEYS.records,[])}
-function getWords(){
-  // 优先级1：外部 words.js 注入（跨设备统一）
-  if(window.GAME_WORDS&&Array.isArray(window.GAME_WORDS)&&window.GAME_WORDS.length>0)return window.GAME_WORDS;
-  // 优先级2：本地激活期单词
-  try{
-    const activeId=localStorage.getItem('active_edition_id');
-    if(activeId){
-      const editions=JSON.parse(localStorage.getItem('word_editions')||'[]');
-      const active=editions.find(function(e){return e.id===activeId});
-      if(active&&active.words&&active.words.length>0)return active.words;
-    }
-  }catch(e){}
-  // fallback 到默认单词表
-  const raw=getStorage(STORAGE_KEYS.words,DEFAULT_WORDS);
-  return (Array.isArray(raw)&&raw.length>0)?raw:DEFAULT_WORDS;
-}
 
 // ==================== Supabase ====================
 const supabaseClient = window.supabase.createClient(
   'https://xwnvsydndaclamzcfrpl.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3bnZzeWRuZGFjbGFtemNmcnBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3NjU2MDYsImV4cCI6MjA2NTM0MTYwNn0.RXktKiWFCto2dnrIKraL_2p0F6YYF-KpEwIgHvJzhhA'
 );
+
+// ==================== Data Loaders ====================
+let CACHED_TEACHERS=null;
+async function loadTeachers(){
+  try{const{data}=await supabaseClient.from('teachers').select('name').order('created_at',{ascending:true});if(data&&data.length>0){CACHED_TEACHERS=data.map(r=>r.name);return CACHED_TEACHERS}}
+  catch(e){console.error('loadTeachers failed:',e)}
+  CACHED_TEACHERS=DEFAULT_TEACHERS;
+  return DEFAULT_TEACHERS;
+}
+
+function getTeachers(){
+  return CACHED_TEACHERS||DEFAULT_TEACHERS;
+}
+
+function getWords(){
+  // 优先级1：外部 GAME_WORDS 注入（initGameWords 从 Supabase 读取激活期单词）
+  if(window.GAME_WORDS&&Array.isArray(window.GAME_WORDS)&&window.GAME_WORDS.length>0)return window.GAME_WORDS;
+  // 优先级2：Supabase custom_word_list（教师自定单词）
+  if(window.CUSTOM_WORDS&&Array.isArray(window.CUSTOM_WORDS)&&window.CUSTOM_WORDS.length>0)return window.CUSTOM_WORDS;
+  // 优先级3：默认单词表
+  return DEFAULT_WORDS;
+}
 
 // ==================== State ====================
 const state={
@@ -441,11 +438,12 @@ function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.fl
 function formatTime(ms){const sec=Math.floor(ms/1000);return `${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`}
 
 // ==================== Teacher Select ====================
-function populateTeacherSelect(){
+async function populateTeacherSelect(){
   const sel=document.getElementById('teacherSelect');
   if(!sel){console.warn('teacherSelect element not found');return}
   let teachers=getTeachers();
-  if(!Array.isArray(teachers)||teachers.length===0){console.warn('teacher_list empty/invalid, using defaults');teachers=DEFAULT_TEACHERS}
+  if(!teachers||teachers.length===0){await loadTeachers();teachers=getTeachers()}
+  if(!Array.isArray(teachers)||teachers.length===0){teachers=DEFAULT_TEACHERS}
   sel.innerHTML=teachers.map(t=>`<option value="${t}">${t}</option>`).join('');
 }
 
@@ -601,11 +599,11 @@ function stopTimer(){if(timerInterval){clearInterval(timerInterval);timerInterva
 
 // ==================== Student Flow ====================
 function showStudent(){refreshStudentScreen();showScreen('student')}
-function refreshStudentScreen(){
+async function refreshStudentScreen(){
   document.getElementById('studentStep1').style.display='block';
   document.getElementById('studentStep2').style.display='none';
   document.getElementById('playerName').value='';
-  populateTeacherSelect();
+  await populateTeacherSelect();
   document.getElementById('vocabCount').textContent=getWords().length;
 }
 
@@ -658,28 +656,37 @@ async function initGameWords() {
       .eq('key', 'active_edition_id')
       .single();
 
-    if (settingError || !settingData || !settingData.value) {
-      console.warn('[Init] No active edition found, using default words');
-      return;
-    }
-    const activeName = settingData.value;
+    if (!settingError && settingData && settingData.value) {
+      const activeName = settingData.value;
 
-    // 2. 读取对应期次单词
-    const { data: editionData, error: editionError } = await supabaseClient
-      .from('word_editions')
-      .select('words')
-      .eq('name', activeName)
+      // 2. 读取对应期次单词
+      const { data: editionData, error: editionError } = await supabaseClient
+        .from('word_editions')
+        .select('words')
+        .eq('name', activeName)
+        .single();
+
+      if (!editionError && editionData && editionData.words && editionData.words.length > 0) {
+        window.GAME_WORDS = editionData.words;
+        window.ACTIVE_EDITION_ID = activeName;
+        console.log('[Init] Loaded ' + editionData.words.length + ' words from edition: ' + activeName);
+      }
+    }
+
+    // 3. 读取 custom_word_list（教师自定单词，作为 fallback）
+    const { data: customData } = await supabaseClient
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'custom_word_list')
       .single();
-
-    if (editionError || !editionData || !editionData.words || editionData.words.length === 0) {
-      console.warn('[Init] Edition not found or empty, using default words');
-      return;
+    if (customData && customData.value) {
+      try {
+        const customWords = JSON.parse(customData.value);
+        if (Array.isArray(customWords) && customWords.length > 0) {
+          window.CUSTOM_WORDS = customWords;
+        }
+      } catch (e) { /* ignore parse error */ }
     }
-
-    // 3. 注入全局变量
-    window.GAME_WORDS = editionData.words;
-    window.ACTIVE_EDITION_ID = activeName;
-    console.log('[Init] Loaded ' + editionData.words.length + ' words from edition: ' + activeName);
   } catch (e) {
     console.error('[Init] Supabase fetch failed, using default words:', e);
   }
@@ -687,10 +694,10 @@ async function initGameWords() {
 
 // Run on page load, then init UI
 (async function () {
+  await loadTeachers();
   await initGameWords();
   createParticles();
   populateTeacherSelect();
-  // 刷新词汇数显示
   const vocabEl = document.getElementById('vocabCount');
   if (vocabEl) vocabEl.textContent = getWords().length;
 })();

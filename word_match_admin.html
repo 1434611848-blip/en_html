@@ -328,16 +328,74 @@ const supabaseAdmin = window.supabase.createClient(
 );
 
 // ==================== Storage Keys ====================
-const KEYS={records:'word_match_records',teachers:'teacher_list',password:'admin_password',words:'custom_word_list'};
+const KEYS={password:'admin_password'}; // 仅保留安全相关配置
 const DEFAULT_TEACHERS=['亚楠老师','佳萌老师','亚飞老师'];
 const DEFAULT_PASSWORD='admin123';
 
-function getStorage(key,def){try{const v=localStorage.getItem(key);return v?JSON.parse(v):def}catch(e){return def}}
-function setStorage(key,val){localStorage.setItem(key,JSON.stringify(val))}
-function getTeachers(){return getStorage(KEYS.teachers,DEFAULT_TEACHERS)}
-function getRecords(){return getStorage(KEYS.records,[])}
-function getWords(){return getStorage(KEYS.words,[])}
-function getPassword(){return getStorage(KEYS.password,DEFAULT_PASSWORD)}
+function getPassword(){try{const v=localStorage.getItem(KEYS.password);return v?JSON.parse(v):DEFAULT_PASSWORD}catch(e){return DEFAULT_PASSWORD}}
+
+// ==================== Supabase: Teachers ====================
+async function loadTeachersFromDB(){
+  try{const{data}=await supabaseAdmin.from('teachers').select('name').order('created_at',{ascending:true});return (data||[]).map(r=>r.name)}
+  catch(e){console.error('loadTeachersFromDB failed:',e);return null}
+}
+
+// 首次迁移：若 Supabase 为空但 localStorage 有旧数据，自动写入
+async function migrateTeachersIfNeeded(){
+  const dbTeachers=await loadTeachersFromDB();
+  if(dbTeachers&&dbTeachers.length>0)return dbTeachers;
+  // Supabase 为空，尝试从 localStorage 迁移
+  try{
+    const old=localStorage.getItem('teacher_list');
+    if(old){
+      const names=JSON.parse(old);
+      if(Array.isArray(names)&&names.length>0){
+        const rows=names.map(n=>({name:n,created_at:new Date().toISOString()}));
+        await supabaseAdmin.from('teachers').insert(rows);
+        console.log('[Migrate] Migrated '+names.length+' teachers to Supabase');
+        return names;
+      }
+    }
+  }catch(e){console.error('Migration failed:',e)}
+  return DEFAULT_TEACHERS;
+}
+
+async function getTeachers(){
+  try{const{data}=await supabaseAdmin.from('teachers').select('name').order('created_at',{ascending:true});if(data&&data.length>0)return data.map(r=>r.name)}
+  catch(e){console.error(e)}
+  return DEFAULT_TEACHERS;
+}
+
+// ==================== Supabase: Custom Words ====================
+async function getWordsFromDB(){
+  try{const{data}=await supabaseAdmin.from('app_settings').select('value').eq('key','custom_word_list').single();if(data&&data.value)return JSON.parse(data.value)}
+  catch(e){}
+  return null;
+}
+
+async function setWordsToDB(words){
+  await supabaseAdmin.from('app_settings').upsert({key:'custom_word_list',value:JSON.stringify(words)},{onConflict:'key'});
+}
+
+// 首次迁移 custom_word_list
+async function migrateWordsIfNeeded(){
+  const dbWords=await getWordsFromDB();
+  if(dbWords&&dbWords.length>0)return dbWords;
+  try{
+    const old=localStorage.getItem('custom_word_list');
+    if(old){
+      const words=JSON.parse(old);
+      if(Array.isArray(words)&&words.length>0){
+        await setWordsToDB(words);
+        console.log('[Migrate] Migrated '+words.length+' words to Supabase');
+        return words;
+      }
+    }
+  }catch(e){console.error('Words migration failed:',e)}
+  return [];
+}
+
+async function getWords(){const w=await getWordsFromDB();return w||[]}
 
 // ==================== Toast ====================
 function showToast(msg,type='info'){
@@ -348,12 +406,14 @@ function showToast(msg,type='info'){
 function formatTime(ms){const sec=Math.floor(ms/1000);return `${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`}
 
 // ==================== Login ====================
-function doLogin(){
+async function doLogin(){
   const pw=document.getElementById('loginPassword').value.trim();
   if(pw===getPassword()){
     localStorage.setItem('admin_logged_in','1');
     document.getElementById('loginOverlay').style.display='none';
     document.getElementById('mainApp').style.display='block';
+    await migrateTeachersIfNeeded();
+    await migrateWordsIfNeeded();
     refreshAll();
   }else{
     document.getElementById('loginError').style.display='block';
@@ -367,11 +427,13 @@ function logout(){
   document.getElementById('loginPassword').value='';
   document.getElementById('loginError').style.display='none';
 }
-// 页面加载时检查登录状态
-document.addEventListener('DOMContentLoaded',function(){
+// 页面加载时检查登录状态 + 首次数据迁移
+document.addEventListener('DOMContentLoaded',async function(){
   if(localStorage.getItem('admin_logged_in')==='1'){
     document.getElementById('loginOverlay').style.display='none';
     document.getElementById('mainApp').style.display='block';
+    await migrateTeachersIfNeeded();
+    await migrateWordsIfNeeded();
     refreshAll();
   }
   document.getElementById('loginPassword').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
@@ -379,11 +441,11 @@ document.addEventListener('DOMContentLoaded',function(){
 
 // ==================== Refresh All ====================
 async function refreshAll(){
-  renderTeacherTags();
+  await renderTeacherTags();
   await renderLeaderboard();
   await renderStats();
   renderEditions();
-  document.getElementById('adminVocabCount').textContent=getWords().length;
+  document.getElementById('adminVocabCount').textContent=(await getWords()).length;
 }
 
 async function renderStats(){
@@ -392,42 +454,46 @@ async function renderStats(){
     const {count:c}=await supabaseAdmin.from('game_records').select('*',{count:'exact',head:true});
     if(c!=null)count=c;
   }catch(e){count='—'}
+  const teachers=await getTeachers();
+  const words=await getWords();
   document.getElementById('statRow').innerHTML=`
     <div class="stat-item"><div class="val">${count}</div><div class="lbl">总参与人次</div></div>
-    <div class="stat-item"><div class="val">${getTeachers().length}</div><div class="lbl">老师数量</div></div>
-    <div class="stat-item"><div class="val">${getWords().length}</div><div class="lbl">词汇组数</div></div>
+    <div class="stat-item"><div class="val">${teachers.length}</div><div class="lbl">老师数量</div></div>
+    <div class="stat-item"><div class="val">${words.length}</div><div class="lbl">词汇组数</div></div>
   `;
 }
 
 // ==================== Teacher Management ====================
-function renderTeacherTags(){
+async function renderTeacherTags(){
+  const teachers=await getTeachers();
   const container=document.getElementById('teacherTags');
-  container.innerHTML=getTeachers().map((t,i)=>
-    `<span class="tag">${t}<span class="del" onclick="removeTeacher(${i})" title="删除">×</span></span>`
+  container.innerHTML=teachers.map((t,i)=>
+    `<span class="tag">${t}<span class="del" onclick="removeTeacher('${t.replace(/'/g,"\\'")}')" title="删除">×</span></span>`
   ).join('');
 }
 
-function addTeacher(){
+async function addTeacher(){
   const input=document.getElementById('newTeacherName'),name=input.value.trim();
   if(!name){showToast('请输入老师名字','error');return}
-  const teachers=getTeachers();
+  const teachers=await getTeachers();
   if(teachers.includes(name)){showToast('该老师已存在','error');return}
-  teachers.push(name);setStorage(KEYS.teachers,teachers);
-  input.value='';renderTeacherTags();renderStats();
+  const{error}=await supabaseAdmin.from('teachers').insert({name,created_at:new Date().toISOString()});
+  if(error){showToast('添加失败: '+error.message,'error');return}
+  input.value='';await renderTeacherTags();await renderStats();
   showToast(`已添加：${name}`,'success');
 }
 
-function removeTeacher(idx){
-  const teachers=getTeachers(),name=teachers[idx];
-  teachers.splice(idx,1);setStorage(KEYS.teachers,teachers);
-  renderTeacherTags();renderStats();
+async function removeTeacher(name){
+  const{error}=await supabaseAdmin.from('teachers').delete().eq('name',name);
+  if(error){showToast('删除失败: '+error.message,'error');return}
+  await renderTeacherTags();await renderStats();
   showToast(`已移除：${name}`,'info');
 }
 
 function changePassword(){
   const input=document.getElementById('newPassword'),pw=input.value.trim();
   if(!pw){showToast('请输入新密码','error');return}
-  setStorage(KEYS.password,pw);input.value='';
+  localStorage.setItem(KEYS.password,JSON.stringify(pw));input.value='';
   showToast('密码已更新','success');
 }
 
@@ -472,7 +538,10 @@ async function renderLeaderboard(){
 // ==================== CSV Download ====================
 async function downloadAllCSV(){
   try{
-    const {data:records}=await supabaseAdmin.from('game_records').select('*').order('accuracy',{ascending:false});
+    const activeId=await getActiveEditionId();
+    let query=supabaseAdmin.from('game_records').select('*').order('accuracy',{ascending:false});
+    if(activeId)query=query.eq('edition_id',activeId);
+    const{data:records}=await query;
     if(!records||records.length===0){showToast('暂无学生记录','error');return}
     let csv='\uFEFF姓名,老师,日期,用时(秒),正确数,错误数,正确率(%),轮次\n';
     records.forEach(r=>{
@@ -480,8 +549,9 @@ async function downloadAllCSV(){
     });
     const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
     const url=URL.createObjectURL(blob),a=document.createElement('a');
-    a.href=url;a.download=`全部学生记录_${new Date().toISOString().slice(0,10)}.csv`;a.click();
-    URL.revokeObjectURL(url);showToast('全部记录已下载！','success');
+    const suffix=activeId?'_'+activeId:'_全部';
+    a.href=url;a.download=`学生记录${suffix}_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+    URL.revokeObjectURL(url);showToast('记录已下载！','success');
   }catch(e){showToast('下载失败，请重试','error')}
 }
 
@@ -554,7 +624,7 @@ async function handleFile(file){
     const words=await parseFile(file);
     if(words.length<18){showToast(`单词数量不足，请确保文件包含至少18组单词（当前仅识别到 ${words.length} 组），建议尝试手动输入`,'error');return}
     addEdition(words);
-    setStorage(KEYS.words,words);
+    await setWordsToDB(words);
     document.getElementById('uploadInfo').style.display='block';
     document.getElementById('uploadInfo').textContent=`已加载 ${words.length} 组单词`;
     document.getElementById('adminVocabCount').textContent=words.length;
@@ -571,13 +641,13 @@ function toggleManual(){
   toggle.classList.toggle('open');
 }
 
-function importManual(){
+async function importManual(){
   const text=document.getElementById('manualText').value.trim();
   if(!text){showToast('请输入单词内容','error');return}
   const words=extractPairs(text);
   if(words.length<18){showToast(`单词数量不足，请确保输入至少18组单词（当前仅识别到 ${words.length} 组）`,'error');return}
   addEdition(words);
-  setStorage(KEYS.words,words);
+  await setWordsToDB(words);
   document.getElementById('uploadInfo').style.display='block';
   document.getElementById('uploadInfo').textContent=`已加载 ${words.length} 组单词`;
   document.getElementById('adminVocabCount').textContent=words.length;
@@ -641,21 +711,21 @@ async function addEdition(words){
 async function activateEdition(name){
   await setActiveEditionId(name);
   await renderEditions();
-  // 同步更新 custom_word_list
+  // 同步更新 custom_word_list 到 Supabase
   const editions=await getEditions();
   const active=editions.find(e=>e.name===name);
-  if(active){setStorage(KEYS.words,active.words)}
-  document.getElementById('adminVocabCount').textContent=getWords().length;
+  if(active){await setWordsToDB(active.words)}
+  document.getElementById('adminVocabCount').textContent=(await getWords()).length;
   await renderStats();
   showToast(`已激活：${name}`,'success');
 }
 
 async function deactivateEdition(){
   await setActiveEditionId(null);
-  // 同步清空 custom_word_list，使游戏端回到默认单词表
-  setStorage(KEYS.words,[]);
+  // 清空 custom_word_list，游戏端回到默认单词表
+  await setWordsToDB([]);
   await renderEditions();
-  document.getElementById('adminVocabCount').textContent=getWords().length;
+  document.getElementById('adminVocabCount').textContent=(await getWords()).length;
   await renderStats();
   showToast('已下架激活期，游戏端将使用默认单词表','info');
 }
