@@ -171,6 +171,7 @@ h1{
 @keyframes toastOut{from{opacity:1}to{opacity:0}}
 </style>
 <script src="words.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 <div class="particles" id="particles"></div>
@@ -371,6 +372,12 @@ function getWords(){
   return (Array.isArray(raw)&&raw.length>0)?raw:DEFAULT_WORDS;
 }
 
+// ==================== Supabase ====================
+const supabase = window.supabase.createClient(
+  'https://xwnvsydndaclamzcfrpl.supabase.co',
+  'sb_publishable_PATbkfSdIrjUug0C7qqnsg__fGlTOLZ'
+);
+
 // ==================== State ====================
 const state={
   playerName:'',teacher:'',words:[],currentRoundWords:[],roundNum:0,
@@ -498,20 +505,28 @@ function confirmEndGame(){
   endGame();
 }
 
-function endGame(){
+async function endGame(){
   state.totalTime=Date.now()-state.gameStartTime;stopTimer();
   const totalAttempts=state.correctCount+state.wrongCount;
   const accuracy=totalAttempts>0?Math.round((state.correctCount/totalAttempts)*100):0;
-  const entry={name:state.playerName,teacher:state.teacher,date:new Date().toLocaleDateString('zh-CN'),time:state.totalTime,accuracy,correct:state.correctCount,wrong:state.wrongCount,rounds:state.roundNum,pairLog:[...state.pairLog]};
-  const records=getRecords();records.push(entry);setStorage(STORAGE_KEYS.records,records);
+  const entry={name:state.playerName,teacher:state.teacher,date:new Date().toLocaleDateString('zh-CN'),time:state.totalTime,accuracy,correct:state.correctCount,wrong:state.wrongCount,rounds:state.roundNum,pair_log:state.pairLog};
   AudioEngine.stopMusic();
-  showScreen('results');renderResults(entry);
+  showScreen('results');
+  try{
+    const {error}=await supabase.from('game_records').insert([entry]);
+    if(error)throw error;
+  }catch(e){console.error('Supabase insert failed:',e)}
+  await renderResults(entry);
 }
 
-function renderResults(entry){
-  const records=getRecords();
-  const sorted=[...records].sort((a,b)=>{if(b.accuracy!==a.accuracy)return b.accuracy-a.accuracy;return a.time-b.time});
-  const rank=sorted.findIndex(e=>e.name===entry.name&&e.time===entry.time&&e.accuracy===entry.accuracy)+1;
+async function renderResults(entry){
+  $resultsContent.innerHTML='<h2>🎉 游戏结束！</h2><p style="text-align:center;color:rgba(255,255,255,0.5)">加载中...</p>';
+  let records=[],rank=0;
+  try{
+    const {data}=await supabase.from('game_records').select('*').order('accuracy',{ascending:false}).order('time',{ascending:true});
+    if(data)records=data;
+    rank=records.findIndex(r=>r.name===entry.name&&r.time===entry.time&&r.accuracy===entry.accuracy)+1;
+  }catch(e){console.error('Fetch records failed:',e)}
   $resultsContent.innerHTML=`
     <h2>🎉 游戏结束！</h2>
     <div class="result-stats">
@@ -526,7 +541,7 @@ function renderResults(entry){
     ${rank>0?`<p style="text-align:center;color:var(--gold);margin-bottom:14px">🏆 当前排名：第 <strong>${rank}</strong> 名（共 ${records.length} 人）</p>`:''}
     <div class="leaderboard"><h3>🏅 排行榜 TOP 5</h3>
       <table><thead><tr><th>排名</th><th>姓名</th><th>老师</th><th>用时</th><th>正确率</th><th>日期</th></tr></thead>
-      <tbody>${sorted.slice(0,5).map((e,i)=>`
+      <tbody>${records.slice(0,5).map((e,i)=>`
         <tr><td><span class="rank-badge rank-${i+1}">${i+1}</span></td><td>${e.name}</td><td>${e.teacher}</td>
         <td>${formatTime(e.time)}</td><td>${e.accuracy}%</td><td>${e.date}</td></tr>`).join('')}</tbody></table></div>
     <div class="btn-row">

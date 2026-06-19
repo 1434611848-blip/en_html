@@ -319,7 +319,14 @@ tbody tr:hover{background:#f8fafc}
   </main>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
+// ==================== Supabase ====================
+const supabaseAdmin = window.supabase.createClient(
+  'https://xwnvsydndaclamzcfrpl.supabase.co',
+  'sb_publishable_PATbkfSdIrjUug0C7qqnsg__fGlTOLZ'
+);
+
 // ==================== Storage Keys ====================
 const KEYS={records:'word_match_records',teachers:'teacher_list',password:'admin_password',words:'custom_word_list',editions:'word_editions',activeEditionId:'active_edition_id'};
 const DEFAULT_TEACHERS=['亚楠老师','佳萌老师','亚飞老师'];
@@ -361,18 +368,22 @@ function logout(){
 document.getElementById('loginPassword').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
 
 // ==================== Refresh All ====================
-function refreshAll(){
+async function refreshAll(){
   renderTeacherTags();
-  renderLeaderboard();
-  renderStats();
+  await renderLeaderboard();
+  await renderStats();
   renderEditions();
   document.getElementById('adminVocabCount').textContent=getWords().length;
 }
 
-function renderStats(){
-  const records=getRecords();
+async function renderStats(){
+  let count=0;
+  try{
+    const {count:c}=await supabaseAdmin.from('game_records').select('*',{count:'exact',head:true});
+    if(c!=null)count=c;
+  }catch(e){count='—'}
   document.getElementById('statRow').innerHTML=`
-    <div class="stat-item"><div class="val">${records.length}</div><div class="lbl">总参与人次</div></div>
+    <div class="stat-item"><div class="val">${count}</div><div class="lbl">总参与人次</div></div>
     <div class="stat-item"><div class="val">${getTeachers().length}</div><div class="lbl">老师数量</div></div>
     <div class="stat-item"><div class="val">${getWords().length}</div><div class="lbl">词汇组数</div></div>
   `;
@@ -411,52 +422,54 @@ function changePassword(){
 }
 
 // ==================== Leaderboard ====================
-function deleteRecord(idx){
+async function deleteRecord(id){
   if(!confirm('确定删除这条记录吗？此操作不可恢复。'))return;
-  const records=getRecords();
-  records.splice(idx,1);
-  setStorage(KEYS.records,records);
-  refreshAll();
-  showToast('记录已删除','info');
+  try{
+    await supabaseAdmin.from('game_records').delete().eq('id',id);
+    await refreshAll();
+    showToast('记录已删除','info');
+  }catch(e){showToast('删除失败','error')}
 }
 
-function renderLeaderboard(){
+async function renderLeaderboard(){
   const container=document.getElementById('adminLeaderboard');
-  const records=getRecords();
-  if(records.length===0){
-    container.innerHTML='<div class="empty-state">暂无学生参与记录</div>';return;
-  }
-  const sorted=records.map((r,i)=>({...r,_idx:i})).sort((a,b)=>{
-    if(b.accuracy!==a.accuracy)return b.accuracy-a.accuracy;
-    return a.time-b.time;
-  }).slice(0,5);
-  const badgeClass=i=>i<3?`badge-${i+1}`:'badge-n';
-  container.innerHTML=`
-    <table>
-      <thead><tr><th>排名</th><th>姓名</th><th>老师</th><th>用时</th><th>正确数</th><th>错误数</th><th>正确率</th><th>日期</th><th>操作</th></tr></thead>
-      <tbody>${sorted.map((e,i)=>`
-        <tr>
-          <td><span class="badge ${badgeClass(i)}">${i+1}</span></td>
-          <td>${e.name}</td><td>${e.teacher}</td>
-          <td>${formatTime(e.time)}</td><td>${e.correct}</td><td>${e.wrong}</td>
-          <td><strong>${e.accuracy}%</strong></td><td>${e.date}</td>
-          <td><button class="btn btn-danger btn-small" onclick="deleteRecord(${e._idx})">删除</button></td>
-        </tr>`).join('')}</tbody>
-    </table>`;
+  try{
+    const {data:records}=await supabaseAdmin.from('game_records').select('*').order('accuracy',{ascending:false}).order('time',{ascending:true});
+    if(!records||records.length===0){
+      container.innerHTML='<div class="empty-state">暂无学生参与记录</div>';return;
+    }
+    const sorted=records.slice(0,5);
+    const badgeClass=i=>i<3?`badge-${i+1}`:'badge-n';
+    container.innerHTML=`
+      <table>
+        <thead><tr><th>排名</th><th>姓名</th><th>老师</th><th>用时</th><th>正确数</th><th>错误数</th><th>正确率</th><th>日期</th><th>操作</th></tr></thead>
+        <tbody>${sorted.map((e,i)=>
+          `<tr>
+            <td><span class="badge ${badgeClass(i)}">${i+1}</span></td>
+            <td>${e.name}</td><td>${e.teacher}</td>
+            <td>${formatTime(e.time)}</td><td>${e.correct}</td><td>${e.wrong}</td>
+            <td><strong>${e.accuracy}%</strong></td><td>${e.date}</td>
+            <td><button class="btn btn-danger btn-small" onclick="deleteRecord('${e.id}')">删除</button></td>
+          </tr>`
+        ).join('')}</tbody>
+      </table>`;
+  }catch(e){container.innerHTML='<div class="empty-state">加载失败，请刷新重试</div>'}
 }
 
 // ==================== CSV Download ====================
-function downloadAllCSV(){
-  const records=getRecords();
-  if(records.length===0){showToast('暂无学生记录','error');return}
-  let csv='\uFEFF姓名,老师,日期,用时(秒),正确数,错误数,正确率(%),轮次\n';
-  records.forEach(r=>{
-    csv+=`${r.name},${r.teacher},${r.date},${(r.time/1000).toFixed(1)},${r.correct},${r.wrong},${r.accuracy},${r.rounds}\n`;
-  });
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
-  const url=URL.createObjectURL(blob),a=document.createElement('a');
-  a.href=url;a.download=`全部学生记录_${new Date().toISOString().slice(0,10)}.csv`;a.click();
-  URL.revokeObjectURL(url);showToast('全部记录已下载！','success');
+async function downloadAllCSV(){
+  try{
+    const {data:records}=await supabaseAdmin.from('game_records').select('*').order('accuracy',{ascending:false});
+    if(!records||records.length===0){showToast('暂无学生记录','error');return}
+    let csv='\uFEFF姓名,老师,日期,用时(秒),正确数,错误数,正确率(%),轮次\n';
+    records.forEach(r=>{
+      csv+=`${r.name},${r.teacher},${r.date},${(r.time/1000).toFixed(1)},${r.correct},${r.wrong},${r.accuracy},${r.rounds}\n`;
+    });
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download=`全部学生记录_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+    URL.revokeObjectURL(url);showToast('全部记录已下载！','success');
+  }catch(e){showToast('下载失败，请重试','error')}
 }
 
 // ==================== File Parsing ====================
