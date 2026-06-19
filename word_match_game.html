@@ -373,7 +373,7 @@ function getWords(){
 }
 
 // ==================== Supabase ====================
-const supabase = window.supabase.createClient(
+const supabaseClient = window.supabase.createClient(
   'https://xwnvsydndaclamzcfrpl.supabase.co',
   'sb_publishable_PATbkfSdIrjUug0C7qqnsg__fGlTOLZ'
 );
@@ -513,7 +513,7 @@ async function endGame(){
   AudioEngine.stopMusic();
   showScreen('results');
   try{
-    const {error}=await supabase.from('game_records').insert([entry]);
+    const {error}=await supabaseClient.from('game_records').insert([entry]);
     if(error)throw error;
   }catch(e){console.error('Supabase insert failed:',e)}
   await renderResults(entry);
@@ -523,7 +523,7 @@ async function renderResults(entry){
   $resultsContent.innerHTML='<h2>🎉 游戏结束！</h2><p style="text-align:center;color:rgba(255,255,255,0.5)">加载中...</p>';
   let records=[],rank=0;
   try{
-    const {data}=await supabase.from('game_records').select('*').order('accuracy',{ascending:false}).order('time',{ascending:true});
+    const {data}=await supabaseClient.from('game_records').select('*').order('accuracy',{ascending:false}).order('time',{ascending:true});
     if(data)records=data;
     rank=records.findIndex(r=>r.name===entry.name&&r.time===entry.time&&r.accuracy===entry.accuracy)+1;
   }catch(e){console.error('Fetch records failed:',e)}
