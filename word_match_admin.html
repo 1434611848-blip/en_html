@@ -460,7 +460,7 @@ function downloadAllCSV(){
 // ==================== File Parsing ====================
 // ==================== Shared Pair Extraction ====================
 function extractPairs(text){
-  const regex=/([A-Za-z]+(?:[\s-]+[A-Za-z]+)*)[,，\t\s|]+([\u4e00-\u9fff]+(?:[\u4e00-\u9fff\s]*[\u4e00-\u9fff])?)/g;
+  const regex=/([A-Za-z]+(?:[ \t-]+[A-Za-z]+)*)[,，\t |]+([\u4e00-\u9fff]+(?:[\u4e00-\u9fff ]*[\u4e00-\u9fff])?)/g;
   const seen=new Set(),words=[];
   let m;while((m=regex.exec(text))!==null){
     const en=m[1].trim(),cn=m[2].trim();
