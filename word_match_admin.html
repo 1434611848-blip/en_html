@@ -340,10 +340,18 @@ async function loadTeachersFromDB(){
   catch(e){console.error('loadTeachersFromDB failed:',e);return null}
 }
 
-// 首次迁移：若 Supabase 为空但 localStorage 有旧数据，自动写入
+// 首次迁移：若 Supabase 为空但 localStorage 有旧数据，自动写入。迁移完成后设置标记，后续跳过。
 async function migrateTeachersIfNeeded(){
+  // 已迁移过，直接返回 Supabase 实际数据（即使是空数组）
+  if(localStorage.getItem('teacher_migrated')==='1'){
+    const dbTeachers=await loadTeachersFromDB();
+    return dbTeachers||[];
+  }
   const dbTeachers=await loadTeachersFromDB();
-  if(dbTeachers&&dbTeachers.length>0)return dbTeachers;
+  if(dbTeachers&&dbTeachers.length>0){
+    localStorage.setItem('teacher_migrated','1');
+    return dbTeachers;
+  }
   // Supabase 为空，尝试从 localStorage 迁移
   try{
     const old=localStorage.getItem('teacher_list');
@@ -353,17 +361,20 @@ async function migrateTeachersIfNeeded(){
         const rows=names.map(n=>({name:n,created_at:new Date().toISOString()}));
         await supabaseAdmin.from('teachers').insert(rows);
         console.log('[Migrate] Migrated '+names.length+' teachers to Supabase');
+        localStorage.setItem('teacher_migrated','1');
         return names;
       }
     }
   }catch(e){console.error('Migration failed:',e)}
-  return DEFAULT_TEACHERS;
+  // 无旧数据可迁移，标记完成，返回空数组
+  localStorage.setItem('teacher_migrated','1');
+  return [];
 }
 
 async function getTeachers(){
-  try{const{data}=await supabaseAdmin.from('teachers').select('name').order('created_at',{ascending:true});if(data&&data.length>0)return data.map(r=>r.name)}
+  try{const{data}=await supabaseAdmin.from('teachers').select('name').order('created_at',{ascending:true});return (data||[]).map(r=>r.name)}
   catch(e){console.error(e)}
-  return DEFAULT_TEACHERS;
+  return [];
 }
 
 // ==================== Supabase: Custom Words ====================
@@ -467,6 +478,10 @@ async function renderStats(){
 async function renderTeacherTags(){
   const teachers=await getTeachers();
   const container=document.getElementById('teacherTags');
+  if(teachers.length===0){
+    container.innerHTML='<div class="empty-state">暂无教师，请添加</div>';
+    return;
+  }
   container.innerHTML=teachers.map((t,i)=>
     `<span class="tag">${t}<span class="del" onclick="removeTeacher('${t.replace(/'/g,"\\'")}')" title="删除">×</span></span>`
   ).join('');
