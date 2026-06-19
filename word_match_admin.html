@@ -729,7 +729,6 @@ async function renderEditions(){
         </tr>`;
       }).join('')}</tbody>
     </table>
-    <div class="sync-bar"><button class="btn btn-primary btn-small" onclick="syncToGame()">📤 同步到游戏</button><span class="sync-hint">生成 words.js 并自动发布到游戏端</span></div>
   `;
 }
 
@@ -751,22 +750,6 @@ async function saveEditionNote(editionId,value,inputEl,originalEl){
   await supabaseAdmin.from('word_editions').update({note}).eq('id',editionId);
   inputEl.replaceWith(originalEl);
   await renderEditions();
-}
-
-// ==================== Sync to Game ====================
-async function syncToGame(){
-  const activeId=await getActiveEditionId();
-  if(!activeId){showToast('请先激活一个期次','error');return}
-  const editions=await getEditions();
-  const active=editions.find(e=>e.name===activeId);
-  if(!active||!active.words||active.words.length===0){showToast('激活期次无单词数据','error');return}
-  const jsContent='window.ACTIVE_EDITION_ID = '+JSON.stringify(activeId)+';\nwindow.GAME_WORDS = '+JSON.stringify(active.words)+';';
-  navigator.clipboard.writeText(jsContent).then(()=>{
-    showToast('words.js 内容已复制到剪贴板，请回到 Marvis 说「同步发布」即可更新游戏端','success');
-  }).catch(()=>{
-    showToast('剪贴板复制失败，内容已输出到控制台','error');
-    console.log('[Sync] words.js content:\n'+jsContent);
-  });
 }
 
 // Click outside modal to close

@@ -196,7 +196,6 @@ h1{
 @keyframes toastIn{from{opacity:0;top:0}to{opacity:1;top:20px}}
 @keyframes toastOut{from{opacity:1}to{opacity:0}}
 </style>
-<script src="words.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
@@ -401,7 +400,7 @@ function getWords(){
 // ==================== Supabase ====================
 const supabaseClient = window.supabase.createClient(
   'https://xwnvsydndaclamzcfrpl.supabase.co',
-  'sb_publishable_PATbkfSdIrjUug0C7qqnsg__fGlTOLZ'
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3bnZzeWRuZGFjbGFtemNmcnBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3NjU2MDYsImV4cCI6MjA2NTM0MTYwNn0.RXktKiWFCto2dnrIKraL_2p0F6YYF-KpEwIgHvJzhhA'
 );
 
 // ==================== State ====================
@@ -649,8 +648,52 @@ function createParticles(){
   for(let i=0;i<30;i++){const p=document.createElement('div');p.className='particle';p.style.left=Math.random()*100+'%';p.style.width=p.style.height=(Math.random()*10+4)+'px';p.style.background=colors[Math.floor(Math.random()*colors.length)];p.style.animationDelay=Math.random()*8+'s';p.style.animationDuration=(Math.random()*6+6)+'s';c.appendChild(p)}
 }
 
-// ==================== Init ====================
-createParticles();populateTeacherSelect();
+// ==================== Init (Supabase words) ====================
+async function initGameWords() {
+  try {
+    // 1. 读取激活期 ID
+    const { data: settingData, error: settingError } = await supabaseClient
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'active_edition_id')
+      .single();
+
+    if (settingError || !settingData || !settingData.value) {
+      console.warn('[Init] No active edition found, using default words');
+      return;
+    }
+    const activeName = settingData.value;
+
+    // 2. 读取对应期次单词
+    const { data: editionData, error: editionError } = await supabaseClient
+      .from('word_editions')
+      .select('words')
+      .eq('name', activeName)
+      .single();
+
+    if (editionError || !editionData || !editionData.words || editionData.words.length === 0) {
+      console.warn('[Init] Edition not found or empty, using default words');
+      return;
+    }
+
+    // 3. 注入全局变量
+    window.GAME_WORDS = editionData.words;
+    window.ACTIVE_EDITION_ID = activeName;
+    console.log('[Init] Loaded ' + editionData.words.length + ' words from edition: ' + activeName);
+  } catch (e) {
+    console.error('[Init] Supabase fetch failed, using default words:', e);
+  }
+}
+
+// Run on page load, then init UI
+(async function () {
+  await initGameWords();
+  createParticles();
+  populateTeacherSelect();
+  // 刷新词汇数显示
+  const vocabEl = document.getElementById('vocabCount');
+  if (vocabEl) vocabEl.textContent = getWords().length;
+})();
 </script>
 </body>
 </html>
