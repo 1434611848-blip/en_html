@@ -521,11 +521,12 @@ async function renderLeaderboard(){
     const badgeClass=i=>i<3?`badge-${i+1}`:'badge-n';
     container.innerHTML=`
       <table>
-        <thead><tr><th>排名</th><th>姓名</th><th>老师</th><th>用时</th><th>正确数</th><th>错误数</th><th>正确率</th><th>日期</th><th>操作</th></tr></thead>
+        <thead><tr><th>排名</th><th>姓名</th><th>老师</th><th>期次</th><th>用时</th><th>正确数</th><th>错误数</th><th>正确率</th><th>日期</th><th>操作</th></tr></thead>
         <tbody>${sorted.map((e,i)=>
           `<tr>
             <td><span class="badge ${badgeClass(i)}">${i+1}</span></td>
             <td>${e.name}</td><td>${e.teacher}</td>
+            <td style="font-size:0.82em;color:var(--text-secondary)">${e.edition_id||'—'}</td>
             <td>${formatTime(e.time)}</td><td>${e.correct}</td><td>${e.wrong}</td>
             <td><strong>${e.accuracy}%</strong></td><td>${e.date}</td>
             <td><button class="btn btn-danger btn-small" onclick="deleteRecord('${e.id}')">删除</button></td>
