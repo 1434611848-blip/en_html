@@ -187,6 +187,8 @@ tbody tr:hover{background:#f8fafc}
 .edition-note:hover{color:var(--accent)}
 .edition-note .note-icon{flex-shrink:0;font-size:1em}
 .edition-note-input{border:1px solid var(--accent);border-radius:6px;padding:4px 8px;font-size:0.85em;background:white;color:var(--text);width:130px;outline:none}
+.sync-bar{display:flex;align-items:center;gap:10px;margin-top:14px;padding:10px 14px;background:var(--surface);border-radius:10px}
+.sync-hint{font-size:0.8em;color:var(--text-muted)}
 
 /* Modal */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease}
@@ -696,7 +698,9 @@ function renderEditions(){
           </div></td>
         </tr>`;
       }).join('')}</tbody>
-    </table>`;
+    </table>
+    <div class="sync-bar"><button class="btn btn-primary btn-small" onclick="syncToGame()">📤 同步到游戏</button><span class="sync-hint">复制激活期单词到剪贴板，回 Marvis 说「同步」即可更新游戏端</span></div>
+  `;
 }
 
 function startEditNote(editionId,el){
