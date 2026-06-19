@@ -766,8 +766,10 @@ function syncToGame(){
 }
 
 // Click outside modal to close
-document.getElementById('detailModal').addEventListener('click',function(e){if(e.target===this)closeDetailModal()});
-document.getElementById('deleteConfirm').addEventListener('click',function(e){if(e.target===this)closeDeleteConfirm()});
+document.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('detailModal').addEventListener('click',function(e){if(e.target===this)closeDetailModal()});
+  document.getElementById('deleteConfirm').addEventListener('click',function(e){if(e.target===this)closeDeleteConfirm()});
+});
 </script>
 
 <!-- Detail Modal -->
