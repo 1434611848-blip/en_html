@@ -368,7 +368,7 @@ async function getTeachers(){
 
 // ==================== Supabase: Custom Words ====================
 async function getWordsFromDB(){
-  try{const{data}=await supabaseAdmin.from('app_settings').select('value').eq('key','custom_word_list').single();if(data&&data.value)return JSON.parse(data.value)}
+  try{const{data}=await supabaseAdmin.from('app_settings').select('value').eq('key','custom_word_list').maybeSingle();if(data&&data.value)return JSON.parse(data.value)}
   catch(e){}
   return null;
 }

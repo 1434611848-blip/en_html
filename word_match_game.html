@@ -654,7 +654,7 @@ async function initGameWords() {
       .from('app_settings')
       .select('value')
       .eq('key', 'active_edition_id')
-      .single();
+      .maybeSingle();
 
     if (!settingError && settingData && settingData.value) {
       const activeName = settingData.value;
@@ -664,7 +664,7 @@ async function initGameWords() {
         .from('word_editions')
         .select('words')
         .eq('name', activeName)
-        .single();
+        .maybeSingle();
 
       if (!editionError && editionData && editionData.words && editionData.words.length > 0) {
         window.GAME_WORDS = editionData.words;
@@ -678,7 +678,7 @@ async function initGameWords() {
       .from('app_settings')
       .select('value')
       .eq('key', 'custom_word_list')
-      .single();
+      .maybeSingle();
     if (customData && customData.value) {
       try {
         const customWords = JSON.parse(customData.value);
