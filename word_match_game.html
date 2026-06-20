@@ -240,9 +240,10 @@ h1{
           <label>选择辅导老师</label>
           <select id="teacherSelect"></select>
         </div>
-        <div style="font-size:0.8em;color:rgba(255,255,255,0.4);margin-bottom:18px;text-align:center">
+        <div style="font-size:0.8em;color:rgba(255,255,255,0.4);margin-bottom:8px;text-align:center">
           当前词汇池：<span id="vocabCount">32</span> 组单词
         </div>
+        <div style="font-size:0.85em;margin-bottom:18px;text-align:center" id="attemptInfo">检查中...</div>
         <button class="btn btn-primary" id="startBtn">开始游戏</button>
         <button class="btn btn-outline" style="width:100%;margin-top:10px" id="backToStep1Btn">返回修改名字</button>
       </div>
@@ -406,6 +407,37 @@ function getWords(){
   if(window.CUSTOM_WORDS&&Array.isArray(window.CUSTOM_WORDS)&&window.CUSTOM_WORDS.length>0)return window.CUSTOM_WORDS;
   // 优先级3：默认单词表
   return DEFAULT_WORDS;
+}
+
+// ==================== Attempt Limit ====================
+const MAX_ATTEMPTS = 3;
+async function getAttemptCount(name, teacher){
+  try{
+    const query = supabaseClient.from('game_records').select('*',{count:'exact',head:true}).eq('name',name).eq('teacher',teacher);
+    if(window.ACTIVE_EDITION_ID){query.eq('edition_id',window.ACTIVE_EDITION_ID)}
+    const {count,error}=await query;
+    if(error)throw error;
+    return count||0;
+  }catch(e){
+    console.error('getAttemptCount failed:',e);
+    return -1; // -1 means query failed, allow play as fallback
+  }
+}
+
+async function checkAndUpdateAttemptUI(name, teacher){
+  const count=await getAttemptCount(name,teacher);
+  const el=document.getElementById('attemptInfo');
+  if(!el)return count;
+  if(count<0){
+    el.textContent=''; return count;
+  }
+  const remaining=MAX_ATTEMPTS-count;
+  if(remaining<=0){
+    el.innerHTML='<span style="color:#f87171">⚠️ 你已完成 '+MAX_ATTEMPTS+' 次挑战，不能再玩啦！</span>';
+  }else{
+    el.innerHTML='剩余挑战次数：<strong style="color:var(--gold)">'+remaining+'</strong> / '+MAX_ATTEMPTS;
+  }
+  return count;
 }
 
 // ==================== State ====================
@@ -599,10 +631,17 @@ function downloadStudentCSV(){
 }
 
 function playAgain(){
-  state.roundNum=0;state.correctCount=0;state.wrongCount=0;state.totalTime=0;state.pairLog=[];state.selectedCard=null;state.isLocked=false;
-  state.words=[...getWords()];$correctCount.textContent='0';$wrongCount.textContent='0';$roundNum.textContent='1';$progressFill.style.width='0%';
-  state.gameStartTime=Date.now();showScreen('game');startTimer();startRound();
-  AudioEngine.init();AudioEngine.resume();AudioEngine.startMusic();
+  // Check attempt limit
+  getAttemptCount(state.playerName,state.teacher).then(count=>{
+    if(count>=MAX_ATTEMPTS){
+      showToast('你已完成 '+MAX_ATTEMPTS+' 次挑战，不能再玩啦！','error');
+      return;
+    }
+    state.roundNum=0;state.correctCount=0;state.wrongCount=0;state.totalTime=0;state.pairLog=[];state.selectedCard=null;state.isLocked=false;
+    state.words=[...getWords()];$correctCount.textContent='0';$wrongCount.textContent='0';$roundNum.textContent='1';$progressFill.style.width='0%';
+    state.gameStartTime=Date.now();showScreen('game');startTimer();startRound();
+    AudioEngine.init();AudioEngine.resume();AudioEngine.startMusic();
+  });
 }
 
 // ==================== Timer ====================
@@ -616,17 +655,23 @@ async function refreshStudentScreen(){
   document.getElementById('studentStep1').style.display='block';
   document.getElementById('studentStep2').style.display='none';
   document.getElementById('playerName').value='';
+  document.getElementById('attemptInfo').textContent='检查中...';
   await populateTeacherSelect();
   document.getElementById('vocabCount').textContent=getWords().length;
 }
 
 // Step 1 -> Step 2
-document.getElementById('step1NextBtn').addEventListener('click',()=>{
+document.getElementById('step1NextBtn').addEventListener('click',async ()=>{
   const name=document.getElementById('playerName').value.trim();
   if(!name){showToast('请输入你的名字！','error');return}
   document.getElementById('step2Greeting').textContent=name;
   document.getElementById('studentStep1').style.display='none';
   document.getElementById('studentStep2').style.display='block';
+  document.getElementById('attemptInfo').textContent='检查中...';
+  await populateTeacherSelect();
+  // Check attempts after teacher list is ready (use first teacher for initial check)
+  const teacher=document.getElementById('teacherSelect').value;
+  if(teacher) await checkAndUpdateAttemptUI(name,teacher);
 });
 
 // Step 2 -> Step 1
@@ -637,15 +682,28 @@ document.getElementById('backToStep1Btn').addEventListener('click',()=>{
 });
 
 // Start game (from step 2)
-document.getElementById('startBtn').addEventListener('click',()=>{
+document.getElementById('startBtn').addEventListener('click',async ()=>{
   AudioEngine.init();AudioEngine.resume();
   const name=document.getElementById('playerName').value.trim();
   const teacher=document.getElementById('teacherSelect').value;
   if(!teacher){showToast('请选择辅导老师！','error');return}
+  // Check attempt limit
+  const count=await getAttemptCount(name,teacher);
+  if(count>=MAX_ATTEMPTS){
+    showToast('你已完成 '+MAX_ATTEMPTS+' 次挑战，不能再玩啦！','error');
+    return;
+  }
   state.playerName=name;state.teacher=teacher;state.words=[...getWords()];
   state.roundNum=0;state.correctCount=0;state.wrongCount=0;state.pairLog=[];
   state.gameStartTime=Date.now();$correctCount.textContent='0';$wrongCount.textContent='0';$roundNum.textContent='1';$progressFill.style.width='0%';
   showScreen('game');startTimer();startRound();AudioEngine.startMusic();
+});
+
+// Teacher select changes → update attempt count
+document.getElementById('teacherSelect').addEventListener('change',async ()=>{
+  const name=document.getElementById('playerName').value.trim();
+  const teacher=document.getElementById('teacherSelect').value;
+  if(name&&teacher) await checkAndUpdateAttemptUI(name,teacher);
 });
 
 // ==================== Sound Toggle ====================
