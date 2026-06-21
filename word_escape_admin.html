@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>单词密室逃脱 - 教师看板</title>
+<style>
+:root {
+  --bg-deep: #0a0a14;
+  --bg-card: rgba(255,255,255,0.06);
+  --border: rgba(255,255,255,0.1);
+  --text: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --gold: #f5c518;
+  --silver: #c0c0c0;
+  --bronze: #cd7f32;
+  --accent: #a855f7;
+  --accent2: #e94560;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --radius: 14px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'PingFang SC','Microsoft YaHei','Segoe UI',sans-serif;
+  background:linear-gradient(160deg,#0a0a14,#1a0a2e,#0f0c29,#1a0a2e);
+  background-attachment:fixed;
+  color:var(--text);min-height:100vh;
+}
+
+/* ----- Login Overlay ----- */
+.login-overlay{
+  position:fixed;inset:0;background:linear-gradient(160deg,#0a0a14,#1a0a2e,#0f0c29);
+  display:flex;align-items:center;justify-content:center;z-index:1000;
+}
+.login-box{
+  background:linear-gradient(145deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02));
+  border:1px solid rgba(255,255,255,0.12);border-radius:var(--radius);
+  padding:44px 36px;width:400px;max-width:90%;
+  backdrop-filter:blur(20px);box-shadow:0 8px 40px rgba(168,85,247,0.15);
+  animation:slideUp 0.5s ease;
+}
+@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+.login-box .icon-row{text-align:center;font-size:2.8em;margin-bottom:8px}
+.login-box h1{
+  text-align:center;font-size:1.6em;margin-bottom:4px;
+  background:linear-gradient(135deg,#a855f7,#e94560);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.login-box .sub{text-align:center;color:var(--text-secondary);font-size:0.88em;margin-bottom:32px}
+.login-box .field{margin-bottom:18px}
+.login-box label{display:block;margin-bottom:6px;font-size:0.88em;font-weight:600;color:var(--text-secondary)}
+.login-box input{
+  width:100%;padding:12px 16px;border:1px solid rgba(255,255,255,0.15);
+  border-radius:10px;background:rgba(255,255,255,0.05);color:var(--text);
+  font-size:1em;outline:none;transition:border 0.2s;
+}
+.login-box input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(168,85,247,0.15)}
+.login-box .btn{width:100%;padding:12px;margin-top:4px}
+.login-box .error{color:var(--danger);font-size:0.85em;text-align:center;margin-top:10px;display:none}
+
+/* ----- Header ----- */
+header{
+  background:rgba(15,12,41,0.85);border-bottom:1px solid rgba(255,255,255,0.08);
+  padding:0 32px;height:64px;display:flex;align-items:center;justify-content:space-between;
+  backdrop-filter:blur(12px);position:sticky;top:0;z-index:100;
+}
+header .brand{display:flex;align-items:center;gap:10px}
+header .brand .logo{font-size:1.4em}
+header .brand h1{
+  font-size:1.1em;font-weight:700;
+  background:linear-gradient(135deg,#a855f7,#e94560);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+header .header-right{display:flex;align-items:center;gap:14px}
+header .edition-badge{
+  font-size:0.82em;padding:4px 12px;border-radius:20px;
+  background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);
+  color:var(--accent);
+}
+header .btn-icon{
+  width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);
+  background:rgba(255,255,255,0.06);color:var(--text-secondary);cursor:pointer;
+  font-size:1.1em;display:flex;align-items:center;justify-content:center;
+  transition:all 0.2s;
+}
+header .btn-icon:hover{background:rgba(255,255,255,0.12);color:var(--text)}
+header .btn-logout{padding:7px 18px;font-size:0.85em}
+
+/* ----- Main ----- */
+main{max-width:1200px;margin:0 auto;padding:28px 24px}
+
+/* ----- Section (glass card) ----- */
+.section{
+  background:linear-gradient(145deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));
+  border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius);
+  padding:28px;margin-bottom:24px;
+  backdrop-filter:blur(12px);box-shadow:var(--shadow);
+}
+.section h2{
+  font-size:1.1em;margin-bottom:20px;display:flex;align-items:center;gap:10px;
+  color:var(--text);
+}
+.section h2 .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* ----- Buttons ----- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:10px 22px;border:none;border-radius:10px;
+  font-size:0.9em;font-weight:600;cursor:pointer;transition:all 0.25s;color:#fff;
+  white-space:nowrap;
+}
+.btn-primary{background:linear-gradient(135deg,#a855f7,#7c3aed);box-shadow:0 4px 16px rgba(168,85,247,0.3)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 22px rgba(168,85,247,0.45)}
+.btn-danger{background:linear-gradient(135deg,#ef4444,#dc2626)}
+.btn-danger:hover{transform:translateY(-1px)}
+.btn-outline{
+  background:transparent;border:1px solid rgba(255,255,255,0.2);color:var(--text);
+}
+.btn-outline:hover{background:rgba(255,255,255,0.08)}
+.btn-small{padding:6px 14px;font-size:0.82em}
+.btn:disabled{opacity:0.45;cursor:not-allowed;transform:none!important}
+
+/* ----- Table ----- */
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:0.9em;min-width:700px}
+thead th{
+  text-align:center;padding:12px 10px;background:rgba(255,255,255,0.04);
+  border-bottom:2px solid rgba(255,255,255,0.1);
+  font-weight:600;color:var(--text-secondary);font-size:0.82em;
+  text-transform:uppercase;letter-spacing:0.05em;
+}
+tbody td{padding:11px 10px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:center}
+tbody tr:hover{background:rgba(255,255,255,0.03)}
+tbody tr.top-row{background:rgba(168,85,247,0.06)}
+
+/* ---- Rank Badges ---- */
+.rank-badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:30px;height:30px;border-radius:50%;font-size:0.85em;font-weight:700;
+}
+.rank-1{background:var(--gold);color:#1a1a2e;box-shadow:0 0 14px rgba(245,197,24,0.5)}
+.rank-2{background:var(--silver);color:#1a1a2e;box-shadow:0 0 10px rgba(192,192,192,0.4)}
+.rank-3{background:var(--bronze);color:#fff;box-shadow:0 0 10px rgba(205,127,50,0.4)}
+.rank-n{background:rgba(255,255,255,0.08);color:var(--text-secondary)}
+
+.medal{display:inline-block;margin-right:4px;font-size:1.15em}
+.name-cell{font-weight:600;color:var(--text)}
+.time-cell{font-family:'SF Mono','Monaco','Consolas',monospace;color:var(--text)}
+.acc-cell{font-weight:700}
+.acc-high{color:var(--success)}
+.acc-mid{color:#f59e0b}
+.acc-low{color:var(--text-secondary)}
+
+/* ----- Refresh Indicator ----- */
+.refresh-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:14px;font-size:0.82em;color:var(--text-muted);
+}
+.refresh-bar .auto-tag{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 10px;border-radius:12px;
+  background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);
+  color:var(--success);
+}
+.refresh-dot{width:6px;height:6px;border-radius:50%;background:var(--success);animation:pulse 1.2s ease infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* ----- Stats Row ----- */
+.stat-row{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:20px}
+.stat-item{
+  background:linear-gradient(145deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));
+  border:1px solid rgba(255,255,255,0.08);border-radius:12px;
+  padding:16px 24px;min-width:130px;text-align:center;flex:1;
+}
+.stat-item .val{font-size:1.8em;font-weight:700;color:var(--accent)}
+.stat-item .lbl{font-size:0.78em;color:var(--text-muted);margin-top:4px}
+
+/* ----- Settings Modal ----- */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:200;
+  display:flex;align-items:center;justify-content:center;
+  animation:fadeIn 0.2s ease;
+}
+.modal-overlay.hidden{display:none}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal-box{
+  background:linear-gradient(145deg,rgba(30,15,60,0.98),rgba(15,12,41,0.98));
+  border:1px solid rgba(255,255,255,0.12);border-radius:var(--radius);
+  padding:32px;width:440px;max-width:90%;backdrop-filter:blur(20px);
+  box-shadow:0 12px 48px rgba(0,0,0,0.5);animation:slideUp 0.3s ease;
+}
+.modal-box h3{
+  margin-bottom:22px;font-size:1.1em;display:flex;align-items:center;
+  justify-content:space-between;
+}
+.modal-box .close-btn{
+  cursor:pointer;font-size:1.3em;color:var(--text-muted);
+  background:none;border:none;line-height:1;
+}
+.modal-box .close-btn:hover{color:var(--text)}
+.modal-box .field{margin-bottom:16px}
+.modal-box label{display:block;margin-bottom:6px;font-size:0.88em;font-weight:600;color:var(--text-secondary)}
+.modal-box input{
+  width:100%;padding:10px 14px;border:1px solid rgba(255,255,255,0.15);
+  border-radius:8px;background:rgba(255,255,255,0.05);color:var(--text);
+  font-size:0.95em;outline:none;transition:border 0.2s;
+}
+.modal-box input:focus{border-color:var(--accent)}
+.modal-box .setting-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);
+}
+.modal-box .setting-row .label{color:var(--text-secondary);font-size:0.9em}
+.modal-box .setting-row .value{color:var(--text);font-weight:600;font-size:0.9em}
+
+/* ----- Toast ----- */
+.toast{
+  position:fixed;top:24px;left:50%;transform:translateX(-50%);padding:10px 24px;
+  border-radius:10px;font-weight:600;z-index:999;
+  animation:toastIn 0.3s ease,toastOut 0.3s ease 2.5s forwards;
+  pointer-events:none;font-size:0.9em;box-shadow:0 4px 20px rgba(0,0,0,0.4);
+}
+.toast.success{background:var(--success);color:#fff}
+.toast.error{background:var(--danger);color:#fff}
+.toast.info{background:var(--accent);color:#fff}
+@keyframes toastIn{from{opacity:0;top:0}to{opacity:1;top:24px}}
+@keyframes toastOut{from{opacity:1}to{opacity:0}}
+
+/* ----- Empty / Loading ----- */
+.empty-state{text-align:center;color:var(--text-muted);padding:40px 0;font-size:0.95em}
+.loading-state{text-align:center;color:var(--text-muted);padding:32px 0}
+.spinner{
+  display:inline-block;width:24px;height:24px;border:2px solid rgba(255,255,255,0.1);
+  border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;
+  margin-bottom:8px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ----- Particles ----- */
+.bg-particles{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.bg-particle{
+  position:absolute;border-radius:50%;opacity:0.15;
+  animation:floatUp 8s infinite ease-in;
+}
+@keyframes floatUp{
+  0%{transform:translateY(105vh) scale(0);opacity:0}
+  15%{opacity:0.2}
+  85%{opacity:0.05}
+  100%{transform:translateY(-10vh) scale(1.2);opacity:0}
+}
+</style>
+</head>
+<body>
+
+<!-- Background Particles -->
+<div class="bg-particles" id="bgParticles"></div>
+
+<!-- Login Overlay -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div class="icon-row">🏰</div>
+    <h1>单词密室逃脱</h1>
+    <p class="sub">教师管理看板</p>
+    <div class="field">
+      <label>管理员密码</label>
+      <input type="password" id="loginPassword" placeholder="请输入密码" maxlength="30" autofocus>
+    </div>
+    <button class="btn btn-primary" onclick="doLogin()">登 录</button>
+    <p class="error" id="loginError">密码错误，请重试</p>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="mainApp" style="display:none">
+  <header>
+    <div class="brand">
+      <span class="logo">🏰</span>
+      <h1>单词密室逃脱 · 教师看板</h1>
+    </div>
+    <div class="header-right">
+      <span class="edition-badge" id="headerEdition">词库：加载中...</span>
+      <button class="btn-icon" id="settingsBtn" title="设置">⚙</button>
+      <button class="btn btn-outline btn-small btn-logout" onclick="logout()">退出</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Stats -->
+    <div class="stat-row" id="statRow">
+      <div class="stat-item"><div class="val" id="statPlayers">—</div><div class="lbl">上榜玩家</div></div>
+      <div class="stat-item"><div class="val" id="statAvgTime">—</div><div class="lbl">平均用时</div></div>
+      <div class="stat-item"><div class="val" id="statAvgAcc">—</div><div class="lbl">平均正确率</div></div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="section">
+      <h2><span class="dot" style="background:var(--gold)"></span> 逃脱排行榜（5关通关者）</h2>
+      <div class="refresh-bar">
+        <span>按通关总用时升序排列（密室逃脱固定 5 关）</span>
+        <span class="auto-tag"><span class="refresh-dot"></span> 5秒自动刷新</span>
+      </div>
+      <div id="leaderboardContainer">
+        <div class="loading-state"><div class="spinner"></div><br>加载中...</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay hidden" id="settingsModal">
+  <div class="modal-box">
+    <h3>
+      <span>⚙ 看板设置</span>
+      <button class="close-btn" onclick="closeSettings()">✕</button>
+    </h3>
+    <div class="field">
+      <label>修改登录密码</label>
+      <input type="text" id="newPassword" placeholder="输入新密码" maxlength="20">
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-bottom:20px" onclick="changePassword()">保存密码</button>
+    <div class="setting-row">
+      <span class="label">当前激活词汇期次</span>
+      <span class="value" id="settingEdition">加载中...</span>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+// ==================== Supabase ====================
+const supabase = window.supabase.createClient(
+  'https://xwnvsydndaclamzcfrpl.supabase.co',
+  'sb_publishable_PATbkfSdIrjUug0C7qqnsg__fGlTOLZ'
+);
+
+// ==================== Storage ====================
+const KEYS = { password: 'escape_admin_password' };
+const DEFAULT_PASSWORD = 'admin123';
+
+function getPassword() {
+  try {
+    const v = localStorage.getItem(KEYS.password);
+    return v ? JSON.parse(v) : DEFAULT_PASSWORD;
+  } catch (e) { return DEFAULT_PASSWORD; }
+}
+
+// ==================== Toast ====================
+function showToast(msg, type) {
+  type = type || 'info';
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function(){ t.remove(); }, 2800);
+}
+
+function formatTime(ms) {
+  var sec = Math.floor(ms / 1000);
+  var m = Math.floor(sec / 60);
+  var s = sec % 60;
+  return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+// ==================== Edition ====================
+async function getActiveEditionId() {
+  try {
+    var res = await supabase.from('app_settings').select('value').eq('key', 'active_edition_id').maybeSingle();
+    return (res.data && res.data.value) ? res.data.value : null;
+  } catch (e) { return null; }
+}
+
+// ==================== Login ====================
+async function doLogin() {
+  var pw = document.getElementById('loginPassword').value.trim();
+  if (pw === getPassword()) {
+    localStorage.setItem('escape_admin_logged_in', '1');
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    await initDashboard();
+  } else {
+    document.getElementById('loginError').style.display = 'block';
+    document.getElementById('loginPassword').value = '';
+  }
+}
+
+function logout() {
+  localStorage.removeItem('escape_admin_logged_in');
+  stopAutoRefresh();
+  document.getElementById('loginOverlay').style.display = 'flex';
+  document.getElementById('mainApp').style.display = 'none';
+  document.getElementById('loginPassword').value = '';
+  document.getElementById('loginError').style.display = 'none';
+}
+
+// ==================== Dashboard Init ====================
+var autoRefreshTimer = null;
+
+async function initDashboard() {
+  await loadEditionLabel();
+  await loadLeaderboard();
+  startAutoRefresh();
+}
+
+async function loadEditionLabel() {
+  var id = await getActiveEditionId();
+  var text = id ? '词库：' + id : '词库：默认词汇';
+  document.getElementById('headerEdition').textContent = text;
+  document.getElementById('settingEdition').textContent = id || '无（使用默认词汇）';
+}
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+  autoRefreshTimer = setInterval(loadLeaderboard, 5000);
+}
+
+function stopAutoRefresh() {
+  if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
+}
+
+// ==================== Leaderboard ====================
+async function loadLeaderboard() {
+  var container = document.getElementById('leaderboardContainer');
+  try {
+    var activeId = await getActiveEditionId();
+
+    var query = supabase.from('game_records')
+      .select('*')
+      .eq('rounds', 5)           // 密室逃脱固定5关才上榜
+      .order('time', { ascending: true });
+
+    if (activeId) {
+      query = query.eq('edition_id', activeId);
+    }
+
+    var result = await query;
+    if (result.error) throw result.error;
+
+    var records = result.data || [];
+
+    // Update stats
+    updateStats(records);
+
+    // Update edition label in header
+    document.getElementById('headerEdition').textContent = activeId ? '词库：' + activeId : '词库：默认词汇';
+
+    if (records.length === 0) {
+      container.innerHTML = '<div class="empty-state">暂无学生通关记录<br><span style="font-size:0.85em;color:#64748b">等待学生完成密室逃脱5关挑战后上榜</span></div>';
+      return;
+    }
+
+    var now = new Date();
+    var rows = records.map(function(r, i) {
+      var rank = i + 1;
+      var badgeHtml = '';
+      var medalHtml = '';
+      var rowClass = '';
+      if (rank === 1) {
+        badgeHtml = '<span class="rank-badge rank-1">1</span>';
+        medalHtml = '🥇';
+        rowClass = ' class="top-row"';
+      } else if (rank === 2) {
+        badgeHtml = '<span class="rank-badge rank-2">2</span>';
+        medalHtml = '🥈';
+        rowClass = ' class="top-row"';
+      } else if (rank === 3) {
+        badgeHtml = '<span class="rank-badge rank-3">3</span>';
+        medalHtml = '🥉';
+        rowClass = ' class="top-row"';
+      } else {
+        badgeHtml = '<span class="rank-badge rank-n">' + rank + '</span>';
+      }
+
+      var accClass = r.accuracy >= 90 ? 'acc-high' : (r.accuracy >= 70 ? 'acc-mid' : 'acc-low');
+
+      return '<tr' + rowClass + '>' +
+        '<td>' + badgeHtml + '</td>' +
+        '<td class="name-cell">' + medalHtml + escapeHtml(r.name) + '</td>' +
+        '<td>' + escapeHtml(r.teacher) + '</td>' +
+        '<td class="time-cell">' + formatTime(r.time) + '</td>' +
+        '<td>' + (r.correct != null ? r.correct : '—') + '</td>' +
+        '<td>' + (r.wrong != null ? r.wrong : '—') + '</td>' +
+        '<td class="acc-cell ' + accClass + '">' + (r.accuracy != null ? r.accuracy + '%' : '—') + '</td>' +
+        '<td style="color:var(--text-muted);font-size:0.85em">' + escapeHtml(r.date || '—') + '</td>' +
+      '</tr>';
+    }).join('');
+
+    container.innerHTML = '' +
+      '<div class="table-wrap">' +
+      '<table>' +
+      '<thead><tr>' +
+      '<th>排名</th><th>姓名</th><th>老师</th><th>总用时</th><th>正确数</th><th>错误数</th><th>正确率</th><th>日期</th>' +
+      '</tr></thead>' +
+      '<tbody>' + rows + '</tbody>' +
+      '</table>' +
+      '</div>' +
+      '<p style="font-size:0.78em;color:var(--text-muted);margin-top:10px;text-align:right">共 ' + records.length + ' 人上榜</p>';
+
+  } catch (e) {
+    console.error('loadLeaderboard failed:', e);
+    container.innerHTML = '<div class="empty-state">加载失败，请检查网络后刷新</div>';
+  }
+}
+
+function updateStats(records) {
+  var count = records.length;
+  document.getElementById('statPlayers').textContent = count;
+
+  if (count > 0) {
+    var totalTime = 0, totalAcc = 0;
+    records.forEach(function(r) {
+      totalTime += (r.time || 0);
+      totalAcc += (r.accuracy || 0);
+    });
+    var avgTime = Math.round(totalTime / count);
+    var avgAcc = Math.round(totalAcc / count);
+    document.getElementById('statAvgTime').textContent = formatTime(avgTime);
+    document.getElementById('statAvgAcc').textContent = avgAcc + '%';
+  } else {
+    document.getElementById('statAvgTime').textContent = '—';
+    document.getElementById('statAvgAcc').textContent = '—';
+  }
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// ==================== Settings ====================
+function openSettings() {
+  document.getElementById('settingsModal').classList.remove('hidden');
+  document.getElementById('newPassword').value = '';
+  document.getElementById('settingEdition').textContent = document.getElementById('headerEdition').textContent.replace('词库：', '') || '无（使用默认词汇）';
+}
+
+function closeSettings() {
+  document.getElementById('settingsModal').classList.add('hidden');
+}
+
+function changePassword() {
+  var pw = document.getElementById('newPassword').value.trim();
+  if (!pw) { showToast('请输入新密码', 'error'); return; }
+  localStorage.setItem(KEYS.password, JSON.stringify(pw));
+  document.getElementById('newPassword').value = '';
+  showToast('密码已更新', 'success');
+}
+
+// ==================== Event Bindings ====================
+document.addEventListener('DOMContentLoaded', function() {
+  // Login
+  if (localStorage.getItem('escape_admin_logged_in') === '1') {
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    initDashboard();
+  }
+  document.getElementById('loginPassword').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  // Settings button
+  document.getElementById('settingsBtn').addEventListener('click', openSettings);
+
+  // Close settings on overlay click
+  document.getElementById('settingsModal').addEventListener('click', function(e) {
+    if (e.target === this) closeSettings();
+  });
+
+  // Close settings on Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && !document.getElementById('settingsModal').classList.contains('hidden')) {
+      closeSettings();
+    }
+  });
+
+  // Background particles
+  createParticles();
+});
+
+// ==================== Particles ====================
+function createParticles() {
+  var container = document.getElementById('bgParticles');
+  var colors = ['#a855f7', '#e94560', '#f5c518', '#4ecdc4', '#22c55e'];
+  for (var i = 0; i < 25; i++) {
+    var p = document.createElement('div');
+    p.className = 'bg-particle';
+    p.style.left = Math.random() * 100 + '%';
+    var size = Math.random() * 8 + 3;
+    p.style.width = size + 'px';
+    p.style.height = size + 'px';
+    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+    p.style.animationDelay = Math.random() * 10 + 's';
+    p.style.animationDuration = (Math.random() * 8 + 6) + 's';
+    container.appendChild(p);
+  }
+}
+</script>
+</body>
+</html>
