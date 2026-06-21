@@ -575,7 +575,7 @@ async function endGame(){
   state.totalTime=Date.now()-state.gameStartTime;stopTimer();
   const totalAttempts=state.correctCount+state.wrongCount;
   const accuracy=totalAttempts>0?Math.round((state.correctCount/totalAttempts)*100):0;
-  const entry={name:state.playerName,teacher:state.teacher,date:new Date().toLocaleDateString('zh-CN'),time:state.totalTime,accuracy,correct:state.correctCount,wrong:state.wrongCount,rounds:state.roundNum,pair_log:state.pairLog,edition_id:window.ACTIVE_EDITION_ID||null};
+  const entry={name:state.playerName,teacher:state.teacher,date:new Date().toLocaleDateString('zh-CN'),time:state.totalTime,accuracy,correct:state.correctCount,wrong:state.wrongCount,rounds:state.roundNum,pair_log:state.pairLog,edition_id:window.ACTIVE_EDITION_ID||null,game_type:'match'};
   AudioEngine.stopMusic();
   showScreen('results');
   try{

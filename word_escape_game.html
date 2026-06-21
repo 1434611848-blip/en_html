@@ -877,7 +877,8 @@ async function showResult() {
       rounds: 5,
       accuracy: accuracy,
       pair_log: JSON.stringify(STATE.pairLog),
-      edition_id: STATE.editionId || ''
+      edition_id: STATE.editionId || '',
+      game_type: 'escape'
     }]);
   } catch(e) {}
 
