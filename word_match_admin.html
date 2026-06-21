@@ -314,6 +314,40 @@ tbody tr:hover{background:#f8fafc}
       <p style="font-size:0.78em;color:var(--text-muted);margin-top:8px" id="refreshNote"></p>
     </div>
 
+    <!-- Escape Word Upload -->
+    <div class="section" id="escapeUploadSection" style="display:none">
+      <h3><span class="dot" style="background:#f0c040"></span> 🔑 密室单词上传</h3>
+      <div class="upload-area" id="escapeUploadArea">
+        <div class="icon">📂</div>
+        <div class="text">点击上传或拖拽单词文件到此处</div>
+        <div class="hint">支持 .txt / .json / .docx / .pdf 格式（至少 20 组）</div>
+        <div class="upload-info" id="escapeUploadInfo"></div>
+      </div>
+      <input type="file" id="escapeFileInput" accept=".txt,.json,.docx,.pdf" style="display:none">
+      <button class="manual-toggle" id="escapeManualToggle" onclick="toggleEscapeManual()">
+        <span class="arrow">▶</span> 手动输入单词
+      </button>
+      <div class="manual-panel" id="escapeManualPanel">
+        <textarea id="escapeManualText" placeholder="escape,逃脱&#10;key,钥匙&#10;door,门&#10;..."></textarea>
+        <p class="hint">每行一组，英文和中文用逗号、空格或制表符分隔</p>
+        <button class="btn btn-primary btn-small" onclick="importEscapeManual()">导入单词</button>
+      </div>
+      <p style="font-size:0.85em;color:var(--text-muted)">
+        当前词汇池：<strong id="escapeVocabCount">0</strong> 组单词
+      </p>
+    </div>
+
+    <!-- Escape Editions Management -->
+    <div class="section" id="escapeEditionsSection" style="display:none">
+      <h3><span class="dot" style="background:#f0c040"></span> 🔑 密室期次管理</h3>
+      <p style="font-size:0.85em;color:var(--text-muted);margin-bottom:12px">
+        上传单词自动生成新一期。同一时间只有一期处于「激活中」状态。
+      </p>
+      <div id="escapeEditionsContainer">
+        <div class="empty-state">暂无单词期次，上传单词后将自动生成</div>
+      </div>
+    </div>
+
     <!-- Word Editions Management -->
     <div class="section">
       <h3><span class="dot" style="background:#8b5cf6"></span> 单词管理（期次）</h3>
@@ -443,23 +477,32 @@ function switchTab(tab){
   document.getElementById('headerTitle').textContent=tab==='match'?'📋 教师后台 - 单词消消乐':'📋 教师后台 - 单词密室逃脱';
   document.getElementById('lbTitle').textContent=tab==='match'?'消消乐排行榜 TOP 5':'密室逃脱排行榜 TOP 5';
   document.getElementById('lbHint').textContent=tab==='match'?'排序规则：正确率降序 > 用时升序':'排序规则：用时升序（仅统计 5 关全部逃脱的完整记录）';
-  // 管理区（上传/老师/密码/期次）仅消消乐显示
+
+  // 密室逃脱专属区
+  document.getElementById('escapeUploadSection').style.display=tab==='escape'?'':'none';
+  document.getElementById('escapeEditionsSection').style.display=tab==='escape'?'':'none';
+
+  // 消消乐管理区（仅消消乐标签可见）
   const manageSections=document.querySelectorAll('.section');
-  // 第1个section是stats，第2-6个是管理/排行榜/期次/数据操作
-  // 单词上传(index 1), 老师管理(index 2), 修改密码(index 3), 排行榜(index 4), 期次(index 5), 数据操作(index 6)
   for(let i=0;i<manageSections.length;i++){
     const h3=manageSections[i].querySelector('h3');
-    if(h3){
-      const txt=h3.textContent||'';
-      if(tab==='escape'&&(txt.includes('单词文件上传')||txt.includes('老师名单')||txt.includes('修改登录密码')||txt.includes('单词管理')||txt.includes('期次'))){
+    if(!h3)continue;
+    const txt=h3.textContent||'';
+    if(tab==='escape'){
+      if(txt.includes('单词文件上传')||txt.includes('老师名单')||txt.includes('修改登录密码')||txt.includes('单词管理')||txt.includes('期次')||txt.includes('数据操作')){
         manageSections[i].style.display='none';
-      }else{manageSections[i].style.display=''}
+      }
+    }else{
+      manageSections[i].style.display='';
     }
   }
+
   clearInterval(lbTimer);
   if(tab==='escape'){lbTimer=setInterval(renderLeaderboard,5000)}
   renderLeaderboard();
   renderStats();
+  if(tab==='escape') renderEscapeEditions();
+  else renderEditions();
 }
 
 // ==================== Login ====================
@@ -771,7 +814,7 @@ document.getElementById('fileInput').addEventListener('change',async e=>{
 
 // ==================== Edition Management (Supabase) ====================
 async function getEditions(){
-  try{const{data,error}=await supabaseAdmin.from('word_editions').select('*').order('created_at',{ascending:false});
+  try{const{data,error}=await supabaseAdmin.from('word_editions').select('*').neq('note','escape').order('created_at',{ascending:false});
     if(error){console.error('getEditions error:',error);showToast('加载期次失败: '+error.message,'error');return[]}
     return data||[];}
   catch(e){console.error('getEditions exception:',e);showToast('加载期次异常，请检查 Supabase 连接','error');return[]}
@@ -926,6 +969,155 @@ async function saveEditionNote(editionId,value,inputEl,originalEl){
   inputEl.replaceWith(originalEl);
   await renderEditions();
 }
+
+// ==================== Escape: Upload & Edition ====================
+// --- Escae file upload ---
+document.getElementById('escapeUploadArea').addEventListener('click',()=>document.getElementById('escapeFileInput').click());
+document.getElementById('escapeUploadArea').addEventListener('dragover',e=>{e.preventDefault();e.currentTarget.style.borderColor='var(--primary)'});
+document.getElementById('escapeUploadArea').addEventListener('dragleave',e=>{e.currentTarget.style.borderColor='var(--border)'});
+document.getElementById('escapeUploadArea').addEventListener('drop',async e=>{
+  e.preventDefault();e.currentTarget.style.borderColor='var(--border)';
+  const f=e.dataTransfer.files[0];if(f)await handleEscapeFile(f);
+});
+document.getElementById('escapeFileInput').addEventListener('change',async e=>{
+  const f=e.target.files[0];if(f)await handleEscapeFile(f);
+});
+
+async function handleEscapeFile(file){
+  try{
+    const ext=file.name.split('.').pop().toLowerCase();
+    let text='';
+    if(ext==='txt'){text=await file.text();}
+    else if(ext==='json'){const j=JSON.parse(await file.text());if(Array.isArray(j)){text=j.map(w=>`${w.en||w.english||w.word},${w.zh||w.chinese||w.meaning}`).join('\n')}else{throw new Error('JSON 格式错误')}}
+    else{showToast('仅支持 .txt / .json 文件','error');return;}
+    const words=parseWordText(text);
+    if(words.length<20){showToast(`至少需要 20 组单词，当前仅 ${words.length} 组`,'error');return;}
+    await addEscapeEdition(words);
+  }catch(e){showToast('上传失败: '+e.message,'error');}
+}
+
+function toggleEscapeManual(){
+  const panel=document.getElementById('escapeManualPanel');
+  const toggle=document.getElementById('escapeManualToggle');
+  const isOpen=panel.classList.toggle('open');
+  toggle.querySelector('.arrow').textContent=isOpen?'▼':'▶';
+}
+async function importEscapeManual(){
+  const text=document.getElementById('escapeManualText').value.trim();
+  if(!text){showToast('请输入单词','error');return;}
+  const words=parseWordText(text);
+  if(words.length<20){showToast(`至少需要 20 组单词，当前仅 ${words.length} 组`,'error');return;}
+  await addEscapeEdition(words);
+  document.getElementById('escapeManualText').value='';
+  toggleEscapeManual();
+  document.getElementById('escapeVocabCount').textContent=words.length;
+}
+
+// --- Escape: Edition CRUD ---
+async function getEscapeEditions(){
+  try{const{data}=await supabaseAdmin.from('word_editions').select('*').eq('note','escape').order('created_at',{ascending:false});return data||[];}
+  catch(e){return[]}
+}
+async function getEscapeActiveId(){
+  try{const{data}=await supabaseAdmin.from('app_settings').select('value').eq('key','escape_active_edition_id').single();return data?.value||null}
+  catch(e){return null}
+}
+async function setEscapeActiveId(name){
+  if(name){
+    await supabaseAdmin.from('app_settings').upsert({key:'escape_active_edition_id',value:name},{onConflict:'key'});
+  }else{
+    await supabaseAdmin.from('app_settings').delete().eq('key','escape_active_edition_id');
+  }
+}
+async function getEscapeWordsFromDB(){
+  try{const{data}=await supabaseAdmin.from('app_settings').select('value').eq('key','escape_custom_word_list').maybeSingle();if(data&&data.value)return JSON.parse(data.value)}
+  catch(e){}
+  return null;
+}
+async function setEscapeWordsToDB(words){
+  await supabaseAdmin.from('app_settings').upsert({key:'escape_custom_word_list',value:JSON.stringify(words)},{onConflict:'key'});
+}
+async function getEscapeWords(){const w=await getEscapeWordsFromDB();return w||[]}
+
+async function addEscapeEdition(words){
+  const name=await generateEscapeEditionName();
+  const{error}=await supabaseAdmin.from('word_editions').insert({name,words,note:'escape',created_at:new Date().toISOString()}).select();
+  if(error){showToast('上传失败: '+error.message,'error');return}
+  const activeId=await getEscapeActiveId();
+  if(!activeId){await setEscapeActiveId(name);await setEscapeWordsToDB(words)}
+  await renderEscapeEditions();
+  document.getElementById('escapeVocabCount').textContent=words.length;
+  await renderStats();
+  showToast(`密室期次「${name}」已上传（${words.length} 组单词）`,'success');
+}
+async function generateEscapeEditionName(){
+  const today=new Date();
+  const base=`ESC-${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}`;
+  const editions=await getEscapeEditions();
+  const sameDay=editions.filter(e=>e.name&&e.name.startsWith(base));
+  if(sameDay.length===0)return base;
+  const maxSuffix=Math.max(...sameDay.map(e=>{
+    const parts=e.name.split('-');
+    return parts.length===3?parseInt(parts[2]):0;
+  }));
+  return `${base}-${String(maxSuffix+1).padStart(3,'0')}`;
+}
+
+async function activateEscapeEdition(name){
+  await setEscapeActiveId(name);
+  await renderEscapeEditions();
+  const editions=await getEscapeEditions();
+  const active=editions.find(e=>e.name===name);
+  if(active){await setEscapeWordsToDB(active.words)}
+  document.getElementById('escapeVocabCount').textContent=active?active.words.length:0;
+  await renderStats();
+  showToast(`密室已激活：${name}`,'success');
+}
+async function deactivateEscapeEdition(){
+  await setEscapeActiveId(null);
+  await setEscapeWordsToDB([]);
+  await renderEscapeEditions();
+  document.getElementById('escapeVocabCount').textContent='0';
+  await renderStats();
+  showToast('密室已下架，游戏端将使用默认单词表','info');
+}
+
+async function renderEscapeEditions(){
+  const container=document.getElementById('escapeEditionsContainer');
+  const editions=await getEscapeEditions();
+  const activeId=await getEscapeActiveId();
+  document.getElementById('escapeVocabCount').textContent=(await getEscapeWords()).length;
+  if(editions.length===0){
+    container.innerHTML='<div class="empty-state">暂无密室期次，上传单词后将自动生成</div>';
+    return;
+  }
+  container.innerHTML=`
+    <table class="edition-table">
+      <thead><tr><th>期次名称</th><th>单词数</th><th>状态</th><th>创建时间</th><th>备注</th><th>操作</th></tr></thead>
+      <tbody>${editions.map(e=>{
+        const isActive=e.name===activeId;
+        const date=new Date(e.created_at);
+        const dateStr=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+        return `<tr>
+          <td><strong>${e.name}</strong></td>
+          <td>${e.words.length} 组</td>
+          <td><span class="status-tag ${isActive?'status-active':'status-inactive'}">${isActive?'激活中':'未激活'}</span></td>
+          <td style="color:var(--text-muted);font-size:0.85em">${dateStr}</td>
+          <td><span class="edition-note" onclick="startEditNote('${e.id}',this)" title="${e.note||'点击添加备注'}"><span class="note-icon">✏️</span>${e.note||'—'}</span></td>
+          <td><div class="edition-actions">
+            ${isActive
+              ?`<button class="btn btn-outline btn-small" onclick="deactivateEscapeEdition()">下架</button>`
+              :`<button class="btn btn-primary btn-small" onclick="activateEscapeEdition('${e.name}')">上架</button>`
+            }
+            <button class="btn btn-outline btn-small" onclick="viewEditionDetail('${e.id}')">详情</button>
+            ${!isActive?`<button class="btn btn-danger btn-small" onclick="confirmDeleteEdition('${e.id}')">删除</button>`:''}
+          </div></td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>
+  `;
+}
+// ==================== End Escape ====================
 
 // Click outside modal to close
 document.addEventListener('DOMContentLoaded',function(){
