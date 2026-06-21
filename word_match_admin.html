@@ -509,8 +509,8 @@ async function renderStats(){
   let matchCount=0,escapeCount=0;
   try{
     const[{count:mc},{count:ec}]=await Promise.all([
-      supabaseAdmin.from('game_records').select('*',{count:'exact',head:true}).or('game_type.eq.match,game_type.is.null'),
-      supabaseAdmin.from('game_records').select('*',{count:'exact',head:true}).eq('game_type','escape').eq('rounds',5)
+      supabaseAdmin.from('game_records').select('*',{count:'exact',head:true}),
+      supabaseAdmin.from('game_records').select('*',{count:'exact',head:true}).eq('rounds',5).neq('game_type','match')
     ]);
     if(mc!=null)matchCount=mc;
     if(ec!=null)escapeCount=ec;
@@ -579,12 +579,12 @@ async function renderLeaderboard(){
   try{
     let query=supabaseAdmin.from('game_records').select('*');
     if(isEscape){
-      // 密室逃脱：仅 game_type='escape' + rounds=5 的完整记录，按用时升序
-      query=query.eq('game_type','escape').eq('rounds',5).order('time',{ascending:true});
+      // 密室逃脱：仅 game_type='escape'（或旧数据未标记）+ rounds=5，按用时升序
+      query=query.eq('rounds',5).neq('game_type','match').order('time',{ascending:true});
     }else{
-      // 消消乐：按正确率降序 > 用时升序（兼容旧数据 game_type 为空）
+      // 消消乐：不加 game_type 过滤，保证旧数据不丢失
       const activeId=await getActiveEditionId();
-      query=query.or('game_type.eq.match,game_type.is.null').order('accuracy',{ascending:false}).order('time',{ascending:true});
+      query=query.order('accuracy',{ascending:false}).order('time',{ascending:true});
       if(activeId)query=query.eq('edition_id',activeId);
     }
     const {data:records}=await query;
@@ -637,10 +637,10 @@ async function downloadCurrentCSV(){
     const isEscape=currentTab==='escape';
     let query=supabaseAdmin.from('game_records').select('*');
     if(isEscape){
-      query=query.eq('game_type','escape').eq('rounds',5).order('time',{ascending:true});
+      query=query.eq('rounds',5).neq('game_type','match').order('time',{ascending:true});
     }else{
       const activeId=await getActiveEditionId();
-      query=query.or('game_type.eq.match,game_type.is.null').order('accuracy',{ascending:false});
+      query=query.order('accuracy',{ascending:false});
       if(activeId)query=query.eq('edition_id',activeId);
     }
     const{data:records}=await query;
