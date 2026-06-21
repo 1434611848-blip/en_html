@@ -168,6 +168,16 @@ tbody tr:hover{background:#f8fafc}
 
 .empty-state{text-align:center;color:var(--text-muted);padding:24px 0;font-size:0.9em}
 
+/* Tabs */
+.tab-nav{display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid var(--border)}
+.tab-nav button{
+  padding:10px 24px;border:none;background:transparent;font-size:0.95em;font-weight:600;
+  color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;
+  transition:all 0.2s;
+}
+.tab-nav button:hover{color:var(--text)}
+.tab-nav button.active{color:var(--primary);border-bottom-color:var(--primary)}
+
 /* Row for stats */
 .stat-row{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px}
 .stat-item{background:#f8fafc;border-radius:var(--radius);padding:14px 20px;min-width:120px;text-align:center}
@@ -217,7 +227,7 @@ tbody tr:hover{background:#f8fafc}
 <div class="login-overlay" id="loginOverlay">
   <div class="login-box">
     <h1>🔒 教师后台</h1>
-    <p class="sub">单词消消乐管理系统</p>
+    <p class="sub">单词游戏统一管理</p>
     <div class="field">
       <label>管理员密码</label>
       <input type="password" id="loginPassword" placeholder="请输入密码" maxlength="30">
@@ -230,7 +240,7 @@ tbody tr:hover{background:#f8fafc}
 <!-- Main App (hidden until login) -->
 <div id="mainApp" style="display:none">
   <header>
-    <h1>📋 教师后台</h1>
+    <h1 id="headerTitle">📋 教师后台 - 单词消消乐</h1>
     <div class="user-info">
       <span>已登录</span>
       <button class="btn btn-outline btn-small btn-logout" onclick="logout()" style="margin-left:12px">退出登录</button>
@@ -238,6 +248,12 @@ tbody tr:hover{background:#f8fafc}
   </header>
 
   <main>
+    <!-- Tab Nav -->
+    <div class="tab-nav">
+      <button class="active" id="tabMatch" onclick="switchTab('match')">🧩 单词消消乐</button>
+      <button id="tabEscape" onclick="switchTab('escape')">🔑 单词密室逃脱</button>
+    </div>
+
     <!-- Stats -->
     <div class="stat-row" id="statRow"></div>
 
@@ -288,13 +304,14 @@ tbody tr:hover{background:#f8fafc}
 
     <!-- Leaderboard -->
     <div class="section">
-      <h3><span class="dot" style="background:#ef4444"></span> 排行榜 TOP 5</h3>
-      <p style="font-size:0.85em;color:var(--text-muted);margin-bottom:12px">
+      <h3><span class="dot" style="background:#ef4444"></span> <span id="lbTitle">排行榜 TOP 5</span></h3>
+      <p style="font-size:0.85em;color:var(--text-muted);margin-bottom:12px" id="lbHint">
         排序规则：正确率降序 > 用时升序
       </p>
       <div id="adminLeaderboard">
         <div class="empty-state">暂无学生参与记录</div>
       </div>
+      <p style="font-size:0.78em;color:var(--text-muted);margin-top:8px" id="refreshNote"></p>
     </div>
 
     <!-- Word Editions Management -->
@@ -312,7 +329,7 @@ tbody tr:hover{background:#f8fafc}
     <div class="section">
       <h3><span class="dot" style="background:#8b5cf6"></span> 数据操作</h3>
       <div style="display:flex;gap:12px;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="downloadAllCSV()">📥 一键下载全部学生记录 (CSV)</button>
+        <button class="btn btn-primary" onclick="downloadCurrentCSV()">📥 下载当前榜单记录 (CSV)</button>
         <button class="btn btn-outline" onclick="refreshAll()">🔄 刷新数据</button>
       </div>
     </div>
@@ -331,6 +348,8 @@ const supabaseAdmin = window.supabase.createClient(
 const KEYS={password:'admin_password'}; // 仅保留安全相关配置
 const DEFAULT_TEACHERS=['亚楠老师','佳萌老师','亚飞老师'];
 const DEFAULT_PASSWORD='admin123';
+let currentTab='match'; // 'match' 消消乐 | 'escape' 密室逃脱
+let lbTimer=null;
 
 function getPassword(){try{const v=localStorage.getItem(KEYS.password);return v?JSON.parse(v):DEFAULT_PASSWORD}catch(e){return DEFAULT_PASSWORD}}
 
@@ -416,6 +435,33 @@ function showToast(msg,type='info'){
 
 function formatTime(ms){const sec=Math.floor(ms/1000);return `${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`}
 
+// ==================== Tab Switching ====================
+function switchTab(tab){
+  currentTab=tab;
+  document.getElementById('tabMatch').classList.toggle('active',tab==='match');
+  document.getElementById('tabEscape').classList.toggle('active',tab==='escape');
+  document.getElementById('headerTitle').textContent=tab==='match'?'📋 教师后台 - 单词消消乐':'📋 教师后台 - 单词密室逃脱';
+  document.getElementById('lbTitle').textContent=tab==='match'?'消消乐排行榜 TOP 5':'密室逃脱排行榜 TOP 5';
+  document.getElementById('lbHint').textContent=tab==='match'?'排序规则：正确率降序 > 用时升序':'排序规则：用时升序（仅统计 5 关全部逃脱的完整记录）';
+  // 管理区（上传/老师/密码/期次）仅消消乐显示
+  const manageSections=document.querySelectorAll('.section');
+  // 第1个section是stats，第2-6个是管理/排行榜/期次/数据操作
+  // 单词上传(index 1), 老师管理(index 2), 修改密码(index 3), 排行榜(index 4), 期次(index 5), 数据操作(index 6)
+  for(let i=0;i<manageSections.length;i++){
+    const h3=manageSections[i].querySelector('h3');
+    if(h3){
+      const txt=h3.textContent||'';
+      if(tab==='escape'&&(txt.includes('单词文件上传')||txt.includes('老师名单')||txt.includes('修改登录密码')||txt.includes('单词管理')||txt.includes('期次'))){
+        manageSections[i].style.display='none';
+      }else{manageSections[i].style.display=''}
+    }
+  }
+  clearInterval(lbTimer);
+  if(tab==='escape'){lbTimer=setInterval(renderLeaderboard,5000)}
+  renderLeaderboard();
+  renderStats();
+}
+
 // ==================== Login ====================
 async function doLogin(){
   const pw=document.getElementById('loginPassword').value.trim();
@@ -460,15 +506,20 @@ async function refreshAll(){
 }
 
 async function renderStats(){
-  let count=0;
+  let matchCount=0,escapeCount=0;
   try{
-    const {count:c}=await supabaseAdmin.from('game_records').select('*',{count:'exact',head:true});
-    if(c!=null)count=c;
-  }catch(e){count='—'}
+    const[{count:mc},{count:ec}]=await Promise.all([
+      supabaseAdmin.from('game_records').select('*',{count:'exact',head:true}),
+      supabaseAdmin.from('game_records').select('*',{count:'exact',head:true}).eq('rounds',5)
+    ]);
+    if(mc!=null)matchCount=mc;
+    if(ec!=null)escapeCount=ec;
+  }catch(e){matchCount='—';escapeCount='—'}
   const teachers=await getTeachers();
   const words=await getWords();
   document.getElementById('statRow').innerHTML=`
-    <div class="stat-item"><div class="val">${count}</div><div class="lbl">总参与人次</div></div>
+    <div class="stat-item"><div class="val">${matchCount}</div><div class="lbl">消消乐参与人次</div></div>
+    <div class="stat-item"><div class="val">${escapeCount}</div><div class="lbl">密室逃脱人次(完整)</div></div>
     <div class="stat-item"><div class="val">${teachers.length}</div><div class="lbl">老师数量</div></div>
     <div class="stat-item"><div class="val">${words.length}</div><div class="lbl">词汇组数</div></div>
   `;
@@ -524,49 +575,84 @@ async function deleteRecord(id){
 
 async function renderLeaderboard(){
   const container=document.getElementById('adminLeaderboard');
+  const isEscape=currentTab==='escape';
   try{
-    const activeId=await getActiveEditionId();
-    let query=supabaseAdmin.from('game_records').select('*').order('accuracy',{ascending:false}).order('time',{ascending:true});
-    if(activeId)query=query.eq('edition_id',activeId);
+    let query=supabaseAdmin.from('game_records').select('*');
+    if(isEscape){
+      // 密室逃脱：仅 rounds=5 的完整记录，按用时升序
+      query=query.eq('rounds',5).order('time',{ascending:true});
+    }else{
+      // 消消乐：按正确率降序 > 用时升序
+      const activeId=await getActiveEditionId();
+      query=query.order('accuracy',{ascending:false}).order('time',{ascending:true});
+      if(activeId)query=query.eq('edition_id',activeId);
+    }
     const {data:records}=await query;
     if(!records||records.length===0){
-      container.innerHTML='<div class="empty-state">暂无学生参与记录</div>';return;
+      container.innerHTML='<div class="empty-state">暂无学生参与记录</div>';
+      document.getElementById('refreshNote').textContent='';
+      return;
     }
     const sorted=records.slice(0,5);
     const badgeClass=i=>i<3?`badge-${i+1}`:'badge-n';
-    container.innerHTML=`
-      <table>
-        <thead><tr><th>排名</th><th>姓名</th><th>老师</th><th>期次</th><th>用时</th><th>正确数</th><th>错误数</th><th>正确率</th><th>日期</th><th>操作</th></tr></thead>
-        <tbody>${sorted.map((e,i)=>
-          `<tr>
-            <td><span class="badge ${badgeClass(i)}">${i+1}</span></td>
-            <td>${e.name}</td><td>${e.teacher}</td>
-            <td style="font-size:0.82em;color:var(--text-secondary)">${e.edition_id||'—'}</td>
-            <td>${formatTime(e.time)}</td><td>${e.correct}</td><td>${e.wrong}</td>
-            <td><strong>${e.accuracy}%</strong></td><td>${e.date}</td>
-            <td><button class="btn btn-danger btn-small" onclick="deleteRecord('${e.id}')">删除</button></td>
-          </tr>`
-        ).join('')}</tbody>
-      </table>`;
-  }catch(e){container.innerHTML='<div class="empty-state">加载失败，请刷新重试</div>'}
+    if(isEscape){
+      container.innerHTML=`
+        <table>
+          <thead><tr><th>排名</th><th>姓名</th><th>老师</th><th>用时</th><th>正确数</th><th>错误数</th><th>正确率</th><th>日期</th><th>操作</th></tr></thead>
+          <tbody>${sorted.map((e,i)=>
+            `<tr>
+              <td><span class="badge ${badgeClass(i)}">${i+1}</span></td>
+              <td>${e.name}</td><td>${e.teacher}</td>
+              <td><strong>${formatTime(e.time)}</strong></td>
+              <td>${e.correct}</td><td>${e.wrong}</td>
+              <td>${e.accuracy}%</td><td>${e.date}</td>
+              <td><button class="btn btn-danger btn-small" onclick="deleteRecord('${e.id}')">删除</button></td>
+            </tr>`
+          ).join('')}</tbody>
+        </table>`;
+      document.getElementById('refreshNote').textContent='每 5 秒自动刷新';
+    }else{
+      container.innerHTML=`
+        <table>
+          <thead><tr><th>排名</th><th>姓名</th><th>老师</th><th>期次</th><th>用时</th><th>正确数</th><th>错误数</th><th>正确率</th><th>日期</th><th>操作</th></tr></thead>
+          <tbody>${sorted.map((e,i)=>
+            `<tr>
+              <td><span class="badge ${badgeClass(i)}">${i+1}</span></td>
+              <td>${e.name}</td><td>${e.teacher}</td>
+              <td style="font-size:0.82em;color:var(--text-secondary)">${e.edition_id||'—'}</td>
+              <td>${formatTime(e.time)}</td><td>${e.correct}</td><td>${e.wrong}</td>
+              <td><strong>${e.accuracy}%</strong></td><td>${e.date}</td>
+              <td><button class="btn btn-danger btn-small" onclick="deleteRecord('${e.id}')">删除</button></td>
+            </tr>`
+          ).join('')}</tbody>
+        </table>`;
+      document.getElementById('refreshNote').textContent='';
+    }
+  }catch(e){container.innerHTML='<div class="empty-state">加载失败，请刷新重试</div>';document.getElementById('refreshNote').textContent=''}
 }
 
 // ==================== CSV Download ====================
-async function downloadAllCSV(){
+async function downloadCurrentCSV(){
   try{
-    const activeId=await getActiveEditionId();
-    let query=supabaseAdmin.from('game_records').select('*').order('accuracy',{ascending:false});
-    if(activeId)query=query.eq('edition_id',activeId);
+    const isEscape=currentTab==='escape';
+    let query=supabaseAdmin.from('game_records').select('*');
+    if(isEscape){
+      query=query.eq('rounds',5).order('time',{ascending:true});
+    }else{
+      const activeId=await getActiveEditionId();
+      query=query.order('accuracy',{ascending:false});
+      if(activeId)query=query.eq('edition_id',activeId);
+    }
     const{data:records}=await query;
-    if(!records||records.length===0){showToast('暂无学生记录','error');return}
+    if(!records||records.length===0){showToast('暂无记录','error');return}
     let csv='\uFEFF姓名,老师,日期,用时(秒),正确数,错误数,正确率(%),轮次\n';
     records.forEach(r=>{
       csv+=`${r.name},${r.teacher},${r.date},${(r.time/1000).toFixed(1)},${r.correct},${r.wrong},${r.accuracy},${r.rounds}\n`;
     });
     const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
     const url=URL.createObjectURL(blob),a=document.createElement('a');
-    const suffix=activeId?'_'+activeId:'_全部';
-    a.href=url;a.download=`学生记录${suffix}_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+    const prefix=isEscape?'密室逃脱':'消消乐';
+    a.href=url;a.download=`${prefix}_记录_${new Date().toISOString().slice(0,10)}.csv`;a.click();
     URL.revokeObjectURL(url);showToast('记录已下载！','success');
   }catch(e){showToast('下载失败，请重试','error')}
 }
