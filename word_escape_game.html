@@ -474,11 +474,13 @@ function goToPage(page) {
 // ============ 数据加载 ============
 async function populateTeacherSelect() {
   const sel = document.getElementById('teacherSelect');
-  const teachers = await loadTeachers(); // shared.js 全局函数
+  const prevTeacher = STATE.teacher;
+  const teachers = await loadTeachers();
   sel.innerHTML = '<option value="">请选择老师</option>';
   if (teachers && teachers.length > 0) {
     teachers.forEach(t => { sel.innerHTML += `<option value="${t}">${t}</option>`; });
   }
+  if (prevTeacher) sel.value = prevTeacher;
 }
 
 async function initGameWords() {
@@ -530,7 +532,7 @@ async function checkAttempts() {
   const teacher = STATE.teacher;
   if (!name || !teacher) return;
   try {
-    const { data, error } = await sb
+    const { data, error } = await window.SB
       .from('game_records')
       .select('id')
       .eq('name', name)
@@ -882,7 +884,7 @@ async function showResult() {
 
 async function loadLeaderboard(myTime) {
   try {
-    const { data } = await sb
+    const { data } = await window.SB
       .from('game_records')
       .select('*')
       .eq('rounds', 5)
