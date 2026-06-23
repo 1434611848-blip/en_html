@@ -295,15 +295,10 @@ label { display: block; max-width: 340px; margin: 0 auto; font-size: 14px; color
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 // ============ Supabase ============
-const SB_URL = 'https://xwnvsydndaclamzcfrpl.supabase.co';
-const SB_ANON = 'sb_publishable_PATbkfSdIrjUug0C7qqnsg__fGlTOLZ';
-let sb = null;
-try {
-  if (window.supabase) {
-    sb = window.supabase.createClient(SB_URL, SB_ANON);
-  }
-} catch(e) { console.error('Supabase init failed:', e); }
-// 兜底：sb 为 null 时后续查询会走 catch 分支，不影响页面渲染
+const sb = window.supabase.createClient(
+  'https://xwnvsydndaclamzcfrpl.supabase.co',
+  'sb_publishable_PATbkfSdIrjUug0C7qqnsg__fGlTOLZ'
+);
 
 // ============ 状态 ============
 const STATE = {
@@ -482,18 +477,22 @@ function goToPage(page) {
 }
 
 // ============ 数据加载 ============
+const DEFAULT_TEACHERS = ['亚飞老师','亚楠老师','佳萌老师'];
 function sortTeachers(arr){const s='亚飞老师';return [...arr].sort((a,b)=>a===s?-1:b===s?1:a.localeCompare(b,'zh'))}
 async function loadTeachers() {
+  const sel = document.getElementById('teacherSelect');
   try {
     const { data } = await sb.from('teachers').select('name');
-    const sel = document.getElementById('teacherSelect');
     sel.innerHTML = '<option value="">请选择老师</option>';
-    const sorted = sortTeachers(data||[]);
-    sorted.forEach(t => {
-      sel.innerHTML += `<option value="${t.name}">${t.name}</option>`;
-    });
+    const sorted = sortTeachers((data||[]).map(r=>r.name));
+    if (sorted.length > 0) {
+      sorted.forEach(t => { sel.innerHTML += `<option value="${t}">${t}</option>`; });
+    } else {
+      DEFAULT_TEACHERS.forEach(t => { sel.innerHTML += `<option value="${t}">${t}</option>`; });
+    }
   } catch(e) {
-    document.getElementById('teacherSelect').innerHTML = '<option value="">加载失败</option>';
+    sel.innerHTML = '<option value="">请选择老师</option>';
+    DEFAULT_TEACHERS.forEach(t => { sel.innerHTML += `<option value="${t}">${t}</option>`; });
   }
 }
 
@@ -546,7 +545,7 @@ async function checkAttempts() {
   const teacher = STATE.teacher;
   if (!name || !teacher) return;
   try {
-    const { data, error } = await supabase
+    const { data, error } = await sb
       .from('game_records')
       .select('id')
       .eq('name', name)
@@ -898,7 +897,7 @@ async function showResult() {
 
 async function loadLeaderboard(myTime) {
   try {
-    const { data } = await supabase
+    const { data } = await sb
       .from('game_records')
       .select('*')
       .eq('rounds', 5)
