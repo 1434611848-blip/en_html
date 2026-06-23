@@ -79,6 +79,7 @@ h3 { font-size: 20px; text-align: center; margin-bottom: 20px; }
 }
 .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
 .btn-small { max-width: 200px; padding: 10px 20px; font-size: 15px; }
+.btn-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 16px; }
 
 input[type="text"], select {
   display: block; width: 100%; max-width: 340px;
@@ -234,14 +235,25 @@ label { display: block; max-width: 340px; margin: 0 auto; font-size: 14px; color
 
   <!-- 选人页 -->
   <div class="card" id="page-setup">
-    <h3>准备挑战</h3>
-    <label>你的名字</label>
-    <input type="text" id="playerName" placeholder="输入名字（最多20字）" maxlength="20">
-    <label>辅导老师</label>
-    <select id="teacherSelect"><option value="">加载中...</option></select>
-    <p class="remaining" id="attemptsInfo"></p>
-    <button class="btn btn-primary" id="btnStartGame" onclick="startGame()" disabled>进入密室</button>
-    <button class="btn btn-outline btn-small" onclick="goToPage('entry')">返回</button>
+    <!-- Step 1: 名字 -->
+    <div id="setupStep1">
+      <h3>你的名字</h3>
+      <p style="text-align:center;color:var(--text-dim);font-size:14px;margin-bottom:14px;">请输入你的名字开始挑战</p>
+      <label>名字</label>
+      <input type="text" id="playerName" placeholder="输入名字（最多20字）" maxlength="20">
+      <button class="btn btn-primary" id="btnNextStep">下一步</button>
+      <button class="btn btn-outline btn-small" onclick="goToPage('entry')">返回</button>
+    </div>
+    <!-- Step 2: 老师 -->
+    <div id="setupStep2" style="display:none">
+      <h3>你好，<span id="step2Greeting"></span>！</h3>
+      <p style="text-align:center;color:var(--text-dim);font-size:14px;margin-bottom:14px;">选择辅导老师，开始游戏</p>
+      <label>选择辅导老师</label>
+      <select id="teacherSelect"><option value="">加载中...</option></select>
+      <p class="remaining" id="attemptsInfo"></p>
+      <button class="btn btn-primary" id="btnStartGame" onclick="startGame()" disabled>进入密室</button>
+      <button class="btn btn-outline btn-small" id="btnBackToStep1">返回修改名字</button>
+    </div>
   </div>
 
   <!-- 游戏页 -->
@@ -286,8 +298,11 @@ label { display: block; max-width: 340px; margin: 0 auto; font-size: 14px; color
     <div class="stats" id="resultStats"></div>
     <table class="leaderboard" id="leaderboardTable"></table>
     <p style="text-align:center;color:var(--text-dim);font-size:13px;margin:8px 0;" id="leaderboardYourPos"></p>
-    <button class="btn btn-gold" onclick="restartGame()">再来一局</button>
-    <button class="btn btn-outline btn-small" onclick="goToPage('entry')">返回首页</button>
+    <div class="btn-row" style="gap:12px;">
+      <button class="btn btn-outline btn-small" onclick="downloadStudentCSV()">📥 下载我的记录</button>
+      <button class="btn btn-gold" onclick="restartGame()">再来一局</button>
+      <button class="btn btn-outline btn-small" onclick="goToPage('entry')">返回首页</button>
+    </div>
   </div>
 
 </div>
@@ -468,7 +483,13 @@ function goToPage(page) {
   const el = document.getElementById('page-' + page);
   if (el) el.classList.add('active');
   STATE.page = page;
-  if (page === 'setup') populateTeacherSelect();
+  if (page === 'setup') {
+    // Reset to step 1
+    document.getElementById('setupStep1').style.display = 'block';
+    document.getElementById('setupStep2').style.display = 'none';
+    document.getElementById('playerName').value = '';
+    document.getElementById('playerName').focus();
+  }
 }
 
 // ============ 数据加载 ============
@@ -559,14 +580,35 @@ async function checkAttempts() {
   }
 }
 
-// ============ 名字/老师变更监听 ============
-document.getElementById('playerName').addEventListener('input', async function() {
-  STATE.playerName = this.value;
+// ============ 名字 → 下一步 → 老师选择 ============
+document.getElementById('btnNextStep').addEventListener('click', async function() {
+  const name = document.getElementById('playerName').value.trim();
+  if (!name) return alert('请输入名字');
+  STATE.playerName = name;
+  document.getElementById('step2Greeting').textContent = name;
+  document.getElementById('setupStep1').style.display = 'none';
+  document.getElementById('setupStep2').style.display = 'block';
+  document.getElementById('attemptsInfo').textContent = '加载中...';
   if (STATE.words.length === 0) await initGameWords();
-  if (STATE.teacher) checkAttempts();
+  await populateTeacherSelect();
+  // 初始化后检查次数
+  const teacher = document.getElementById('teacherSelect').value;
+  if (teacher) {
+    STATE.teacher = teacher;
+    checkAttempts();
+  }
 });
+
+document.getElementById('btnBackToStep1').addEventListener('click', function() {
+  document.getElementById('setupStep1').style.display = 'block';
+  document.getElementById('setupStep2').style.display = 'none';
+  document.getElementById('playerName').focus();
+  STATE.teacher = '';
+});
+
 document.getElementById('teacherSelect').addEventListener('change', async function() {
   STATE.teacher = this.value;
+  if (!STATE.teacher) return;
   document.getElementById('attemptsInfo').textContent = '查询中...';
   if (STATE.words.length === 0) await initGameWords();
   checkAttempts();
@@ -897,8 +939,14 @@ async function showResult() {
     }]);
   } catch(e) {}
 
-  // 加载排行榜
-  await loadLeaderboard(totalMs);
+  // 加载排行榜（仅满分上榜）
+  if (accuracy >= 100) {
+    await loadLeaderboard(totalMs);
+  } else {
+    document.getElementById('leaderboardTable').innerHTML =
+      '<tr><td colspan="6" style="padding:16px;color:var(--text-dim);">正确率未达100%，满分才能上榜，继续加油！</td></tr>';
+    document.getElementById('leaderboardYourPos').textContent = '';
+  }
 
   goToPage('result');
 }
@@ -942,6 +990,33 @@ async function loadLeaderboard(myTime) {
     document.getElementById('leaderboardTable').innerHTML =
       '<tr><td colspan="6" style="padding:16px;color:var(--text-dim);">排行榜加载失败</td></tr>';
   }
+}
+
+// ============ 下载记录 ============
+function downloadStudentCSV() {
+  const totalMs = STATE.totalTime;
+  const accuracy = STATE.totalCorrect + STATE.totalErrors > 0
+    ? Math.round((STATE.totalCorrect / (STATE.totalCorrect + STATE.totalErrors)) * 100) : 0;
+
+  let csv = '\uFEFF姓名,老师,日期,用时(秒),正确数,错误数,正确率(%),通关轮次\n';
+  csv += `${STATE.playerName},${STATE.teacher},${new Date().toISOString().split('T')[0]},${(totalMs/1000).toFixed(1)},${STATE.totalCorrect},${STATE.totalErrors},${accuracy},${STATE.keysEarned}/5\n`;
+  csv += '\n答题详情\n轮次,类型,英文,正确答案,你的答案,结果\n';
+
+  STATE.pairLog.forEach(round => {
+    round.questions.forEach(q => {
+      const typeLabel = round.type === 'en2zh' ? '英→中' : '中→英';
+      const resultLabel = q.result === 'correct' ? '正确' : '错误';
+      csv += `${round.round},${typeLabel},${q.word},${q.correct},${q.userAnswer},${resultLabel}\n`;
+    });
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${STATE.playerName}_密室逃脱记录_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function showFail() {
