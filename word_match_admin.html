@@ -412,8 +412,9 @@ function getPassword(){try{const v=localStorage.getItem(KEYS.password);return v?
 function isSuperAdmin(){return localStorage.getItem('admin_logged_user')===SUPER_ADMIN}
 
 // ==================== Supabase: Teachers ====================
+function sortTeachers(arr){const s='亚飞老师';return [...arr].sort((a,b)=>a===s?-1:b===s?1:a.localeCompare(b,'zh'))}
 async function loadTeachersFromDB(){
-  try{const{data}=await supabaseAdmin.from('teachers').select('name').order('created_at',{ascending:true});return (data||[]).map(r=>r.name)}
+  try{const{data}=await supabaseAdmin.from('teachers').select('name').order('created_at',{ascending:true});return sortTeachers((data||[]).map(r=>r.name))}
   catch(e){console.error('loadTeachersFromDB failed:',e);return null}
 }
 
@@ -449,7 +450,7 @@ async function migrateTeachersIfNeeded(){
 }
 
 async function getTeachers(){
-  try{const{data}=await supabaseAdmin.from('teachers').select('name').order('created_at',{ascending:true});return (data||[]).map(r=>r.name)}
+  try{const{data}=await supabaseAdmin.from('teachers').select('name').order('created_at',{ascending:true});return sortTeachers((data||[]).map(r=>r.name))}
   catch(e){console.error(e)}
   return [];
 }

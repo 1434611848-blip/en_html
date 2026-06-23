@@ -381,10 +381,11 @@ const supabaseClient = window.supabase.createClient(
 
 // ==================== Data Loaders ====================
 let CACHED_TEACHERS=null;
+function sortTeachers(arr){const s='亚飞老师';return [...arr].sort((a,b)=>a===s?-1:b===s?1:a.localeCompare(b,'zh'))}
 async function loadTeachers(){
   try{
     const{data}=await supabaseClient.from('teachers').select('name').order('created_at',{ascending:true});
-    if(data&&data.length>0){CACHED_TEACHERS=data.map(r=>r.name);return CACHED_TEACHERS}
+    if(data&&data.length>0){CACHED_TEACHERS=sortTeachers(data.map(r=>r.name));return CACHED_TEACHERS}
     // 查询成功但无数据：返回空数组，不 fallback 到默认值
     CACHED_TEACHERS=[];
     return [];

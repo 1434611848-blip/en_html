@@ -476,12 +476,14 @@ function goToPage(page) {
 }
 
 // ============ 数据加载 ============
+function sortTeachers(arr){const s='亚飞老师';return [...arr].sort((a,b)=>a===s?-1:b===s?1:a.localeCompare(b,'zh'))}
 async function loadTeachers() {
   try {
     const { data } = await sb.from('teachers').select('name');
     const sel = document.getElementById('teacherSelect');
     sel.innerHTML = '<option value="">请选择老师</option>';
-    if (data) data.forEach(t => {
+    const sorted = sortTeachers(data||[]);
+    sorted.forEach(t => {
       sel.innerHTML += `<option value="${t.name}">${t.name}</option>`;
     });
   } catch(e) {
