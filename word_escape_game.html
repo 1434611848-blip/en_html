@@ -855,13 +855,21 @@ async function showResult() {
   const accuracy = STATE.totalCorrect + STATE.totalErrors > 0
     ? Math.round((STATE.totalCorrect / (STATE.totalCorrect + STATE.totalErrors)) * 100) : 0;
 
-  const encourages = [
-    '你太厉害了，单词达人！',
-    '密室被你征服了！',
-    '词汇量惊人，无敌是多么寂寞！',
-    '单词界的福尔摩斯，密室克星！',
-    '五把钥匙在手，天下单词你有！'
+  const perfectEncourages = [
+    '满分通关！你是单词之王！',
+    '零失误逃脱，词汇量无可挑剔！',
+    '完美通关，密室在你面前形同虚设！',
+    '全对！单词界的独孤求败！',
+    '一丝不差，五把钥匙完美集齐！'
   ];
+  const goodEncourages = [
+    '成功逃脱！再练练就能满分了！',
+    '密室被你征服了，下次争取零失误！',
+    '通关了！查漏补缺，下次更强！',
+    '逃出密室！还有提升空间，加油！',
+    '五把钥匙到手，但满分才是终极目标！'
+  ];
+  const encourages = accuracy >= 100 ? perfectEncourages : goodEncourages;
   document.getElementById('encourageText').textContent =
     encourages[Math.floor(Math.random() * encourages.length)];
 
