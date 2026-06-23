@@ -492,9 +492,9 @@ async function loadTeachers() {
 async function initGameWords() {
   try {
     // Try escape_active_edition_id → word_editions
-    const { data: settings } = await supabase.from('app_settings').select('value').eq('key', 'escape_active_edition_id').single();
+    const { data: settings } = await supabase.from('app_settings').select('value').eq('key', 'escape_active_edition_id').maybeSingle();
     if (settings?.value) {
-      const { data: edition } = await supabase.from('word_editions').select('*').eq('id', settings.value).single();
+      const { data: edition } = await supabase.from('word_editions').select('*').eq('id', settings.value).maybeSingle();
       if (edition?.words && Array.isArray(edition.words) && edition.words.length >= 20) {
         STATE.editionId = edition.id;
         STATE.words = edition.words.map(w => ({ en: w.en || w.english || w.word, zh: w.zh || w.chinese || w.meaning }));
@@ -503,7 +503,7 @@ async function initGameWords() {
     }
 
     // Fallback to escape_custom_word_list
-    const { data: cwl } = await supabase.from('app_settings').select('value').eq('key', 'escape_custom_word_list').single();
+    const { data: cwl } = await supabase.from('app_settings').select('value').eq('key', 'escape_custom_word_list').maybeSingle();
     if (cwl?.value) {
       try {
         const parsed = JSON.parse(cwl.value);
