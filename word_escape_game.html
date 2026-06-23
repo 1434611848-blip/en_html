@@ -537,7 +537,7 @@ async function checkAttempts() {
       .select('id')
       .eq('name', name)
       .eq('teacher', teacher)
-      .eq('rounds', 0)
+      .eq('rounds', 5)
       .eq('edition_id', STATE.editionId || '');
     if (!error && data) {
       STATE.remainingAttempts = Math.max(0, 3 - data.length);
