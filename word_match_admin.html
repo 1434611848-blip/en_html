@@ -555,8 +555,8 @@ async function renderStats(){
   let matchCount=0,escapeCount=0;
   try{
     const[{count:mc},{count:ec}]=await Promise.all([
-      supabaseAdmin.from('game_records').select('*',{count:'exact',head:true}),
-      supabaseAdmin.from('game_records').select('*',{count:'exact',head:true}).eq('rounds',5).neq('game_type','match')
+      supabaseAdmin.from('game_records').select('*',{count:'exact',head:true}).or('game_type.eq.match,game_type.is.null'),
+      supabaseAdmin.from('game_records').select('*',{count:'exact',head:true}).eq('game_type','escape').eq('rounds',5)
     ]);
     if(mc!=null)matchCount=mc;
     if(ec!=null)escapeCount=ec;
