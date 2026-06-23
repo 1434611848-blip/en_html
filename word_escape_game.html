@@ -496,7 +496,7 @@ async function initGameWords() {
     // Try escape_active_edition_id → word_editions
     const { data: settings } = await sb.from('app_settings').select('value').eq('key', 'escape_active_edition_id').maybeSingle();
     if (settings?.value) {
-      const { data: edition } = await sb.from('word_editions').select('*').eq('id', settings.value).maybeSingle();
+      const { data: edition } = await sb.from('word_editions').select('*').eq('name', settings.value).maybeSingle();
       if (edition?.words && Array.isArray(edition.words) && edition.words.length >= 20) {
         STATE.editionId = edition.id;
         STATE.words = edition.words.map(w => ({ en: w.en || w.english || w.word, zh: w.zh || w.cn || w.chinese || w.meaning }));
