@@ -605,10 +605,10 @@ async function renderStats(){
   let gameCount=0, totalWords=0;
   try{
     if(isEscape){
-      const{count:gc}=await supabaseAdmin.from('game_records').select('*',{count:'exact',head:true}).eq('game_type','escape');
+      const{count:gc}=await supabaseAdmin.from('game_records').select('*',{count:'exact',head:true}).eq('game_type','escape').eq('rounds',0);
       if(gc!=null)gameCount=gc;
     }else{
-      const{count:gc}=await supabaseAdmin.from('game_records').select('*',{count:'exact',head:true}).or('game_type.eq.match,game_type.is.null');
+      const{count:gc}=await supabaseAdmin.from('game_records').select('*',{count:'exact',head:true}).or('game_type.eq.match,game_type.is.null').eq('rounds',0);
       if(gc!=null)gameCount=gc;
     }
   }catch(e){gameCount='—'}

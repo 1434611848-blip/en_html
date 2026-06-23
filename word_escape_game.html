@@ -537,6 +537,7 @@ async function checkAttempts() {
       .select('id')
       .eq('name', name)
       .eq('teacher', teacher)
+      .eq('rounds', 0)
       .eq('edition_id', STATE.editionId || '');
     if (!error && data) {
       STATE.remainingAttempts = Math.max(0, 3 - data.length);
@@ -580,6 +581,18 @@ async function startGame() {
     await initGameWords();
     if (STATE.words.length < 20) return alert('词汇不足，请联系老师添加词汇！');
   }
+
+  // 记录参与人次
+  try {
+    await window.SB.from('game_records').insert([{
+      name: STATE.playerName,
+      teacher: STATE.teacher,
+      date: new Date().toISOString().split('T')[0],
+      time: 0, correct: 0, wrong: 0, rounds: 0, accuracy: 0,
+      edition_id: STATE.editionId || '',
+      game_type: 'escape'
+    }]);
+  } catch(e) {}
 
   goToPage('game');
   STATE.gameActive = true;

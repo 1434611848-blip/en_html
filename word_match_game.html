@@ -387,7 +387,7 @@ function getWords(){
 const MAX_ATTEMPTS = 3;
 async function getAttemptCount(name, teacher){
   try{
-    const query = window.SB.from('game_records').select('*',{count:'exact',head:true}).eq('name',name).eq('teacher',teacher);
+    const query = window.SB.from('game_records').select('*',{count:'exact',head:true}).eq('name',name).eq('teacher',teacher).eq('rounds',0);
     if(window.ACTIVE_EDITION_ID){query.eq('edition_id',window.ACTIVE_EDITION_ID)}
     const {count,error}=await query;
     if(error)throw error;
@@ -668,6 +668,18 @@ document.getElementById('startBtn').addEventListener('click',async ()=>{
     return;
   }
   state.playerName=name;state.teacher=teacher;state.words=[...getWords()];
+
+  // 记录参与人次
+  try {
+    await window.SB.from('game_records').insert([{
+      name, teacher,
+      date: new Date().toLocaleDateString('zh-CN'),
+      time: 0, correct: 0, wrong: 0, rounds: 0, accuracy: 0,
+      edition_id: window.ACTIVE_EDITION_ID || null,
+      game_type: 'match'
+    }]);
+  } catch(e) {}
+
   state.roundNum=0;state.correctCount=0;state.wrongCount=0;state.pairLog=[];
   state.gameStartTime=Date.now();$correctCount.textContent='0';$wrongCount.textContent='0';$roundNum.textContent='1';$progressFill.style.width='0%';
   showScreen('game');startTimer();startRound();AudioEngine.startMusic();
