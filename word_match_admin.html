@@ -704,8 +704,9 @@ async function downloadCurrentCSV(){
 // ==================== Shared Pair Extraction ====================
 function extractPairs(text){
   // 预处理：去除词性标记（如 n. / v. / adj. / adv. 等），保留英文单词
-  text=text.replace(/\b(n\.|v\.|adj\.|adv\.|prep\.|conj\.|pron\.|num\.|art\.|int\.|det\.|aux\.|modal\.|abbr\.|interj\.|phr\.)/gi,'');
-  const regex=/([A-Za-z]+(?:[ \t-]+[A-Za-z]+)*)[,，\t |]+([\u4e00-\u9fff]+(?:[\u4e00-\u9fff ]*[\u4e00-\u9fff])?)/g;
+  text=text.replace(/\b(n\.|v\.|adj\.|adv\.|prep\.|conj\.|pron\.|num\.|art\.|int\.|det\.|aux\.|modal\.|abbr\.|interj\.|phr\.)/gi,'')
+           .replace(/\s*\/\s*/g,' ').replace(/\s{2,}/g,' ');
+  const regex=/([A-Za-z]+(?:[ \t-]+[A-Za-z]+)*)[,，\t |]+([\u4e00-\u9fff]+(?:[\u4e00-\u9fff（）()；;，,。:：…… ]*[\u4e00-\u9fff）)】])?)/g;
   const seen=new Set(),words=[];
   let m;while((m=regex.exec(text))!==null){
     const en=m[1].trim(),cn=m[2].trim();
