@@ -264,7 +264,7 @@ tbody tr:hover{background:#f8fafc}
   <header>
     <h1 id="headerTitle">📋 教师后台 - 单词消消乐</h1>
     <div class="header-nav">
-      <div class="nav-dropdown" id="navTeacher">
+      <div class="nav-dropdown" id="navTeacher" style="display:none">
         <button class="nav-btn" onclick="toggleNavDropdown('navTeacher')">教师管理 ▾</button>
         <div class="dropdown-panel" id="navTeacherPanel">
           <div id="navTeacherTags" style="margin-bottom:10px"></div>
@@ -404,10 +404,12 @@ const supabaseAdmin = window.supabase.createClient(
 const KEYS={password:'admin_password'}; // 仅保留安全相关配置
 const DEFAULT_TEACHERS=['亚楠老师','佳萌老师','亚飞老师'];
 const DEFAULT_PASSWORD='admin123';
+const SUPER_ADMIN='亚飞老师';
 let currentTab='match'; // 'match' 消消乐 | 'escape' 密室逃脱
 let lbTimer=null;
 
 function getPassword(){try{const v=localStorage.getItem(KEYS.password);return v?JSON.parse(v):DEFAULT_PASSWORD}catch(e){return DEFAULT_PASSWORD}}
+function isSuperAdmin(){return localStorage.getItem('admin_logged_user')===SUPER_ADMIN}
 
 // ==================== Supabase: Teachers ====================
 async function loadTeachersFromDB(){
@@ -639,8 +641,10 @@ function renderUserCenter(){
   document.getElementById('navUserName').textContent=name;
   document.getElementById('navUserInfo').innerHTML=`
     <div>当前登录：<strong>${name}</strong></div>
-    <div style="color:var(--text-muted);font-size:0.82em">角色：管理员</div>
+    <div style="color:var(--text-muted);font-size:0.82em">角色：${isSuperAdmin()?'超级管理员':'教师'}</div>
   `;
+  // 非超级管理员隐藏教师管理
+  document.getElementById('navTeacher').style.display=isSuperAdmin()?'':'none';
 }
 async function renderTeacherTags(){
   const teachers=await getTeachers();
@@ -650,7 +654,7 @@ async function renderTeacherTags(){
     return;
   }
   container.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:4px">'+teachers.map((t,i)=>
-    `<span class="tag">${t}<span class="del" onclick="removeTeacher('${t.replace(/'/g,"\\'")}')" title="删除">×</span></span>`
+    `<span class="tag">${t}${t===SUPER_ADMIN?'':`<span class="del" onclick="removeTeacher('${t.replace(/'/g,"\\'")}')" title="删除">×</span>`}</span>`
   ).join('')+'</div>';
 }
 
@@ -951,6 +955,7 @@ async function activateEdition(name){
 }
 
 async function deactivateEdition(){
+  if(!isSuperAdmin()){showToast('仅超级管理员可操作','error');return}
   await setActiveEditionId(null);
   // 清空 custom_word_list，游戏端回到默认单词表
   await setWordsToDB([]);
@@ -1016,6 +1021,12 @@ async function renderEditions(){
         const isActive=e.name===activeId;
         const date=new Date(e.created_at);
         const dateStr=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+        const ops=isSuperAdmin()
+          ?(isActive
+            ?`<button class="btn btn-outline btn-small" onclick="deactivateEdition()">下架</button>`
+            :`<button class="btn btn-primary btn-small" onclick="activateEdition('${e.name}')">上架</button>`
+          )
+          :'';
         return `<tr>
           <td><strong>${e.name}</strong></td>
           <td>${e.words.length} 组</td>
@@ -1023,12 +1034,9 @@ async function renderEditions(){
           <td style="color:var(--text-muted);font-size:0.85em">${dateStr}</td>
           <td><span class="edition-note" onclick="startEditNote('${e.id}',this)" title="${e.note||'点击添加备注'}"><span class="note-icon">✏️</span>${e.note||'—'}</span></td>
           <td><div class="edition-actions">
-            ${isActive
-              ?`<button class="btn btn-outline btn-small" onclick="deactivateEdition()">下架</button>`
-              :`<button class="btn btn-primary btn-small" onclick="activateEdition('${e.name}')">上架</button>`
-            }
+            ${ops}
             <button class="btn btn-outline btn-small" onclick="viewEditionDetail('${e.id}')">详情</button>
-            ${!isActive?`<button class="btn btn-danger btn-small" onclick="confirmDeleteEdition('${e.id}')">删除</button>`:''}
+            ${isSuperAdmin()&&!isActive?`<button class="btn btn-danger btn-small" onclick="confirmDeleteEdition('${e.id}')">删除</button>`:''}
           </div></td>
         </tr>`;
       }).join('')}</tbody>
@@ -1163,6 +1171,7 @@ async function activateEscapeEdition(name){
   showToast(`密室已激活：${name}`,'success');
 }
 async function deactivateEscapeEdition(){
+  if(!isSuperAdmin()){showToast('仅超级管理员可操作','error');return}
   await setEscapeActiveId(null);
   await setEscapeWordsToDB([]);
   await renderEscapeEditions();
@@ -1188,6 +1197,12 @@ async function renderEscapeEditions(){
         const isActive=e.name===activeId;
         const date=new Date(e.created_at);
         const dateStr=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+        const ops=isSuperAdmin()
+          ?(isActive
+            ?`<button class="btn btn-outline btn-small" onclick="deactivateEscapeEdition()">下架</button>`
+            :`<button class="btn btn-primary btn-small" onclick="activateEscapeEdition('${e.name}')">上架</button>`
+          )
+          :'';
         return `<tr>
           <td><strong>${e.name}</strong></td>
           <td>${e.words.length} 组</td>
@@ -1195,12 +1210,9 @@ async function renderEscapeEditions(){
           <td style="color:var(--text-muted);font-size:0.85em">${dateStr}</td>
           <td><span class="edition-note" onclick="startEditNote('${e.id}',this)" title="${e.note||'点击添加备注'}"><span class="note-icon">✏️</span>${e.note||'—'}</span></td>
           <td><div class="edition-actions">
-            ${isActive
-              ?`<button class="btn btn-outline btn-small" onclick="deactivateEscapeEdition()">下架</button>`
-              :`<button class="btn btn-primary btn-small" onclick="activateEscapeEdition('${e.name}')">上架</button>`
-            }
+            ${ops}
             <button class="btn btn-outline btn-small" onclick="viewEditionDetail('${e.id}')">详情</button>
-            ${!isActive?`<button class="btn btn-danger btn-small" onclick="confirmDeleteEdition('${e.id}')">删除</button>`:''}
+            ${isSuperAdmin()&&!isActive?`<button class="btn btn-danger btn-small" onclick="confirmDeleteEdition('${e.id}')">删除</button>`:''}
           </div></td>
         </tr>`;
       }).join('')}</tbody>
