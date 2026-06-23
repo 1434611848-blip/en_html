@@ -758,23 +758,34 @@ async function downloadCurrentCSV(){
     const isEscape=currentTab==='escape';
     let query=supabaseAdmin.from('game_records').select('*');
     if(isEscape){
-      query=query.eq('rounds',5).neq('game_type','match').order('time',{ascending:true});
+      query=query.eq('rounds',5).neq('game_type','match').order('accuracy',{ascending:false}).order('time',{ascending:true});
     }else{
       const activeId=await getActiveEditionId();
-      query=query.order('accuracy',{ascending:false});
+      query=query.order('accuracy',{ascending:false}).order('time',{ascending:true});
       if(activeId)query=query.eq('edition_id',activeId);
     }
     const{data:records}=await query;
     if(!records||records.length===0){showToast('暂无记录','error');return}
-    let csv='\uFEFF姓名,老师,日期,用时(秒),正确数,错误数,正确率(%),轮次\n';
+
+    // 按 (姓名, 老师) 去重，保留最好成绩（正确率最高 → 用时最短）
+    const bestMap={};
     records.forEach(r=>{
+      const key=`${r.name}|||${r.teacher}`;
+      if(!bestMap[key]){bestMap[key]=r;}
+    });
+    const bestRecords=Object.values(bestMap);
+    // 排序
+    bestRecords.sort((a,b)=>b.accuracy-a.accuracy||a.time-b.time);
+
+    let csv='\uFEFF姓名,老师,日期,用时(秒),正确数,错误数,正确率(%),轮次\n';
+    bestRecords.forEach(r=>{
       csv+=`${r.name},${r.teacher},${r.date},${(r.time/1000).toFixed(1)},${r.correct},${r.wrong},${r.accuracy},${r.rounds}\n`;
     });
     const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
     const url=URL.createObjectURL(blob),a=document.createElement('a');
     const prefix=isEscape?'密室逃脱':'消消乐';
-    a.href=url;a.download=`${prefix}_记录_${new Date().toISOString().slice(0,10)}.csv`;a.click();
-    URL.revokeObjectURL(url);showToast('记录已下载！','success');
+    a.href=url;a.download=`${prefix}_最好成绩_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+    URL.revokeObjectURL(url);showToast(`已导出 ${bestRecords.length} 人最好成绩（原 ${records.length} 条去重）`,'success');
   }catch(e){showToast('下载失败，请重试','error')}
 }
 
