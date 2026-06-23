@@ -703,25 +703,28 @@ async function downloadCurrentCSV(){
 // ==================== File Parsing ====================
 // ==================== Shared Pair Extraction ====================
 function extractPairs(text){
-  // 预处理：去除词性标记（如 n. / v. / adj. / adv. 等），保留英文单词
-  text=text.replace(/\b(n\.|v\.|adj\.|adv\.|prep\.|conj\.|pron\.|num\.|art\.|int\.|det\.|aux\.|modal\.|abbr\.|interj\.|phr\.)/gi,'')
+  // 全局预处理：去除词性标记和组合斜杠
+  text=text.replace(/\b(n\.|v\.|adj\.|adv\.|prep\.|conj\.|pron\.|num\.|art\.|int\.|det\.|aux\.|modal\.|abbr\.|interj\.|phr\.|vi\.|vt\.)/gi,'')
            .replace(/\s*\/\s*/g,' ').replace(/\s{2,}/g,' ');
-  const regex=/([A-Za-z]+(?:[ \t-]+[A-Za-z]+)*)[,，\t |]+([\u4e00-\u9fff]+(?:[\u4e00-\u9fff（）()；;，,。:：…… ]*[\u4e00-\u9fff）)】])?)/g;
-  const seen=new Set(),words=[];
-  let m;while((m=regex.exec(text))!==null){
-    const en=m[1].trim(),cn=m[2].trim();
-    if(!seen.has(en.toLowerCase())){seen.add(en.toLowerCase());words.push({en,cn})}
-  }
-  // 正则匹配不足时，降级按行分割兜底
-  if(words.length<3){
-    const lines=text.split(/[\r\n]+/).filter(l=>l.trim());
-    for(const line of lines){
-      const p=line.split(/[,，\t|]/);
-      if(p.length>=2&&p[0].trim()&&p[1].trim()){
-        const en=p[0].trim(),cn=p[1].trim();
-        if(!seen.has(en.toLowerCase())){seen.add(en.toLowerCase());words.push({en,cn})}
-      }
+  const seen=new Set(), words=[];
+  const lines=text.split(/[\r\n]+/).filter(l=>l.trim());
+  for(const line of lines){
+    // 方案1：逗号/制表符分隔（兼容旧格式 "apple,苹果"）
+    const commaParts=line.split(/[,，\t|]+/);
+    if(commaParts.length>=2&&commaParts[0].trim()&&commaParts[1].trim()&&!/[\u4e00-\u9fff]/.test(commaParts[0])){
+      const en=commaParts[0].trim().replace(/\s+[a-z]+\./gi,'').trim();
+      const cn=commaParts.slice(1).join('，').trim();
+      if(en&&cn&&!seen.has(en.toLowerCase())){seen.add(en.toLowerCase());words.push({en,cn})}
+      continue;
     }
+    // 方案2：按第一个中文字符/中文括号分割
+    const m=line.match(/[\u4e00-\u9fff（）(（]/);
+    if(!m) continue;
+    let en=line.slice(0,m.index).replace(/\s+[A-Za-z]$/,'').trim();
+    let cn=line.slice(m.index).trim();
+    // 二次清洗英文部分残留词性
+    en=en.replace(/\s+[a-z]+\./gi,'').replace(/[\/]/g,'').trim();
+    if(en&&cn&&!seen.has(en.toLowerCase())){seen.add(en.toLowerCase());words.push({en,cn})}
   }
   return words;
 }
