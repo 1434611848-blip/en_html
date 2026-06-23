@@ -297,7 +297,7 @@ label { display: block; max-width: 340px; margin: 0 auto; font-size: 14px; color
 // ============ Supabase ============
 const SB_URL = 'https://xwnvsydndaclamzcfrpl.supabase.co';
 const SB_ANON = 'sb_publishable_PATbkfSdIrjUug0C7qqnsg__fGlTOLZ';
-const supabase = window.supabase.createClient(SB_URL, SB_ANON);
+const sb = window.supabase.createClient(SB_URL, SB_ANON);
 
 // ============ 状态 ============
 const STATE = {
@@ -478,7 +478,7 @@ function goToPage(page) {
 // ============ 数据加载 ============
 async function loadTeachers() {
   try {
-    const { data } = await supabase.from('teachers').select('name');
+    const { data } = await sb.from('teachers').select('name');
     const sel = document.getElementById('teacherSelect');
     sel.innerHTML = '<option value="">请选择老师</option>';
     if (data) data.forEach(t => {
@@ -492,9 +492,9 @@ async function loadTeachers() {
 async function initGameWords() {
   try {
     // Try escape_active_edition_id → word_editions
-    const { data: settings } = await supabase.from('app_settings').select('value').eq('key', 'escape_active_edition_id').maybeSingle();
+    const { data: settings } = await sb.from('app_settings').select('value').eq('key', 'escape_active_edition_id').maybeSingle();
     if (settings?.value) {
-      const { data: edition } = await supabase.from('word_editions').select('*').eq('id', settings.value).maybeSingle();
+      const { data: edition } = await sb.from('word_editions').select('*').eq('id', settings.value).maybeSingle();
       if (edition?.words && Array.isArray(edition.words) && edition.words.length >= 20) {
         STATE.editionId = edition.id;
         STATE.words = edition.words.map(w => ({ en: w.en || w.english || w.word, zh: w.zh || w.chinese || w.meaning }));
@@ -503,7 +503,7 @@ async function initGameWords() {
     }
 
     // Fallback to escape_custom_word_list
-    const { data: cwl } = await supabase.from('app_settings').select('value').eq('key', 'escape_custom_word_list').maybeSingle();
+    const { data: cwl } = await sb.from('app_settings').select('value').eq('key', 'escape_custom_word_list').maybeSingle();
     if (cwl?.value) {
       try {
         const parsed = JSON.parse(cwl.value);
@@ -867,7 +867,7 @@ async function showResult() {
 
   // 提交成绩
   try {
-    await supabase.from('game_records').insert([{
+    await sb.from('game_records').insert([{
       name: STATE.playerName,
       teacher: STATE.teacher,
       date: new Date().toISOString().split('T')[0],
