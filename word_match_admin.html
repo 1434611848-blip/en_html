@@ -484,16 +484,19 @@ function switchTab(tab){
 
   // 消消乐管理区（仅消消乐标签可见）
   const manageSections=document.querySelectorAll('.section');
+  const escapeIds=['escapeUploadSection','escapeEditionsSection'];
   for(let i=0;i<manageSections.length;i++){
-    const h3=manageSections[i].querySelector('h3');
+    const el=manageSections[i];
+    if(escapeIds.includes(el.id)) continue; // 密室区由上方单独控制
+    const h3=el.querySelector('h3');
     if(!h3)continue;
     const txt=h3.textContent||'';
     if(tab==='escape'){
       if(txt.includes('单词文件上传')||txt.includes('老师名单')||txt.includes('修改登录密码')||txt.includes('单词管理')||txt.includes('期次')||txt.includes('数据操作')){
-        manageSections[i].style.display='none';
+        el.style.display='none';
       }
     }else{
-      manageSections[i].style.display='';
+      el.style.display='';
     }
   }
 
