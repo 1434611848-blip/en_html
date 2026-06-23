@@ -499,7 +499,7 @@ async function initGameWords() {
       const { data: edition } = await sb.from('word_editions').select('*').eq('id', settings.value).maybeSingle();
       if (edition?.words && Array.isArray(edition.words) && edition.words.length >= 20) {
         STATE.editionId = edition.id;
-        STATE.words = edition.words.map(w => ({ en: w.en || w.english || w.word, zh: w.zh || w.chinese || w.meaning }));
+        STATE.words = edition.words.map(w => ({ en: w.en || w.english || w.word, zh: w.zh || w.cn || w.chinese || w.meaning }));
         return;
       }
     }
@@ -510,7 +510,7 @@ async function initGameWords() {
       try {
         const parsed = JSON.parse(cwl.value);
         if (Array.isArray(parsed) && parsed.length >= 20) {
-          STATE.words = parsed.map(w => ({ en: w.en || w.english || w.word, zh: w.zh || w.chinese || w.meaning }));
+          STATE.words = parsed.map(w => ({ en: w.en || w.english || w.word, zh: w.zh || w.cn || w.chinese || w.meaning }));
           return;
         }
       } catch(e) {}
