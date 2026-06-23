@@ -909,6 +909,7 @@ async function loadLeaderboard(myTime) {
       .from('game_records')
       .select('*')
       .eq('rounds', 5)
+      .eq('accuracy', 100)
       .eq('edition_id', STATE.editionId || '')
       .order('time', { ascending: true })
       .limit(5);

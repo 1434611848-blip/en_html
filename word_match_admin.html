@@ -700,8 +700,8 @@ async function renderLeaderboard(){
   try{
     let query=supabaseAdmin.from('game_records').select('*');
     if(isEscape){
-      // 密室逃脱：仅 game_type='escape'（或旧数据未标记）+ rounds=5，按用时升序
-      query=query.eq('rounds',5).neq('game_type','match').order('time',{ascending:true});
+      // 密室逃脱：仅 accuracy=100 + rounds=5，按用时升序
+      query=query.eq('rounds',5).eq('accuracy',100).neq('game_type','match').order('time',{ascending:true});
     }else{
       // 消消乐：只统计完整通关（10轮），按正确率倒排
       const activeId=await getActiveEditionId();
