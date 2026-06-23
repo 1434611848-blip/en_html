@@ -605,7 +605,7 @@ async function renderStats(){
   let gameCount=0, totalWords=0;
   try{
     if(isEscape){
-      const{count:gc}=await supabaseAdmin.from('game_records').select('*',{count:'exact',head:true}).eq('game_type','escape').eq('rounds',5);
+      const{count:gc}=await supabaseAdmin.from('game_records').select('*',{count:'exact',head:true}).eq('game_type','escape');
       if(gc!=null)gameCount=gc;
     }else{
       const{count:gc}=await supabaseAdmin.from('game_records').select('*',{count:'exact',head:true}).or('game_type.eq.match,game_type.is.null');
@@ -703,9 +703,9 @@ async function renderLeaderboard(){
       // 密室逃脱：仅 game_type='escape'（或旧数据未标记）+ rounds=5，按用时升序
       query=query.eq('rounds',5).neq('game_type','match').order('time',{ascending:true});
     }else{
-      // 消消乐：不加 game_type 过滤，保证旧数据不丢失
+      // 消消乐：只统计完整通关（10轮），按正确率倒排
       const activeId=await getActiveEditionId();
-      query=query.order('accuracy',{ascending:false}).order('time',{ascending:true});
+      query=query.eq('rounds',10).order('accuracy',{ascending:false}).order('time',{ascending:true});
       if(activeId)query=query.eq('edition_id',activeId);
     }
     const {data:records}=await query;
