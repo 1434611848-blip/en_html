@@ -297,7 +297,13 @@ label { display: block; max-width: 340px; margin: 0 auto; font-size: 14px; color
 // ============ Supabase ============
 const SB_URL = 'https://xwnvsydndaclamzcfrpl.supabase.co';
 const SB_ANON = 'sb_publishable_PATbkfSdIrjUug0C7qqnsg__fGlTOLZ';
-const sb = window.supabase.createClient(SB_URL, SB_ANON);
+let sb = null;
+try {
+  if (window.supabase) {
+    sb = window.supabase.createClient(SB_URL, SB_ANON);
+  }
+} catch(e) { console.error('Supabase init failed:', e); }
+// 兜底：sb 为 null 时后续查询会走 catch 分支，不影响页面渲染
 
 // ============ 状态 ============
 const STATE = {
