@@ -52,12 +52,28 @@ body{
 /* Layout */
 header{
   background:var(--surface);border-bottom:1px solid var(--border);
-  padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;
   box-shadow:var(--shadow);position:sticky;top:0;z-index:100;
 }
-header h1{font-size:1.15em;font-weight:700}
-header .user-info{font-size:0.9em;color:var(--text-secondary)}
-header .btn-logout{padding:6px 16px;font-size:0.85em}
+header h1{font-size:1.1em;font-weight:700;white-space:nowrap}
+header .header-nav{display:flex;align-items:center;gap:6px}
+header .btn-logout{padding:5px 12px;font-size:0.82em}
+
+/* Nav dropdown */
+.nav-dropdown{position:relative}
+.nav-btn{
+  padding:6px 14px;border:1px solid var(--border);border-radius:var(--radius);
+  background:var(--surface);color:var(--text-secondary);font-size:0.85em;font-weight:600;
+  cursor:pointer;transition:all 0.2s;white-space:nowrap;
+}
+.nav-btn:hover{background:#f8fafc;color:var(--primary);border-color:var(--primary)}
+.nav-dropdown.open .nav-btn{background:#eef2ff;color:var(--primary);border-color:var(--primary)}
+.dropdown-panel{
+  display:none;position:absolute;top:100%;right:0;margin-top:6px;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow-lg);padding:16px;min-width:280px;z-index:101;
+}
+.nav-dropdown.open .dropdown-panel{display:block}
 
 main{max-width:1100px;margin:0 auto;padding:28px 24px}
 
@@ -184,11 +200,6 @@ tbody tr:hover{background:#f8fafc}
 .stat-item .val{font-size:1.6em;font-weight:700;color:var(--primary)}
 .stat-item .lbl{font-size:0.78em;color:var(--text-muted);margin-top:4px}
 
-/* Top row layout */
-.top-row{display:flex;gap:20px;margin-bottom:20px}
-.top-row .top-section{padding:20px 24px}
-@media (max-width:768px){.top-row{flex-direction:column}}
-
 /* Editions */
 .edition-table{width:100%;border-collapse:collapse;font-size:0.9em;margin-top:8px}
 .edition-table th,.edition-table td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left}
@@ -252,33 +263,32 @@ tbody tr:hover{background:#f8fafc}
 <div id="mainApp" style="display:none">
   <header>
     <h1 id="headerTitle">📋 教师后台 - 单词消消乐</h1>
-    <div class="user-info">
-      <span id="headerUserName">已登录</span>
-      <button class="btn btn-outline btn-small btn-logout" onclick="logout()" style="margin-left:12px">退出登录</button>
+    <div class="header-nav">
+      <div class="nav-dropdown" id="navTeacher">
+        <button class="nav-btn" onclick="toggleNavDropdown('navTeacher')">教师管理 ▾</button>
+        <div class="dropdown-panel" id="navTeacherPanel">
+          <div id="navTeacherTags" style="margin-bottom:10px"></div>
+          <div class="form-row">
+            <input type="text" id="newTeacherName" placeholder="输入新老师名字" maxlength="20">
+            <button class="btn btn-primary btn-small" onclick="addTeacher()">+ 添加</button>
+          </div>
+        </div>
+      </div>
+      <div class="nav-dropdown" id="navUser">
+        <button class="nav-btn" onclick="toggleNavDropdown('navUser')"><span id="navUserName">用户中心</span> ▾</button>
+        <div class="dropdown-panel" id="navUserPanel" style="width:240px">
+          <div id="navUserInfo" style="font-size:0.9em;line-height:2;margin-bottom:10px"></div>
+          <div class="form-row">
+            <input type="text" id="newPassword" placeholder="输入新密码" maxlength="20">
+            <button class="btn btn-primary btn-small" onclick="changePassword()">修改</button>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-outline btn-small btn-logout" onclick="logout()" style="margin-left:8px">退出</button>
     </div>
   </header>
 
   <main>
-    <!-- Top Row: Teacher Management + User Center -->
-    <div class="top-row">
-      <div class="section top-section" style="flex:1;margin-bottom:0">
-        <h3><span class="dot" style="background:#10b981"></span> 教师管理</h3>
-        <div id="teacherTags"></div>
-        <div class="form-row" style="margin-top:12px">
-          <input type="text" id="newTeacherName" placeholder="输入新老师名字" maxlength="20">
-          <button class="btn btn-primary btn-small" onclick="addTeacher()">+ 添加</button>
-        </div>
-      </div>
-      <div class="section top-section" style="flex:1;margin-bottom:0">
-        <h3><span class="dot" style="background:#f59e0b"></span> 用户中心</h3>
-        <div id="userCenterInfo" style="font-size:0.95em;line-height:2"></div>
-        <div class="form-row" style="margin-top:12px">
-          <input type="text" id="newPassword" placeholder="输入新密码" maxlength="20">
-          <button class="btn btn-primary btn-small" onclick="changePassword()">修改密码</button>
-        </div>
-      </div>
-    </div>
-
     <!-- Tab Nav -->
     <div class="tab-nav">
       <button class="active" id="tabMatch" onclick="switchTab('match')">🧩 单词消消乐</button>
@@ -544,7 +554,7 @@ async function doLogin(){
     localStorage.setItem('admin_logged_user',teacher);
     document.getElementById('loginOverlay').style.display='none';
     document.getElementById('mainApp').style.display='block';
-    document.getElementById('headerUserName').textContent=teacher;
+    document.getElementById('navUserName').textContent=teacher;
     await migrateTeachersIfNeeded();
     await migrateWordsIfNeeded();
     refreshAll();
@@ -568,7 +578,7 @@ document.addEventListener('DOMContentLoaded',async function(){
   if(localStorage.getItem('admin_logged_in')==='1'){
     document.getElementById('loginOverlay').style.display='none';
     document.getElementById('mainApp').style.display='block';
-    document.getElementById('headerUserName').textContent=localStorage.getItem('admin_logged_user')||'已登录';
+    document.getElementById('navUserName').textContent=localStorage.getItem('admin_logged_user')||'已登录';
     await migrateTeachersIfNeeded();
     await migrateWordsIfNeeded();
     refreshAll();
@@ -613,23 +623,35 @@ async function renderStats(){
 }
 
 // ==================== Teacher Management ====================
+function toggleNavDropdown(id){
+  const el=document.getElementById(id);
+  const wasOpen=el.classList.contains('open');
+  // 关闭所有
+  document.querySelectorAll('.nav-dropdown.open').forEach(d=>d.classList.remove('open'));
+  if(!wasOpen) el.classList.add('open');
+}
+// 点击外部关闭
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.nav-dropdown')) document.querySelectorAll('.nav-dropdown.open').forEach(d=>d.classList.remove('open'));
+});
 function renderUserCenter(){
   const name=localStorage.getItem('admin_logged_user')||'未登录';
-  document.getElementById('userCenterInfo').innerHTML=`
+  document.getElementById('navUserName').textContent=name;
+  document.getElementById('navUserInfo').innerHTML=`
     <div>当前登录：<strong>${name}</strong></div>
-    <div style="color:var(--text-muted);font-size:0.85em">角色：管理员</div>
+    <div style="color:var(--text-muted);font-size:0.82em">角色：管理员</div>
   `;
 }
 async function renderTeacherTags(){
   const teachers=await getTeachers();
-  const container=document.getElementById('teacherTags');
+  const container=document.getElementById('navTeacherTags');
   if(teachers.length===0){
-    container.innerHTML='<div class="empty-state">暂无教师，请添加</div>';
+    container.innerHTML='<div style="color:var(--text-muted);font-size:0.85em">暂无教师</div>';
     return;
   }
-  container.innerHTML=teachers.map((t,i)=>
+  container.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:4px">'+teachers.map((t,i)=>
     `<span class="tag">${t}<span class="del" onclick="removeTeacher('${t.replace(/'/g,"\\'")}')" title="删除">×</span></span>`
-  ).join('');
+  ).join('')+'</div>';
 }
 
 async function addTeacher(){
