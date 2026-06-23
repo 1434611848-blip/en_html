@@ -993,7 +993,7 @@ async function handleEscapeFile(file){
     if(ext==='txt'){text=await file.text();}
     else if(ext==='json'){const j=JSON.parse(await file.text());if(Array.isArray(j)){text=j.map(w=>`${w.en||w.english||w.word},${w.zh||w.chinese||w.meaning}`).join('\n')}else{throw new Error('JSON 格式错误')}}
     else{showToast('仅支持 .txt / .json 文件','error');return;}
-    const words=parseWordText(text);
+    const words=extractPairs(text);
     if(words.length<20){showToast(`至少需要 20 组单词，当前仅 ${words.length} 组`,'error');return;}
     await addEscapeEdition(words);
   }catch(e){showToast('上传失败: '+e.message,'error');}
@@ -1008,7 +1008,7 @@ function toggleEscapeManual(){
 async function importEscapeManual(){
   const text=document.getElementById('escapeManualText').value.trim();
   if(!text){showToast('请输入单词','error');return;}
-  const words=parseWordText(text);
+  const words=extractPairs(text);
   if(words.length<20){showToast(`至少需要 20 组单词，当前仅 ${words.length} 组`,'error');return;}
   await addEscapeEdition(words);
   document.getElementById('escapeManualText').value='';
@@ -1022,7 +1022,7 @@ async function getEscapeEditions(){
   catch(e){return[]}
 }
 async function getEscapeActiveId(){
-  try{const{data}=await supabaseAdmin.from('app_settings').select('value').eq('key','escape_active_edition_id').single();return data?.value||null}
+  try{const{data}=await supabaseAdmin.from('app_settings').select('value').eq('key','escape_active_edition_id').maybeSingle();return data?.value||null}
   catch(e){return null}
 }
 async function setEscapeActiveId(name){
