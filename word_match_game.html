@@ -197,6 +197,7 @@ h1{
 @keyframes toastOut{from{opacity:1}to{opacity:0}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="shared.js"></script>
 </head>
 <body>
 <div class="particles" id="particles"></div>
@@ -370,36 +371,8 @@ const AudioEngine = (function() {
 })();
 
 // ==================== Storage ====================
-const DEFAULT_TEACHERS=['亚楠老师','佳萌老师','亚飞老师'];
 const DEFAULT_WORDS=[{en:'apple',cn:'苹果'},{en:'book',cn:'书'},{en:'cat',cn:'猫'},{en:'dog',cn:'狗'},{en:'elephant',cn:'大象'},{en:'flower',cn:'花'},{en:'garden',cn:'花园'},{en:'house',cn:'房子'},{en:'ice cream',cn:'冰淇淋'},{en:'juice',cn:'果汁'},{en:'kite',cn:'风筝'},{en:'lion',cn:'狮子'},{en:'moon',cn:'月亮'},{en:'night',cn:'夜晚'},{en:'orange',cn:'橙子'},{en:'pencil',cn:'铅笔'},{en:'queen',cn:'女王'},{en:'rainbow',cn:'彩虹'},{en:'school',cn:'学校'},{en:'teacher',cn:'老师'},{en:'umbrella',cn:'雨伞'},{en:'village',cn:'村庄'},{en:'water',cn:'水'},{en:'yellow',cn:'黄色'},{en:'zoo',cn:'动物园'},{en:'friend',cn:'朋友'},{en:'happy',cn:'快乐的'},{en:'beautiful',cn:'美丽的'},{en:'morning',cn:'早晨'},{en:'afternoon',cn:'下午'},{en:'family',cn:'家庭'},{en:'music',cn:'音乐'}];
 
-// ==================== Supabase ====================
-const supabaseClient = window.supabase.createClient(
-  'https://xwnvsydndaclamzcfrpl.supabase.co',
-  'sb_publishable_PATbkfSdIrjUug0C7qqnsg__fGlTOLZ'
-);
-
-// ==================== Data Loaders ====================
-let CACHED_TEACHERS=null;
-function sortTeachers(arr){const s='亚飞老师';return [...arr].sort((a,b)=>a===s?-1:b===s?1:a.localeCompare(b,'zh'))}
-async function loadTeachers(){
-  try{
-    const{data}=await supabaseClient.from('teachers').select('name').order('created_at',{ascending:true});
-    if(data&&data.length>0){CACHED_TEACHERS=sortTeachers(data.map(r=>r.name));return CACHED_TEACHERS}
-    // 查询成功但无数据：返回空数组，不 fallback 到默认值
-    CACHED_TEACHERS=[];
-    return [];
-  }catch(e){
-    // 网络错误等异常情况：兜底到默认教师列表
-    console.error('loadTeachers failed:',e);
-    CACHED_TEACHERS=DEFAULT_TEACHERS;
-    return DEFAULT_TEACHERS;
-  }
-}
-
-function getTeachers(){
-  return CACHED_TEACHERS||[];
-}
 
 function getWords(){
   // 优先级1：外部 GAME_WORDS 注入（initGameWords 从 Supabase 读取激活期单词）
@@ -414,7 +387,7 @@ function getWords(){
 const MAX_ATTEMPTS = 3;
 async function getAttemptCount(name, teacher){
   try{
-    const query = supabaseClient.from('game_records').select('*',{count:'exact',head:true}).eq('name',name).eq('teacher',teacher);
+    const query = window.SB.from('game_records').select('*',{count:'exact',head:true}).eq('name',name).eq('teacher',teacher);
     if(window.ACTIVE_EDITION_ID){query.eq('edition_id',window.ACTIVE_EDITION_ID)}
     const {count,error}=await query;
     if(error)throw error;
@@ -580,7 +553,7 @@ async function endGame(){
   AudioEngine.stopMusic();
   showScreen('results');
   try{
-    const {error}=await supabaseClient.from('game_records').insert([entry]);
+    const {error}=await window.SB.from('game_records').insert([entry]);
     if(error)throw error;
   }catch(e){console.error('Supabase insert failed:',e)}
   await renderResults(entry);
@@ -590,7 +563,7 @@ async function renderResults(entry){
   $resultsContent.innerHTML='<h2>🎉 游戏结束！</h2><p style="text-align:center;color:rgba(255,255,255,0.5)">加载中...</p>';
   let records=[],rank=0;
   try{
-    const query=supabaseClient.from('game_records').select('*').order('accuracy',{ascending:false}).order('time',{ascending:true});
+    const query=window.SB.from('game_records').select('*').order('accuracy',{ascending:false}).order('time',{ascending:true});
     if(window.ACTIVE_EDITION_ID){query.eq('edition_id',window.ACTIVE_EDITION_ID)}
     const {data}=await query;
     if(data)records=data;
@@ -722,7 +695,7 @@ function createParticles(){
 async function initGameWords() {
   try {
     // 1. 读取激活期 ID
-    const { data: settingData, error: settingError } = await supabaseClient
+    const { data: settingData, error: settingError } = await window.SB
       .from('app_settings')
       .select('value')
       .eq('key', 'active_edition_id')
@@ -732,7 +705,7 @@ async function initGameWords() {
       const activeName = settingData.value;
 
       // 2. 读取对应期次单词
-      const { data: editionData, error: editionError } = await supabaseClient
+      const { data: editionData, error: editionError } = await window.SB
         .from('word_editions')
         .select('words')
         .eq('name', activeName)
@@ -746,7 +719,7 @@ async function initGameWords() {
     }
 
     // 3. 读取 custom_word_list（教师自定单词，作为 fallback）
-    const { data: customData } = await supabaseClient
+    const { data: customData } = await window.SB
       .from('app_settings')
       .select('value')
       .eq('key', 'custom_word_list')

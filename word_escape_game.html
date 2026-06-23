@@ -293,13 +293,8 @@ label { display: block; max-width: 340px; margin: 0 auto; font-size: 14px; color
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="shared.js"></script>
 <script>
-// ============ Supabase ============
-const sb = window.supabase.createClient(
-  'https://xwnvsydndaclamzcfrpl.supabase.co',
-  'sb_publishable_PATbkfSdIrjUug0C7qqnsg__fGlTOLZ'
-);
-
 // ============ 状态 ============
 const STATE = {
   page: 'entry',
@@ -473,35 +468,25 @@ function goToPage(page) {
   const el = document.getElementById('page-' + page);
   if (el) el.classList.add('active');
   STATE.page = page;
-  if (page === 'setup') loadTeachers();
+  if (page === 'setup') populateTeacherSelect();
 }
 
 // ============ 数据加载 ============
-const DEFAULT_TEACHERS = ['亚飞老师','亚楠老师','佳萌老师'];
-function sortTeachers(arr){const s='亚飞老师';return [...arr].sort((a,b)=>a===s?-1:b===s?1:a.localeCompare(b,'zh'))}
-async function loadTeachers() {
+async function populateTeacherSelect() {
   const sel = document.getElementById('teacherSelect');
-  try {
-    const { data } = await sb.from('teachers').select('name');
-    sel.innerHTML = '<option value="">请选择老师</option>';
-    const sorted = sortTeachers((data||[]).map(r=>r.name));
-    if (sorted.length > 0) {
-      sorted.forEach(t => { sel.innerHTML += `<option value="${t}">${t}</option>`; });
-    } else {
-      DEFAULT_TEACHERS.forEach(t => { sel.innerHTML += `<option value="${t}">${t}</option>`; });
-    }
-  } catch(e) {
-    sel.innerHTML = '<option value="">请选择老师</option>';
-    DEFAULT_TEACHERS.forEach(t => { sel.innerHTML += `<option value="${t}">${t}</option>`; });
+  const teachers = await loadTeachers(); // shared.js 全局函数
+  sel.innerHTML = '<option value="">请选择老师</option>';
+  if (teachers && teachers.length > 0) {
+    teachers.forEach(t => { sel.innerHTML += `<option value="${t}">${t}</option>`; });
   }
 }
 
 async function initGameWords() {
   try {
     // Try escape_active_edition_id → word_editions
-    const { data: settings } = await sb.from('app_settings').select('value').eq('key', 'escape_active_edition_id').maybeSingle();
+    const { data: settings } = await window.SB.from('app_settings').select('value').eq('key', 'escape_active_edition_id').maybeSingle();
     if (settings?.value) {
-      const { data: edition } = await sb.from('word_editions').select('*').eq('name', settings.value).maybeSingle();
+      const { data: edition } = await window.SB.from('word_editions').select('*').eq('name', settings.value).maybeSingle();
       if (edition?.words && Array.isArray(edition.words) && edition.words.length >= 20) {
         STATE.editionId = edition.id;
         STATE.words = edition.words.map(w => ({ en: w.en || w.english || w.word, zh: w.zh || w.cn || w.chinese || w.meaning }));
@@ -510,7 +495,7 @@ async function initGameWords() {
     }
 
     // Fallback to escape_custom_word_list
-    const { data: cwl } = await sb.from('app_settings').select('value').eq('key', 'escape_custom_word_list').maybeSingle();
+    const { data: cwl } = await window.SB.from('app_settings').select('value').eq('key', 'escape_custom_word_list').maybeSingle();
     if (cwl?.value) {
       try {
         const parsed = JSON.parse(cwl.value);
@@ -874,7 +859,7 @@ async function showResult() {
 
   // 提交成绩
   try {
-    await sb.from('game_records').insert([{
+    await window.SB.from('game_records').insert([{
       name: STATE.playerName,
       teacher: STATE.teacher,
       date: new Date().toISOString().split('T')[0],
