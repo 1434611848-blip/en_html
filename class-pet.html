@@ -193,6 +193,15 @@ tr:hover td { background: #f8f9ff; }
     </div>
 
     <div class="card">
+      <div class="card-title">🔍 加分记录查询</div>
+      <div class="form-row">
+        <div style="flex:none;min-width:140px"><label>加分类型</label><select id="queryType" onchange="document.getElementById('queryResults').innerHTML=''"></select></div>
+        <button class="btn btn-primary btn-sm" onclick="queryScoreRecords()" style="align-self:flex-end">查询</button>
+      </div>
+      <div id="queryResults" style="margin-top:12px;font-size:13px"></div>
+    </div>
+
+    <div class="card">
       <div class="card-title">👤 单独加分</div>
       <div class="form-row">
         <div style="flex:2; min-width:140px"><label>选择学生</label><select id="scoreStudent"></select></div>
@@ -644,6 +653,10 @@ function renderTypeTags() {
   if (!selectedType && Object.keys(scoreTypes).length>0) {
     selectType(Object.keys(scoreTypes)[0]);
   }
+  // 同步填充查询下拉
+  const qs = document.getElementById('queryType');
+  if (qs) qs.innerHTML = '<option value="">-- 选择类型 --</option>' +
+    Object.keys(scoreTypes).map(t=>`<option value="${t}">${t}</option>`).join('');
 }
 function selectType(type) {
   selectedType = type;
@@ -656,6 +669,23 @@ function renderScoreSelect() {
   sel.innerHTML = names.length===0
     ? '<option value="">-- 请先添加学生 --</option>'
     : names.map(n=>`<option value="${n}">${n}（${students[n].score}分 | ${STAGE_NAMES[students[n].stage]}）</option>`).join('');
+}
+
+async function queryScoreRecords() {
+  const type = document.getElementById('queryType').value;
+  const div = document.getElementById('queryResults');
+  if (!type) { div.innerHTML = '<p style="color:#e74c3c">请先选择加分类型</p>'; return; }
+  div.innerHTML = '<p>查询中...</p>';
+  const teacher = getMyTeacher();
+  if (!teacher) return;
+  const { data, error } = await sb.from('pet_score_history').select('student_name').eq('teacher_name', teacher.name).eq('type', type).order('created_at', { ascending: false });
+  if (error) { div.innerHTML = '<p style="color:#e74c3c">查询失败: ' + error.message + '</p>'; return; }
+  if (!data || data.length===0) { div.innerHTML = '<p style="color:#7f8c8d">暂无该类型的加分记录</p>'; return; }
+  const count = {};
+  data.forEach(r=>{ count[r.student_name] = (count[r.student_name]||0)+1; });
+  const rows = Object.entries(count).sort((a,b)=>b[1]-a[1])
+    .map(([name,n],i)=>`<tr><td>${i+1}</td><td>${name}</td><td>${n}次</td></tr>`).join('');
+  div.innerHTML = `<table style="width:100%;border-collapse:collapse"><thead><tr><th style="text-align:left">#</th><th style="text-align:left">学生</th><th style="text-align:left">次数</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 // ========== RANKINGS ==========
