@@ -549,28 +549,6 @@ tr:hover td { background: var(--input-bg); }
     </div>
 
     <div class="card">
-      <div class="card-title">🏆 宠物成长排名</div>
-      <div class="table-wrap">
-        <table id="petRankTable">
-          <thead><tr><th>排名</th><th>学生</th><th>班级</th><th>宠物</th><th>阶段</th><th>积分</th><th>进度</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div class="hidden" id="emptyPetRank" style="text-align:center;padding:40px;color:var(--c-text-muted)">暂无数据</div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">📈 积分排名</div>
-      <div class="table-wrap">
-        <table id="scoreRankTable">
-          <thead><tr><th>排名</th><th>学生</th><th>班级</th><th>宠物</th><th>积分</th><th>阶段</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div class="hidden" id="emptyScoreRank" style="text-align:center;padding:40px;color:var(--c-text-muted)">暂无数据</div>
-    </div>
-
-    <div class="card">
       <div class="card-title">⚙️ 晋升阈值设置</div>
       <p style="color:var(--c-text-muted);font-size:13px;margin-bottom:16px">设定宠物从低阶段晋升到下一阶段所需的积分。改完后刷新排行榜即可看到效果。</p>
       <div class="form-row" id="thresholdInputs">
@@ -592,9 +570,31 @@ tr:hover td { background: var(--input-bg); }
         </div>
       </div>
       <div style="margin-top:12px;display:flex;align-items:center;gap:12px">
-        <button id="saveThresholdBtn" onclick="saveThresholds()" disabled>💾 保存设置</button>
+        <button id="saveThresholdBtn" class="btn-primary" onclick="saveThresholds()" disabled>💾 保存设置</button>
         <span id="thresholdMsg" style="font-size:13px;color:var(--c-success)"></span>
       </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🏆 宠物成长排名</div>
+      <div class="table-wrap">
+        <table id="petRankTable">
+          <thead><tr><th>排名</th><th>学生</th><th>班级</th><th>宠物</th><th>阶段</th><th>积分</th><th>进度</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="hidden" id="emptyPetRank" style="text-align:center;padding:40px;color:var(--c-text-muted)">暂无数据</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📈 积分排名</div>
+      <div class="table-wrap">
+        <table id="scoreRankTable">
+          <thead><tr><th>排名</th><th>学生</th><th>班级</th><th>宠物</th><th>积分</th><th>阶段</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="hidden" id="emptyScoreRank" style="text-align:center;padding:40px;color:var(--c-text-muted)">暂无数据</div>
     </div>
   </div>
 
