@@ -937,8 +937,7 @@ document.querySelectorAll('.tab').forEach(tab=>{
 
 // ========== INIT ==========
 (async function init(){
-  const loaded = await loadFromSupabase();
-  if (!loaded) return;
+  try { await loadFromSupabase(); } catch(e) { console.error('初始化失败:', e); }
   if (selectedType===null && Object.keys(scoreTypes).length>0) {
     selectedType=Object.keys(scoreTypes)[0];
   }
