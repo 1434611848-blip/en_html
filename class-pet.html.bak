@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>班级宠物乐园 - 教师后台</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); min-height: 100vh; color: #2c3e50; }
+.container { max-width: 960px; margin: 0 auto; padding: 20px; }
+.header { text-align: center; padding: 20px 20px 10px; }
+.header h1 { font-size: 28px; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.header p { color: #7f8c8d; margin-top: 4px; font-size: 14px; }
+
+/* Teacher Switcher */
+.teacher-bar { background: #fff; border-radius: 14px; padding: 12px 20px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); flex-wrap: wrap; }
+.teacher-bar label { font-weight: 600; font-size: 14px; white-space: nowrap; color: #555; }
+.teacher-bar select { padding: 8px 14px; border: 2px solid #e8e8e8; border-radius: 10px; font-size: 14px; outline: none; cursor: pointer; min-width: 140px; }
+.teacher-bar select:focus { border-color: #667eea; }
+.teacher-bar .bar-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.teacher-bar input { padding: 8px 12px; border: 2px solid #e8e8e8; border-radius: 10px; font-size: 13px; outline: none; width: 110px; }
+.teacher-bar input:focus { border-color: #667eea; }
+
+/* Tabs */
+.tabs { display: flex; background: #fff; border-radius: 14px; padding: 4px; margin-bottom: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); overflow-x: auto; }
+.tab { flex: 1; text-align: center; padding: 10px 6px; cursor: pointer; border-radius: 10px; font-size: 13px; font-weight: 500; color: #7f8c8d; transition: all 0.2s; user-select: none; white-space: nowrap; min-width: 70px; }
+.tab:hover { background: #f0f0f0; }
+.tab.active { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
+
+/* Card */
+.card { background: #fff; border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 16px rgba(0,0,0,0.06); }
+.card-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #2c3e50; display: flex; align-items: center; gap: 8px; }
+
+/* Form */
+.form-row { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; align-items: flex-end; }
+.form-row label { font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px; color: #555; }
+input, select, textarea { flex: 1; min-width: 120px; padding: 10px 14px; border: 2px solid #e8e8e8; border-radius: 10px; font-size: 14px; outline: none; transition: border 0.2s; font-family: inherit; }
+input:focus, select:focus, textarea:focus { border-color: #667eea; }
+textarea { width: 100%; min-height: 80px; resize: vertical; }
+.btn { padding: 10px 20px; border: none; border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+.btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102,126,234,0.35); }
+.btn-success { background: linear-gradient(135deg, #11998e, #38ef7d); color: #fff; }
+.btn-success:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(17,153,142,0.35); }
+.btn-danger { background: #fff; color: #e74c3c; border: 2px solid #e74c3c; }
+.btn-danger:hover { background: #e74c3c; color: #fff; }
+.btn-sm { padding: 6px 14px; font-size: 12px; border-radius: 8px; }
+.btn-outline { background: #fff; color: #667eea; border: 2px solid #667eea; }
+.btn-outline:hover { background: #667eea; color: #fff; }
+.btn-xs { padding: 4px 10px; font-size: 11px; border-radius: 6px; }
+
+/* Student Grid */
+.student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.student-card { background: linear-gradient(135deg, #f8f9fa, #fff); border-radius: 14px; padding: 16px; border: 2px solid #eee; position: relative; transition: all 0.3s; }
+.student-card:hover { border-color: #667eea; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102,126,234,0.1); }
+.student-card .pet-display { font-size: 48px; text-align: center; margin: 10px 0; transition: transform 0.3s; }
+.student-card:hover .pet-display { transform: scale(1.1); }
+.student-card .name { text-align: center; font-weight: 600; font-size: 15px; }
+.student-card .info { text-align: center; color: #7f8c8d; font-size: 12px; margin-top: 4px; }
+.student-card .score-badge { position: absolute; top: 10px; right: 10px; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; padding: 3px 10px; border-radius: 10px; font-size: 12px; font-weight: 600; }
+.student-card .rarity-badge { position: absolute; top: 10px; left: 10px; padding: 3px 8px; border-radius: 8px; font-size: 10px; font-weight: 600; color: #fff; }
+.student-card .del-btn { position: absolute; bottom: 10px; right: 10px; width: 24px; height: 24px; border: none; background: #fee; color: #e74c3c; border-radius: 50%; cursor: pointer; font-size: 12px; line-height: 24px; text-align: center; opacity: 0; transition: opacity 0.2s; }
+.student-card:hover .del-btn { opacity: 1; }
+.readonly-card .del-btn { display: none !important; }
+
+.rarity-common { background: #95a5a6; }
+.rarity-rare { background: linear-gradient(135deg, #6c5ce7, #a29bfe); }
+.rarity-legendary { background: linear-gradient(135deg, #f39c12, #e67e22); }
+.rarity-mythic { background: linear-gradient(135deg, #e74c3c, #f368e0); }
+
+/* Progress Bar */
+.progress-wrap { margin-top: 8px; }
+.progress-bar { height: 6px; background: #eee; border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; background: linear-gradient(90deg, #667eea, #764ba2); }
+
+/* Table */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #f0f0f0; }
+th { color: #7f8c8d; font-weight: 500; font-size: 12px; text-transform: uppercase; }
+tr:hover td { background: #f8f9ff; }
+.rank-num { font-weight: 700; font-size: 18px; }
+.rank-1 { color: #f39c12; }
+.rank-2 { color: #95a5a6; }
+.rank-3 { color: #cd6133; }
+
+/* Search & Filter */
+.search-filter { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+.search-filter input { flex: 1; min-width: 180px; }
+.filter-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.filter-tag { padding: 6px 14px; border-radius: 20px; font-size: 13px; cursor: pointer; border: 2px solid #e8e8e8; background: #fff; transition: all 0.2s; user-select: none; white-space: nowrap; }
+.filter-tag:hover { border-color: #667eea; }
+.filter-tag.active { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border-color: transparent; }
+.result-count { font-size: 13px; color: #7f8c8d; margin-left: auto; white-space: nowrap; }
+
+/* Type Tags */
+.type-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.type-tag { padding: 6px 14px; border-radius: 20px; font-size: 13px; cursor: pointer; border: 2px solid #e8e8e8; background: #fff; transition: all 0.2s; user-select: none; white-space: nowrap; }
+.type-tag:hover { border-color: #667eea; }
+.type-tag.active { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border-color: transparent; }
+
+.hidden { display: none !important; }
+.flex { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.mt-12 { margin-top: 12px; }
+.gap-8 { gap: 8px; }
+
+/* Stats bar */
+.stats-bar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.stat-item { background: #f8f9ff; border-radius: 12px; padding: 14px 20px; flex: 1; min-width: 120px; text-align: center; }
+.stat-item .num { font-size: 24px; font-weight: 700; color: #667eea; }
+.stat-item .label { font-size: 12px; color: #7f8c8d; margin-top: 2px; }
+
+/* Modal */
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; animation: fadeIn 0.2s; }
+.modal { background: #fff; border-radius: 20px; padding: 30px; max-width: 400px; width: 90%; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.15); animation: slideUp 0.3s; }
+.modal .pet-emoji { font-size: 80px; animation: bounceIn 0.6s; }
+.modal h3 { margin: 16px 0 8px; }
+.modal p { color: #7f8c8d; font-size: 14px; margin-bottom: 16px; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes bounceIn { 0% { transform: scale(0); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
+
+/* Toast */
+.toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 12px; color: #fff; font-weight: 500; z-index: 2000; animation: slideDown 0.3s; }
+.toast-success { background: #27ae60; }
+.toast-info { background: #667eea; }
+.toast-warn { background: #e67e22; }
+@keyframes slideDown { from { opacity: 0; transform: translate(-50%, -20px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+.empty { text-align: center; padding: 40px 20px; color: #bdc3c7; }
+.empty .icon { font-size: 64px; margin-bottom: 12px; }
+.empty p { font-size: 14px; }
+
+.colleague-select { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+.colleague-select label { font-weight: 600; font-size: 14px; white-space: nowrap; }
+.colleague-select select { padding: 8px 14px; border: 2px solid #e8e8e8; border-radius: 10px; font-size: 14px; min-width: 160px; }
+
+.readonly-badge { position: absolute; top: 10px; right: 10px; background: #eee; color: #999; padding: 3px 8px; border-radius: 8px; font-size: 10px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🎒 班级宠物乐园</h1>
+    <p>积分养成 · 盲盒宠物 · 成长排名 · 多班级管理</p>
+  </div>
+
+  <!-- Teacher Switcher -->
+  <div class="teacher-bar">
+    <label>👤 当前教师：</label>
+    <select id="currentTeacherSelect" onchange="switchTeacher(this.value)"></select>
+    <span class="bar-actions">
+      <input type="text" id="newTeacherInput" placeholder="新教师名字" onkeydown="if(event.key==='Enter')addTeacherFromBar()">
+      <button class="btn btn-primary btn-xs" onclick="addTeacherFromBar()">+ 添加</button>
+      <button class="btn btn-danger btn-xs" onclick="delTeacherFromBar()">删除当前</button>
+    </span>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" data-tab="students">📋 学生管理</div>
+    <div class="tab" data-tab="score">➕ 加分操作</div>
+    <div class="tab" data-tab="rank">📊 排行榜</div>
+    <div class="tab" data-tab="colleagues">👀 同事班级</div>
+  </div>
+
+  <!-- Tab: 学生管理 -->
+  <div id="tab-students">
+    <div class="card">
+      <div class="card-title">📥 添加学生（教师：<span id="currentClassLabel">-</span>）</div>
+      <div class="form-row">
+        <div style="flex:1; min-width:140px"><label>单个添加</label><input id="singleName" placeholder="输入学生姓名" onkeydown="if(event.key==='Enter')addSingle()"></div>
+        <button class="btn btn-primary" onclick="addSingle()" style="align-self:flex-end">添加 → 拆盲盒</button>
+      </div>
+      <div class="mt-12">
+        <label style="font-size:13px;font-weight:500;color:#555">批量导入（每行一个名字）</label>
+        <textarea id="batchNames" placeholder="张三&#10;李四&#10;王五&#10;..."></textarea>
+        <div class="flex mt-12 gap-8">
+          <button class="btn btn-outline btn-sm" onclick="batchImport()">批量导入并拆盲盒</button>
+          <div class="file-upload">
+            <input type="file" id="nameFileInput" accept=".txt" onchange="handleNameFile(event)" style="display:none">
+            <label for="nameFileInput" class="btn btn-outline btn-sm" style="cursor:pointer">📁 上传名字文件 (.txt)</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat-item"><div class="num" id="statTotal">0</div><div class="label">班级人数</div></div>
+      <div class="stat-item"><div class="num" id="statMaxStage">-</div><div class="label">最高成长阶段</div></div>
+      <div class="stat-item"><div class="num" id="statTopScorer">-</div><div class="label">积分最高</div></div>
+    </div>
+
+    <div class="card">
+      <div class="search-filter">
+        <input type="text" id="searchInput" placeholder="🔍 搜索学生姓名..." oninput="renderStudentGrid()">
+        <div class="filter-tags" id="filterTags"></div>
+        <span class="result-count" id="resultCount"></span>
+      </div>
+      <div class="student-grid" id="studentGrid"></div>
+      <div class="empty" id="emptyStudents"><div class="icon">📭</div><p>还没有学生，快来添加吧！</p></div>
+    </div>
+  </div>
+
+  <!-- Tab: 加分操作 -->
+  <div id="tab-score" class="hidden">
+    <div class="card">
+      <div class="card-title">⭐ 加分类型</div>
+      <div class="type-tags" id="typeTags"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">👤 单独加分</div>
+      <div class="form-row">
+        <div style="flex:1; min-width:140px"><label>选择学生</label><select id="scoreStudent"></select></div>
+        <div style="width:100px"><label>分值</label><input type="number" id="scoreValue" value="1" min="1"></div>
+        <button class="btn btn-success" onclick="addScoreSingle()" style="align-self:flex-end">确认加分</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 批量加分</div>
+      <p style="font-size:13px;color:#7f8c8d;margin-bottom:8px">粘贴名字列表（每行一个），新名字自动加入并随机分配宠物</p>
+      <textarea id="batchScoreNames" placeholder="张三&#10;李四&#10;..."></textarea>
+      <div class="form-row mt-12">
+        <div style="width:100px"><label>分值</label><input type="number" id="batchScoreValue" value="1" min="1"></div>
+        <button class="btn btn-success" onclick="addScoreBatch()">批量加分</button>
+        <div class="file-upload">
+          <input type="file" id="scoreFileInput" accept=".txt" onchange="handleScoreFile(event)" style="display:none">
+          <label for="scoreFileInput" class="btn btn-outline btn-sm" style="cursor:pointer">📁 上传名单加分</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: 排行榜 -->
+  <div id="tab-rank" class="hidden">
+    <div class="flex mt-12" style="margin-bottom:16px">
+      <label style="font-weight:600;font-size:14px">班级筛选：</label>
+      <select id="rankClassFilter" onchange="renderRankings()" style="padding:8px 14px;border:2px solid #e8e8e8;border-radius:10px;font-size:14px;min-width:160px">
+        <option value="all">全部班级</option>
+      </select>
+    </div>
+    <div class="card">
+      <div class="card-title">🏆 宠物成长排名</div>
+      <div class="table-wrap">
+        <table id="petRankTable">
+          <thead><tr><th>排名</th><th>学生</th><th>班级</th><th>宠物</th><th>阶段</th><th>积分</th><th>进度</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="empty" id="emptyPetRank"><p>暂无数据</p></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📈 积分排名</div>
+      <div class="table-wrap">
+        <table id="scoreRankTable">
+          <thead><tr><th>排名</th><th>学生</th><th>班级</th><th>宠物</th><th>积分</th><th>阶段</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="empty" id="emptyScoreRank"><p>暂无数据</p></div>
+    </div>
+  </div>
+
+  <!-- Tab: 同事班级 -->
+  <div id="tab-colleagues" class="hidden">
+    <div class="colleague-select">
+      <label>选择同事班级：</label>
+      <select id="colleagueSelect" onchange="renderColleagueView()"></select>
+    </div>
+    <div class="card">
+      <div class="card-title">👀 <span id="colleagueName">-</span> 的班级（只读）</div>
+      <div class="search-filter">
+        <input type="text" id="colleagueSearch" placeholder="🔍 搜索学生姓名..." oninput="renderColleagueView()">
+        <div class="filter-tags" id="colleagueFilterTags"></div>
+        <span class="result-count" id="colleagueCount"></span>
+      </div>
+      <div class="student-grid" id="colleagueGrid"></div>
+      <div class="empty" id="emptyColleague"><div class="icon">📭</div><p>该教师班级暂无学生</p></div>
+    </div>
+  </div>
+
+  <!-- Blind Box Modal -->
+  <div class="modal-overlay hidden" id="blindModal">
+    <div class="modal">
+      <div class="pet-emoji" id="modalEmoji"></div>
+      <h3 id="modalTitle"></h3>
+      <p id="modalDesc"></p>
+      <button class="btn btn-primary" onclick="closeModal()">太棒了！</button>
+    </div>
+  </div>
+
+  <!-- History Modal -->
+  <div class="modal-overlay hidden" id="historyModal">
+    <div class="modal" style="max-width:480px;text-align:left">
+      <h3 id="historyTitle" style="text-align:center"></h3>
+      <div id="historyBody" style="max-height:300px;overflow-y:auto;margin:12px 0"></div>
+      <div style="text-align:center"><button class="btn btn-primary" onclick="closeHistory()">关闭</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== DATA ==========
+
+const STAGE_THRESHOLDS = [0, 20, 50, 100, 200];
+const STAGE_NAMES = ['蛋 🥚', '幼年', '成长', '成年', '完全体'];
+
+const PETS = {
+  cat:       { name:'猫咪',    emoji:'🐱', rarity:'rare',      color:'#ff9f43' },
+  dog:       { name:'小狗',    emoji:'🐶', rarity:'rare',      color:'#ee5a24' },
+  hedgehog:  { name:'刺猬',    emoji:'🦔', rarity:'rare',      color:'#d4a373' },
+  turtle:    { name:'乌龟',    emoji:'🐢', rarity:'rare',      color:'#6b8f71' },
+  panda:     { name:'熊猫',    emoji:'🐼', rarity:'rare',      color:'#636e72' },
+  fox:       { name:'狐狸',    emoji:'🦊', rarity:'rare',      color:'#e17055' },
+  penguin:   { name:'企鹅',    emoji:'🐧', rarity:'rare',      color:'#74b9ff' },
+  capybara:  { name:'卡皮巴拉',emoji:'🦫', rarity:'rare',      color:'#d4a574' },
+  redpanda:  { name:'小熊猫',  emoji:'🦝', rarity:'rare',      color:'#e67e22' },
+  alpaca:    { name:'羊驼',    emoji:'🦙', rarity:'rare',      color:'#f5e6ca' },
+  otter:     { name:'海獭',    emoji:'🦦', rarity:'rare',      color:'#6ab04c' },
+  badger:    { name:'蜜獾',    emoji:'🦡', rarity:'rare',      color:'#535c68' },
+  unicorn:   { name:'独角兽',  emoji:'🦄', rarity:'legendary', color:'#a29bfe' },
+  sloth:     { name:'树懒',    emoji:'🦥', rarity:'legendary', color:'#778ca3' },
+  dragon:    { name:'神龙',    emoji:'🐲', rarity:'mythic',    color:'#fd79a8' },
+  phoenix:   { name:'凤凰',    emoji:'🔥', rarity:'mythic',    color:'#fdcb6e' },
+  kraken:    { name:'海怪',    emoji:'🐙', rarity:'mythic',    color:'#6c5ce7' },
+};
+
+const RARITY_LABELS = { rare:'稀有', legendary:'传说', mythic:'神话' };
+const RARITY_WEIGHTS = [
+  { key:'rare', weight:60 }, { key:'legendary', weight:25 }, { key:'mythic', weight:15 }
+];
+const DEFAULT_SCORE_TYPES = {
+  '单词游戏参与':1, '打卡参与':1, '暑假听课参与':1, '暑假作业参与':1,
+  '错题订正参与':1, '问问题积极':1, '额外加分':1
+};
+const STORAGE_KEY = 'class_pet_data_v5';
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const d = JSON.parse(raw);
+      if (!d.classes) d.classes = {};
+      if (!d.teachers) d.teachers = {};
+      d.scoreTypes = { ...DEFAULT_SCORE_TYPES };
+      if (!d.currentTeacher) d.currentTeacher = Object.keys(d.teachers)[0] || '';
+      return d;
+    }
+    // 尝试从旧版本迁移
+    const oldKeys = ['class_pet_data_v3', 'class_pet_data_v2'];
+    for (const oldKey of oldKeys) {
+      const oldRaw = localStorage.getItem(oldKey);
+      if (oldRaw) {
+        const d = JSON.parse(oldRaw);
+        if (!d.teachers) d.teachers = {};
+        if (!d.classes) d.classes = {};
+        if (d.students && Object.keys(d.students).length > 0) {
+          const defaultTeacher = Object.keys(d.teachers)[0] || '默认教师';
+          if (!d.teachers[defaultTeacher]) d.teachers[defaultTeacher] = {};
+          if (!d.classes[defaultTeacher]) d.classes[defaultTeacher] = {};
+          for (const [n,s] of Object.entries(d.students)) {
+            if (!d.classes[defaultTeacher][n]) d.classes[defaultTeacher][n] = s;
+          }
+          if (!d.currentTeacher) d.currentTeacher = defaultTeacher;
+          delete d.students;
+        }
+        d.scoreTypes = { ...DEFAULT_SCORE_TYPES };
+        if (!d.currentTeacher) d.currentTeacher = Object.keys(d.teachers)[0] || '';
+        saveData();
+        return d;
+      }
+    }
+  } catch(e) {}
+  return { teachers:{}, classes:{}, scoreTypes:{...DEFAULT_SCORE_TYPES}, currentTeacher:'' };
+}
+
+function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+let data = loadData();
+let selectedType = null;
+let stageFilter = -1;
+let colleagueFilter = -1;
+
+function getMyStudents() {
+  const t = data.currentTeacher;
+  if (!t || !data.classes[t]) return {};
+  return data.classes[t];
+}
+
+// ========== PET LOGIC ==========
+
+function randomRarity() {
+  const total = RARITY_WEIGHTS.reduce((s,w)=>s+w.weight,0);
+  let r = Math.random() * total;
+  for (const w of RARITY_WEIGHTS) { r -= w.weight; if (r <= 0) return w.key; }
+  return 'common';
+}
+function randomPet(rarity) {
+  const pool = Object.entries(PETS).filter(([k,v])=>v.rarity===rarity);
+  return pool[Math.floor(Math.random() * pool.length)][0];
+}
+function getStage(score) {
+  for (let i = STAGE_THRESHOLDS.length-1; i>=0; i--) { if (score >= STAGE_THRESHOLDS[i]) return i; }
+  return 0;
+}
+function getStageProgress(score, stage) {
+  const cur = STAGE_THRESHOLDS[stage];
+  const next = stage < STAGE_THRESHOLDS.length-1 ? STAGE_THRESHOLDS[stage+1] : cur+100;
+  return Math.min(100, Math.round(((score-cur)/(next-cur))*100));
+}
+function getPetDisplay(petType, stage) {
+  const emoji = PETS[petType].emoji;
+  if (stage===0) return '🥚';
+  if (stage===1) return emoji;
+  if (stage===2) return emoji+'⭐';
+  if (stage===3) return emoji+'✨';
+  return emoji+'👑';
+}
+
+function addStudentToClass(teacher, name) {
+  name = name.trim();
+  if (!name || !teacher) return null;
+  if (!data.classes[teacher]) data.classes[teacher] = {};
+  if (data.classes[teacher][name]) return null;
+  const rarity = randomRarity(), pet = randomPet(rarity);
+  data.classes[teacher][name] = { pet, rarity, score:0, stage:0, history:[] };
+  saveData();
+  return { name, pet, rarity };
+}
+function addScoreToStudent(teacher, name, points, type) {
+  name = name.trim();
+  if (!name || !teacher) return null;
+  let isNew = false;
+  if (!data.classes[teacher]) data.classes[teacher] = {};
+  if (!data.classes[teacher][name]) {
+    const rarity = randomRarity(), pet = randomPet(rarity);
+    data.classes[teacher][name] = { pet, rarity, score:0, stage:0, history:[] };
+    isNew = true;
+  }
+  const oldStage = data.classes[teacher][name].stage;
+  data.classes[teacher][name].score += points;
+  const newStage = getStage(data.classes[teacher][name].score);
+  data.classes[teacher][name].stage = newStage;
+  if (!data.classes[teacher][name].history) data.classes[teacher][name].history = [];
+  data.classes[teacher][name].history.push({ type: type||'其他', score: points, time: new Date().toLocaleString('zh-CN') });
+  saveData();
+  return { name, isNew, pet:data.classes[teacher][name].pet, rarity:data.classes[teacher][name].rarity, oldStage, newStage, score:data.classes[teacher][name].score };
+}
+function removeStudentFromClass(teacher, name) {
+  if (data.classes[teacher]) delete data.classes[teacher][name];
+  saveData();
+}
+
+// ========== TEACHER MANAGEMENT (top bar) ==========
+function addTeacherObj(name) {
+  name = name.trim();
+  if (!name || data.teachers[name]) return false;
+  data.teachers[name] = {};
+  if (!data.classes[name]) data.classes[name] = {};
+  if (!data.currentTeacher) data.currentTeacher = name;
+  saveData();
+  return true;
+}
+function removeTeacherObj(name) {
+  delete data.teachers[name];
+  if (data.currentTeacher === name) {
+    data.currentTeacher = Object.keys(data.teachers)[0] || '';
+  }
+  saveData();
+}
+
+function addTeacherFromBar() {
+  const input = document.getElementById('newTeacherInput');
+  const name = input.value.trim();
+  if (!name) { toast('请输入教师姓名','warn'); return; }
+  if (data.teachers[name]) { toast('该教师已存在','warn'); return; }
+  addTeacherObj(name);
+  data.currentTeacher = name;
+  saveData();
+  input.value = '';
+  renderAll();
+  toast(`已添加教师「${name}」`,'success');
+}
+
+function delTeacherFromBar() {
+  const name = data.currentTeacher;
+  if (!name) { toast('没有可删除的教师','warn'); return; }
+  if (!confirm(`确定删除教师「${name}」吗？其班级数据将保留（同事仍可查看）。`)) return;
+  removeTeacherObj(name);
+  renderAll();
+  updateUI();
+  toast(`已删除教师「${name}」`,'info');
+}
+
+// ========== UI RENDER ==========
+
+function renderTeacherSwitcher() {
+  const sel = document.getElementById('currentTeacherSelect');
+  const teachers = Object.keys(data.teachers);
+  sel.innerHTML = teachers.length === 0
+    ? '<option value="">-- 请添加教师 --</option>'
+    : teachers.map(t => `<option value="${t}" ${data.currentTeacher===t?'selected':''}>${t}</option>`).join('');
+  if (teachers.length > 0 && !data.currentTeacher) {
+    data.currentTeacher = teachers[0];
+    sel.value = teachers[0];
+    saveData();
+  }
+  document.getElementById('currentClassLabel').textContent = data.currentTeacher || '-';
+}
+
+function switchTeacher(name) {
+  if (!name || !data.teachers[name]) return;
+  data.currentTeacher = name;
+  saveData();
+  updateUI();
+}
+
+function updateUI() {
+  renderTeacherSwitcher();
+  updateStats();
+  renderStudentGrid();
+  renderTypeTags();
+  renderScoreSelect();
+  renderRankings();
+  renderRankClassFilter();
+  renderColleagueSelect();
+}
+
+function renderAll() { updateUI(); }
+
+// ========== STATS ==========
+function updateStats() {
+  const students = getMyStudents();
+  const names = Object.keys(students);
+  document.getElementById('statTotal').textContent = names.length;
+  if (names.length === 0) {
+    document.getElementById('statMaxStage').textContent = '-';
+    document.getElementById('statTopScorer').textContent = '-';
+    return;
+  }
+  let maxStage=0, topScorer='', topScore=-1;
+  for (const [n,s] of Object.entries(students)) {
+    if (s.stage>maxStage) maxStage=s.stage;
+    if (s.score>topScore) { topScore=s.score; topScorer=n; }
+  }
+  document.getElementById('statMaxStage').textContent = STAGE_NAMES[maxStage];
+  document.getElementById('statTopScorer').textContent = topScorer;
+}
+
+// ========== STUDENT GRID ==========
+function renderStudentGrid() {
+  const grid = document.getElementById('studentGrid');
+  const empty = document.getElementById('emptyStudents');
+  const students = getMyStudents();
+  const search = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+
+  let filtered = Object.entries(students);
+  if (search) filtered = filtered.filter(([n])=>n.toLowerCase().includes(search));
+  if (stageFilter >= 0) filtered = filtered.filter(([,s])=>s.stage === stageFilter);
+
+  filtered.sort((a,b)=>b[1].score - a[1].score);
+  document.getElementById('resultCount').textContent = `显示 ${filtered.length} / ${Object.keys(students).length} 人`;
+
+  if (filtered.length === 0) {
+    grid.innerHTML = '';
+    empty.classList.remove('hidden');
+  } else {
+    empty.classList.add('hidden');
+    grid.innerHTML = filtered.map(([name,s])=>{
+      const progress = getStageProgress(s.score, s.stage);
+      const display = getPetDisplay(s.pet, s.stage);
+      const info = PETS[s.pet];
+      return `<div class="student-card">
+        ${s.stage===0?'':`<div class="rarity-badge rarity-${s.rarity}">${RARITY_LABELS[s.rarity]}</div>`}
+        <div class="score-badge">${s.score}分</div>
+        <div class="pet-display" onclick="event.stopPropagation();showHistory('${data.currentTeacher}','${name.replace(/'/g,"&#39;")}')" style="cursor:pointer" title="${s.stage===0?'点击揭开品种':'查看加分记录'}">${display}</div>
+        <div class="name">${name}</div>
+        <div class="info">${s.stage===0?'？':info.name} · ${STAGE_NAMES[s.stage]}</div>
+        <div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div></div>
+        <button class="del-btn" onclick="event.stopPropagation();delStudent('${name}')">✕</button>
+      </div>`;
+    }).join('');
+  }
+
+  const filterTags = document.getElementById('filterTags');
+  filterTags.innerHTML = ['全部', ...STAGE_NAMES].map((s,i)=>{
+    const val = i-1;
+    return `<span class="filter-tag${stageFilter===val?' active':''}" onclick="setStageFilter(${val})">${s}</span>`;
+  }).join('');
+}
+
+function setStageFilter(val) { stageFilter = val; renderStudentGrid(); }
+
+// ========== SCORE ==========
+function renderTypeTags() {
+  const container = document.getElementById('typeTags');
+  container.innerHTML = Object.entries(data.scoreTypes).map(([type,val])=>
+    `<div class="type-tag${selectedType===type?' active':''}" onclick="selectType('${type}')">${type} (${val}分)</div>`
+  ).join('');
+  if (!selectedType && Object.keys(data.scoreTypes).length>0) {
+    selectType(Object.keys(data.scoreTypes)[0]);
+  }
+}
+function selectType(type) {
+  selectedType = type;
+  renderTypeTags();
+}
+function renderScoreSelect() {
+  const sel = document.getElementById('scoreStudent');
+  const students = getMyStudents();
+  const names = Object.keys(students).sort((a,b)=>students[b].score-students[a].score);
+  sel.innerHTML = names.length===0
+    ? '<option value="">-- 请先添加学生 --</option>'
+    : names.map(n=>`<option value="${n}">${n}（${students[n].score}分 | ${STAGE_NAMES[students[n].stage]}）</option>`).join('');
+}
+
+// ========== RANKINGS ==========
+function renderRankClassFilter() {
+  const sel = document.getElementById('rankClassFilter');
+  const teachers = Object.keys(data.teachers);
+  sel.innerHTML = '<option value="all">全部班级</option>' +
+    teachers.map(t=>`<option value="${t}">${t}的班级</option>`).join('');
+}
+
+function renderRankings() {
+  const classFilter = document.getElementById('rankClassFilter').value;
+  let allStudents = [];
+  for (const [teacher, cls] of Object.entries(data.classes)) {
+    if (classFilter !== 'all' && teacher !== classFilter) continue;
+    for (const [name, s] of Object.entries(cls)) {
+      allStudents.push({ name, teacher, ...s });
+    }
+  }
+
+  const petRank = [...allStudents].sort((a,b)=>{
+    if (b.stage !== a.stage) return b.stage - a.stage;
+    return b.score - a.score;
+  });
+  const petBody = document.querySelector('#petRankTable tbody');
+  const emptyPet = document.getElementById('emptyPetRank');
+  if (petRank.length === 0) { petBody.innerHTML=''; emptyPet.classList.remove('hidden'); }
+  else {
+    emptyPet.classList.add('hidden');
+    petBody.innerHTML = petRank.map((s,i)=>{
+      const rk=i+1, rc=rk===1?'rank-1':(rk===2?'rank-2':(rk===3?'rank-3':''));
+      return `<tr><td><span class="rank-num ${rc}">${rk}</span></td><td><strong>${s.name}</strong></td><td>${s.teacher}</td><td>${getPetDisplay(s.pet,s.stage)} ${s.stage===0?'？':PETS[s.pet].name}</td><td>${STAGE_NAMES[s.stage]}</td><td>${s.score}分</td><td><div style="width:80px"><div class="progress-bar"><div class="progress-fill" style="width:${getStageProgress(s.score,s.stage)}%"></div></div></div></td></tr>`;
+    }).join('');
+  }
+
+  const scoreRank = [...allStudents].sort((a,b)=>b.score-a.score);
+  const scoreBody = document.querySelector('#scoreRankTable tbody');
+  const emptyScore = document.getElementById('emptyScoreRank');
+  if (scoreRank.length===0) { scoreBody.innerHTML=''; emptyScore.classList.remove('hidden'); }
+  else {
+    emptyScore.classList.add('hidden');
+    scoreBody.innerHTML = scoreRank.map((s,i)=>{
+      const rk=i+1, rc=rk===1?'rank-1':(rk===2?'rank-2':(rk===3?'rank-3':''));
+      return `<tr><td><span class="rank-num ${rc}">${rk}</span></td><td><strong>${s.name}</strong></td><td>${s.teacher}</td><td>${s.stage===0?'🥚':PETS[s.pet].emoji} ${s.stage===0?'？':PETS[s.pet].name}</td><td><strong>${s.score}分</strong></td><td>${STAGE_NAMES[s.stage]}</td></tr>`;
+    }).join('');
+  }
+}
+
+// ========== COLLEAGUES ==========
+function renderColleagueSelect() {
+  const sel = document.getElementById('colleagueSelect');
+  const others = Object.keys(data.teachers).filter(t=>t!==data.currentTeacher);
+  sel.innerHTML = others.length===0
+    ? '<option value="">-- 暂无其他教师 --</option>'
+    : others.map(t=>`<option value="${t}">${t}的班级</option>`).join('');
+  if (others.length > 0) renderColleagueView();
+}
+
+function renderColleagueView() {
+  const sel = document.getElementById('colleagueSelect');
+  const teacher = sel.value;
+  document.getElementById('colleagueName').textContent = teacher || '-';
+  const grid = document.getElementById('colleagueGrid');
+  const empty = document.getElementById('emptyColleague');
+
+  if (!teacher) { grid.innerHTML=''; empty.classList.remove('hidden'); return; }
+
+  const cls = data.classes[teacher] || {};
+  const search = (document.getElementById('colleagueSearch').value||'').trim().toLowerCase();
+  let filtered = Object.entries(cls);
+  if (search) filtered = filtered.filter(([n])=>n.toLowerCase().includes(search));
+  if (colleagueFilter >= 0) filtered = filtered.filter(([,s])=>s.stage === colleagueFilter);
+  filtered.sort((a,b)=>b[1].score-a[1].score);
+
+  document.getElementById('colleagueCount').textContent = `显示 ${filtered.length} / ${Object.keys(cls).length} 人`;
+
+  if (filtered.length===0) { grid.innerHTML=''; empty.classList.remove('hidden'); }
+  else {
+    empty.classList.add('hidden');
+    grid.innerHTML = filtered.map(([name,s])=>{
+      const progress = getStageProgress(s.score, s.stage);
+      const display = getPetDisplay(s.pet, s.stage);
+      const info = PETS[s.pet];
+      return `<div class="student-card readonly-card">
+        ${s.stage===0?'':`<div class="rarity-badge rarity-${s.rarity}">${RARITY_LABELS[s.rarity]}</div>`}
+        <div class="readonly-badge">只读</div>
+        <div class="score-badge">${s.score}分</div>
+        <div class="pet-display" onclick="event.stopPropagation();showHistory('${teacher.replace(/'/g,"&#39;")}','${name.replace(/'/g,"&#39;")}')" style="cursor:pointer" title="${s.stage===0?'点击揭开品种':'查看加分记录'}">${display}</div>
+        <div class="name">${name}</div>
+        <div class="info">${s.stage===0?'？':info.name} · ${STAGE_NAMES[s.stage]}</div>
+        <div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div></div>
+      </div>`;
+    }).join('');
+  }
+
+  const filterTags = document.getElementById('colleagueFilterTags');
+  filterTags.innerHTML = ['全部', ...STAGE_NAMES].map((s,i)=>{
+    const val = i-1;
+    return `<span class="filter-tag${colleagueFilter===val?' active':''}" onclick="setColleagueFilter(${val})">${s}</span>`;
+  }).join('');
+}
+function setColleagueFilter(val) { colleagueFilter = val; renderColleagueView(); }
+
+// ========== ACTIONS ==========
+function addSingle() {
+  const input = document.getElementById('singleName');
+  if (!data.currentTeacher) { toast('请先添加教师', 'warn'); return; }
+  const names = input.value.split(/[,，\s]+/).filter(n=>n.trim());
+  input.value = '';
+  if (names.length===0) { toast('请输入名字', 'warn'); return; }
+  const results = [];
+  for (const name of names) {
+    const r = addStudentToClass(data.currentTeacher, name);
+    if (r) results.push(r);
+  }
+  results.length>0 ? showBlindBox(results) : toast('名字已存在或无效', 'warn');
+}
+function batchImport() {
+  if (!data.currentTeacher) { toast('请先添加教师', 'warn'); return; }
+  const text = document.getElementById('batchNames').value.trim();
+  if (!text) { toast('请输入名字列表', 'warn'); return; }
+  const names = text.split(/[\n,，]+/).filter(n=>n.trim());
+  const results = [];
+  for (const name of names) { const r=addStudentToClass(data.currentTeacher,name); if(r) results.push(r); }
+  document.getElementById('batchNames').value='';
+  results.length>0 ? showBlindBox(results) : toast('所有名字已存在', 'warn');
+}
+function handleNameFile(e) {
+  if (!data.currentTeacher) { toast('请先添加教师', 'warn'); return; }
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const names=ev.target.result.split(/[\n\r,，]+/).filter(n=>n.trim());
+    const results=[];
+    for(const name of names){ const r=addStudentToClass(data.currentTeacher,name); if(r) results.push(r); }
+    results.length>0 ? showBlindBox(results) : toast('文件中的名字已全部存在', 'warn');
+  };
+  reader.readAsText(file,'UTF-8'); e.target.value='';
+}
+function delStudent(name) {
+  if (confirm(`确定删除「${name}」吗？`)) {
+    removeStudentFromClass(data.currentTeacher, name);
+    renderAll(); toast(`已删除 ${name}`,'info');
+  }
+}
+function addScoreSingle() {
+  const name = document.getElementById('scoreStudent').value;
+  if (!name) { toast('请选择学生', 'warn'); return; }
+  const val = parseInt(document.getElementById('scoreValue').value)||0;
+  if (val<=0) { toast('分值必须大于0', 'warn'); return; }
+  const result = addScoreToStudent(data.currentTeacher, name, val, selectedType);
+  if (result) { showScoreResult(result, val); renderAll(); }
+}
+function addScoreBatch() {
+  if (!data.currentTeacher) { toast('请先选择教师', 'warn'); return; }
+  const text = document.getElementById('batchScoreNames').value.trim();
+  if (!text) { toast('请输入名字列表', 'warn'); return; }
+  const val = parseInt(document.getElementById('batchScoreValue').value)||0;
+  if (val<=0) { toast('分值必须大于0', 'warn'); return; }
+  const names = text.split(/[\n,，]+/).filter(n=>n.trim());
+  document.getElementById('batchScoreNames').value='';
+  const results=[];
+  for (const name of names) { const r=addScoreToStudent(data.currentTeacher,name,val,selectedType); if(r) results.push(r); }
+  if (results.length>0) {
+    const upgraded=results.filter(r=>r.newStage>r.oldStage), newPets=results.filter(r=>r.isNew);
+    let msg=`成功为 ${results.length} 名学生各加 ${val} 分`;
+    if (newPets.length>0) msg+=`（其中 ${newPets.length} 名新学生获得盲盒宠物）`;
+    if (upgraded.length>0) msg+=`，${upgraded.length} 只宠物升级了！`;
+    toast(msg,'success'); renderAll();
+  } else { toast('未找到有效名字','warn'); }
+}
+function handleScoreFile(e) {
+  if (!data.currentTeacher) { toast('请先选择教师', 'warn'); return; }
+  const file=e.target.files[0]; if(!file) return;
+  const val = parseInt(document.getElementById('batchScoreValue').value)||0;
+  if (val<=0) { toast('请先设置分值','warn'); e.target.value=''; return; }
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const names=ev.target.result.split(/[\n\r,，]+/).filter(n=>n.trim());
+    const results=[];
+    for(const name of names){ const r=addScoreToStudent(data.currentTeacher,name,val); if(r) results.push(r); }
+    if(results.length>0){
+      const upgraded=results.filter(r=>r.newStage>r.oldStage), newPets=results.filter(r=>r.isNew);
+      let msg=`成功为 ${results.length} 名学生各加 ${val} 分`;
+      if(newPets.length>0) msg+=`（${newPets.length} 名新学生获得盲盒宠物）`;
+      if(upgraded.length>0) msg+=`，${upgraded.length} 只宠物升级了！`;
+      toast(msg,'success'); renderAll();
+    } else { toast('文件中的名字无效','warn'); }
+  };
+  reader.readAsText(file,'UTF-8'); e.target.value='';
+}
+function showScoreResult(result, val) {
+  const info = PETS[result.pet];
+  if (result.isNew) {
+    document.getElementById('modalEmoji').textContent = info.emoji;
+    document.getElementById('modalTitle').textContent = `🎉 新学生「${result.name}」`;
+    document.getElementById('modalDesc').textContent = `获得盲盒宠物：${info.name}（${RARITY_LABELS[result.rarity]}）！加 ${val} 分，当前 ${result.score} 分`;
+    document.getElementById('blindModal').classList.remove('hidden');
+  } else if (result.newStage > result.oldStage) {
+    document.getElementById('modalEmoji').textContent = getPetDisplay(result.pet, result.newStage);
+    document.getElementById('modalTitle').textContent = '⬆️ 宠物升级！';
+    document.getElementById('modalDesc').textContent = `「${result.name}」的${info.name}从 ${STAGE_NAMES[result.oldStage]} 升级到 ${STAGE_NAMES[result.newStage]}！（加 ${val} 分，当前 ${result.score} 分）`;
+    document.getElementById('blindModal').classList.remove('hidden');
+  } else {
+    toast(`「${result.name}」加 ${val} 分，当前 ${result.score} 分`,'success');
+  }
+}
+
+// ========== BLIND BOX MODAL ==========
+function showBlindBox(results) {
+  if (results.length===1) {
+    const r=results[0], info=PETS[r.pet];
+    document.getElementById('modalEmoji').textContent=info.emoji;
+    document.getElementById('modalTitle').textContent=`🎁 拆到：${info.name}`;
+    document.getElementById('modalDesc').textContent=`「${r.name}」获得了 ${RARITY_LABELS[r.rarity]} 品质的 ${info.name}！`;
+  } else {
+    const list=results.map(r=>{const info=PETS[r.pet];return `「${r.name}」→ ${info.emoji} ${info.name}（${RARITY_LABELS[r.rarity]}）`;}).join('<br>');
+    document.getElementById('modalEmoji').textContent='🎁';
+    document.getElementById('modalTitle').textContent=`批量拆盲盒 x${results.length}`;
+    document.getElementById('modalDesc').innerHTML=list;
+  }
+  document.getElementById('blindModal').classList.remove('hidden'); renderAll();
+}
+function closeModal() {
+  document.getElementById('blindModal').classList.add('hidden');
+  document.getElementById('modalDesc').innerHTML='';
+}
+function showHistory(teacher, name) {
+  const s = (data.classes[teacher]||{})[name];
+  if (!s) return;
+  if (s.stage === 0) {
+    // 蛋阶段：揭示品种
+    const info = PETS[s.pet];
+    document.getElementById('modalEmoji').textContent = info.emoji;
+    document.getElementById('modalTitle').textContent = '🥚 揭开品种！';
+    document.getElementById('modalDesc').innerHTML = `「${name}」的宠物蛋孵化出：<br><strong>${info.name}</strong>（${RARITY_LABELS[s.rarity]}）`;
+    document.getElementById('blindModal').classList.remove('hidden');
+    return;
+  }
+  // 非蛋阶段：加分记录
+  const history = s.history || [];
+  document.getElementById('historyTitle').textContent = `${name} 的加分记录`;
+  if (history.length === 0) {
+    document.getElementById('historyBody').innerHTML = '<p style="text-align:center;color:#999">暂无加分记录</p>';
+  } else {
+    document.getElementById('historyBody').innerHTML = `<table style="width:100%;font-size:13px"><thead><tr><th>#</th><th>类型</th><th>分值</th><th>时间</th></tr></thead><tbody>${
+      history.map((h,i)=>`<tr><td>${i+1}</td><td>${h.type}</td><td>+${h.score}</td><td style="font-size:12px;color:#999">${h.time}</td></tr>`).join('')
+    }</tbody></table>`;
+  }
+  document.getElementById('historyModal').classList.remove('hidden');
+}
+function closeHistory() {
+  document.getElementById('historyModal').classList.add('hidden');
+}
+function toast(msg, type) {
+  const existing=document.querySelector('.toast'); if(existing) existing.remove();
+  const t=document.createElement('div'); t.className=`toast toast-${type}`; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(),2500);
+}
+
+// ========== TABS ==========
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click',function(){
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    this.classList.add('active');
+    const tabName=this.dataset.tab;
+    ['students','score','rank','colleagues'].forEach(t=>document.getElementById('tab-'+t).classList.add('hidden'));
+    document.getElementById('tab-'+tabName).classList.remove('hidden');
+    if (tabName==='rank') renderRankings();
+    if (tabName==='score') { renderTypeTags(); renderScoreSelect(); }
+    if (tabName==='students') { renderStudentGrid(); renderTeacherSwitcher(); }
+    if (tabName==='colleagues') { renderColleagueSelect(); }
+  });
+});
+
+// ========== INIT ==========
+if (selectedType===null && Object.keys(data.scoreTypes).length>0) {
+  selectedType=Object.keys(data.scoreTypes)[0];
+}
+renderAll();
+</script>
+</body>
+</html>
