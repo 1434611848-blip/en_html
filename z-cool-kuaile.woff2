@@ -1,0 +1,6 @@
+@font-face {
+  font-family: 'ZCOOL KuaiLe';
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://gstatic.loli.net/s/zcoolkuaile/v22/tssqApdaRQokwFjFJjvM6h2Wpg.ttf) format('truetype');
+}
