@@ -291,6 +291,15 @@ tr:hover td { background: #f8f9ff; }
       <button class="btn btn-primary" onclick="closeModal()">太棒了！</button>
     </div>
   </div>
+
+  <!-- History Modal -->
+  <div class="modal-overlay hidden" id="historyModal">
+    <div class="modal" style="max-width:480px;text-align:left">
+      <h3 id="historyTitle" style="text-align:center"></h3>
+      <div id="historyBody" style="max-height:300px;overflow-y:auto;margin:12px 0"></div>
+      <div style="text-align:center"><button class="btn btn-primary" onclick="closeHistory()">关闭</button></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -411,24 +420,26 @@ function addStudentToClass(teacher, name) {
   if (!data.classes[teacher]) data.classes[teacher] = {};
   if (data.classes[teacher][name]) return null;
   const rarity = randomRarity(), pet = randomPet(rarity);
-  data.classes[teacher][name] = { pet, rarity, score:0, stage:0 };
+  data.classes[teacher][name] = { pet, rarity, score:0, stage:0, history:[] };
   saveData();
   return { name, pet, rarity };
 }
-function addScoreToStudent(teacher, name, points) {
+function addScoreToStudent(teacher, name, points, type) {
   name = name.trim();
   if (!name || !teacher) return null;
   let isNew = false;
   if (!data.classes[teacher]) data.classes[teacher] = {};
   if (!data.classes[teacher][name]) {
     const rarity = randomRarity(), pet = randomPet(rarity);
-    data.classes[teacher][name] = { pet, rarity, score:0, stage:0 };
+    data.classes[teacher][name] = { pet, rarity, score:0, stage:0, history:[] };
     isNew = true;
   }
   const oldStage = data.classes[teacher][name].stage;
   data.classes[teacher][name].score += points;
   const newStage = getStage(data.classes[teacher][name].score);
   data.classes[teacher][name].stage = newStage;
+  if (!data.classes[teacher][name].history) data.classes[teacher][name].history = [];
+  data.classes[teacher][name].history.push({ type: type||'其他', score: points, time: new Date().toLocaleString('zh-CN') });
   saveData();
   return { name, isNew, pet:data.classes[teacher][name].pet, rarity:data.classes[teacher][name].rarity, oldStage, newStage, score:data.classes[teacher][name].score };
 }
@@ -554,7 +565,7 @@ function renderStudentGrid() {
       return `<div class="student-card">
         <div class="rarity-badge rarity-${s.rarity}">${RARITY_LABELS[s.rarity]}</div>
         <div class="score-badge">${s.score}分</div>
-        <div class="pet-display">${display}</div>
+        <div class="pet-display" onclick="event.stopPropagation();showHistory('${data.currentTeacher}','${name.replace(/'/g,"&#39;")}')" style="cursor:pointer" title="查看加分记录">${display}</div>
         <div class="name">${name}</div>
         <div class="info">${info.name} · ${STAGE_NAMES[s.stage]}</div>
         <div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div></div>
@@ -682,7 +693,7 @@ function renderColleagueView() {
         <div class="rarity-badge rarity-${s.rarity}">${RARITY_LABELS[s.rarity]}</div>
         <div class="readonly-badge">只读</div>
         <div class="score-badge">${s.score}分</div>
-        <div class="pet-display">${display}</div>
+        <div class="pet-display" onclick="event.stopPropagation();showHistory('${teacher.replace(/'/g,"&#39;")}','${name.replace(/'/g,"&#39;")}')" style="cursor:pointer" title="查看加分记录">${display}</div>
         <div class="name">${name}</div>
         <div class="info">${info.name} · ${STAGE_NAMES[s.stage]}</div>
         <div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div></div>
@@ -745,7 +756,7 @@ function addScoreSingle() {
   if (!name) { toast('请选择学生', 'warn'); return; }
   const val = parseInt(document.getElementById('scoreValue').value)||0;
   if (val<=0) { toast('分值必须大于0', 'warn'); return; }
-  const result = addScoreToStudent(data.currentTeacher, name, val);
+  const result = addScoreToStudent(data.currentTeacher, name, val, selectedType);
   if (result) { showScoreResult(result, val); renderAll(); }
 }
 function addScoreBatch() {
@@ -757,7 +768,7 @@ function addScoreBatch() {
   const names = text.split(/[\n,，]+/).filter(n=>n.trim());
   document.getElementById('batchScoreNames').value='';
   const results=[];
-  for (const name of names) { const r=addScoreToStudent(data.currentTeacher,name,val); if(r) results.push(r); }
+  for (const name of names) { const r=addScoreToStudent(data.currentTeacher,name,val,selectedType); if(r) results.push(r); }
   if (results.length>0) {
     const upgraded=results.filter(r=>r.newStage>r.oldStage), newPets=results.filter(r=>r.isNew);
     let msg=`成功为 ${results.length} 名学生各加 ${val} 分`;
@@ -821,6 +832,23 @@ function showBlindBox(results) {
 function closeModal() {
   document.getElementById('blindModal').classList.add('hidden');
   document.getElementById('modalDesc').innerHTML='';
+}
+function showHistory(teacher, name) {
+  const s = (data.classes[teacher]||{})[name];
+  if (!s) return;
+  const history = s.history || [];
+  document.getElementById('historyTitle').textContent = `${name} 的加分记录`;
+  if (history.length === 0) {
+    document.getElementById('historyBody').innerHTML = '<p style="text-align:center;color:#999">暂无加分记录</p>';
+  } else {
+    document.getElementById('historyBody').innerHTML = `<table style="width:100%;font-size:13px"><thead><tr><th>#</th><th>类型</th><th>分值</th><th>时间</th></tr></thead><tbody>${
+      history.map((h,i)=>`<tr><td>${i+1}</td><td>${h.type}</td><td>+${h.score}</td><td style="font-size:12px;color:#999">${h.time}</td></tr>`).join('')
+    }</tbody></table>`;
+  }
+  document.getElementById('historyModal').classList.remove('hidden');
+}
+function closeHistory() {
+  document.getElementById('historyModal').classList.add('hidden');
 }
 function toast(msg, type) {
   const existing=document.querySelector('.toast'); if(existing) existing.remove();
