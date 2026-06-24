@@ -506,7 +506,7 @@ tr:hover td { background: var(--input-bg); }
       <div class="form-row" style="align-items:flex-end">
         <div style="flex:2; min-width:130px"><label>加分类型</label><select id="singleScoreType"></select></div>
         <div style="width:90px"><label>分值</label><input type="number" id="scoreValue" value="1" min="1"></div>
-        <button class="btn btn-success" onclick="addScoreSingle()" style="flex:none; padding:10px 28px; font-size:15px">➕ 加分</button>
+        <button class="btn btn-success" onclick="addScoreSingle()" style="flex:none; margin-left:auto; padding:10px 28px; font-size:15px">➕ 加分</button>
       </div>
     </div>
 
@@ -653,17 +653,26 @@ const sb = window.supabase.createClient(
 let STAGE_THRESHOLDS = [0, 20, 50, 100, 200];
 const STAGE_NAMES = ['蛋 🥚', '幼年', '成长', '成年', '完全体'];
 
-// ===== 阈值持久化 =====
+// ===== 阈值持久化（Supabase 为主，localStorage 兜底） =====
 let thresholdDirty = false;
-function loadThresholds(){
-  const raw = localStorage.getItem('petStageThresholds');
-  if(raw){
-    try {
-      const arr = JSON.parse(raw);
-      if(Array.isArray(arr) && arr.length===4){
-        STAGE_THRESHOLDS = [0, ...arr];
-      }
-    } catch(e){}
+async function loadThresholds(){
+  // 1. 先尝试 Supabase
+  try {
+    const { data, error } = await sb.from('stage_thresholds').select('values').eq('id',1).single();
+    if(!error && data && Array.isArray(data.values) && data.values.length===4){
+      STAGE_THRESHOLDS = [0, ...data.values];
+      localStorage.setItem('petStageThresholds', JSON.stringify(data.values));
+    }
+  } catch(e){}
+  // 2. Supabase 失败时走 localStorage 兜底
+  if(STAGE_THRESHOLDS[0]===0 && STAGE_THRESHOLDS[1]===20 && STAGE_THRESHOLDS[2]===50 && STAGE_THRESHOLDS[3]===100 && STAGE_THRESHOLDS[4]===200){
+    const raw = localStorage.getItem('petStageThresholds');
+    if(raw){
+      try {
+        const arr = JSON.parse(raw);
+        if(Array.isArray(arr) && arr.length===4) STAGE_THRESHOLDS = [0, ...arr];
+      } catch(e){}
+    }
   }
   // 同步到输入框
   for(let i=1;i<=4;i++){
@@ -679,7 +688,7 @@ function onThresholdChange(){
   const btn = document.getElementById('saveThresholdBtn'); if(btn) btn.disabled=false;
   const msg = document.getElementById('thresholdMsg'); if(msg) msg.textContent='';
 }
-function saveThresholds(){
+async function saveThresholds(){
   const vals = [];
   for(let i=1;i<=4;i++){
     const inp = document.getElementById('thr_'+i);
@@ -694,6 +703,10 @@ function saveThresholds(){
   // 写回 DOM
   for(let i=0;i<4;i++) document.getElementById('thr_'+(i+1)).value = vals[i];
   STAGE_THRESHOLDS = [0, ...vals];
+  // Supabase + localStorage 双写
+  try {
+    await sb.from('stage_thresholds').upsert({ id:1, values: JSON.parse(JSON.stringify(vals)), updated_at: new Date().toISOString() });
+  } catch(e){ console.error('阈值保存到 Supabase 失败:', e); }
   localStorage.setItem('petStageThresholds', JSON.stringify(vals));
   thresholdDirty = false;
   document.getElementById('saveThresholdBtn').disabled = true;
