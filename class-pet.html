@@ -167,7 +167,7 @@ tr:hover td { background: #f8f9ff; }
   <!-- Tab: 学生管理 -->
   <div id="tab-students">
     <div class="card">
-      <div class="card-title">📥 添加学生（当前班级：<span id="currentClassLabel">-</span>）</div>
+      <div class="card-title">📥 添加学生（教师：<span id="currentClassLabel">-</span>）</div>
       <div class="form-row">
         <div style="flex:1; min-width:140px"><label>单个添加</label><input id="singleName" placeholder="输入学生姓名" onkeydown="if(event.key==='Enter')addSingle()"></div>
         <button class="btn btn-primary" onclick="addSingle()" style="align-self:flex-end">添加 → 拆盲盒</button>
@@ -478,12 +478,10 @@ function addTeacherFromBar() {
   if (!name) { toast('请输入教师姓名','warn'); return; }
   if (data.teachers[name]) { toast('该教师已存在','warn'); return; }
   addTeacherObj(name);
-  input.value = '';
-  renderAll();
-  document.getElementById('currentTeacherSelect').value = name;
   data.currentTeacher = name;
   saveData();
-  updateUI();
+  input.value = '';
+  renderAll();
   toast(`已添加教师「${name}」`,'success');
 }
 
