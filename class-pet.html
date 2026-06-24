@@ -298,7 +298,7 @@ tr:hover td { background: #f8f9ff; }
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 // ========== SUPABASE ==========
-const supabase = window.supabase.createClient(
+const sb = window.supabase.createClient(
   'https://xwnvsydndaclamzcfrpl.supabase.co',
   'sb_publishable_PATbkfSdIrjUug0C7qqnsg__fGlTOLZ'
 );
@@ -381,7 +381,7 @@ function getPetDisplay(petType, stage) {
 // ========== SUPABASE DATA LOADING ==========
 async function loadFromSupabase() {
   // 加载教师列表（班级宠物模式）
-  const { data: tData, error: tErr } = await supabase
+  const { data: tData, error: tErr } = await sb
     .from('teachers')
     .select('name, type')
     .eq('type', '班级宠物模式')
@@ -395,7 +395,7 @@ async function loadFromSupabase() {
 
   // 加载所有班级宠物模式教师的学生数据
   const teacherNames = teachers.map(t => t.name);
-  const { data: sData, error: sErr } = await supabase
+  const { data: sData, error: sErr } = await sb
     .from('pet_students')
     .select('*')
     .in('teacher_name', teacherNames)
@@ -423,7 +423,7 @@ async function addTeacherObj(name) {
   name = name.trim();
   if (!name) return false;
   if (teachers.find(t => t.name === name)) return false;
-  const { error } = await supabase
+  const { error } = await sb
     .from('teachers')
     .insert({ name, type: '班级宠物模式', created_at: new Date().toISOString() });
   if (error) { console.error('添加教师失败:', error); return false; }
@@ -435,14 +435,14 @@ async function addTeacherObj(name) {
 
 async function removeTeacherObj(name) {
   // 删除 Supabase 中的教师
-  await supabase.from('teachers').delete().eq('name', name).eq('type', '班级宠物模式');
+  await sb.from('teachers').delete().eq('name', name).eq('type', '班级宠物模式');
   // 删除该教师的所有学生及记录
   const sKeys = Object.keys(classes[name] || {});
   for (const sn of sKeys) {
     const s = classes[name][sn];
-    await supabase.from('pet_score_history').delete().eq('student_id', s.id);
+    await sb.from('pet_score_history').delete().eq('student_id', s.id);
   }
-  await supabase.from('pet_students').delete().eq('teacher_name', name);
+  await sb.from('pet_students').delete().eq('teacher_name', name);
   teachers = teachers.filter(t => t.name !== name);
   delete classes[name];
   if (currentTeacher === name) {
@@ -486,7 +486,7 @@ async function addStudentToClass(teacher, name) {
   if (!classes[teacher]) classes[teacher] = {};
   if (classes[teacher][name]) return null;
   const rarity = randomRarity(), pet = randomPet(rarity);
-  const { data, error } = await supabase
+  const { data, error } = await sb
     .from('pet_students')
     .insert({ teacher_name: teacher, name, pet_key: pet, rarity, score: 0, stage: 0, created_at: new Date().toISOString() })
     .select('id')
@@ -504,7 +504,7 @@ async function addScoreToStudent(teacher, name, points, type) {
 
   if (!classes[teacher][name]) {
     const rarity = randomRarity(), pet = randomPet(rarity);
-    const { data, error } = await supabase
+    const { data, error } = await sb
       .from('pet_students')
       .insert({ teacher_name: teacher, name, pet_key: pet, rarity, score: points, stage: 0, created_at: new Date().toISOString() })
       .select('id')
@@ -524,10 +524,10 @@ async function addScoreToStudent(teacher, name, points, type) {
   const scoreNow = classes[teacher][name].score;
 
   // 同步更新 Supabase pet_students
-  await supabase.from('pet_students').update({ score: scoreNow, stage: classes[teacher][name].stage }).eq('id', studentId);
+  await sb.from('pet_students').update({ score: scoreNow, stage: classes[teacher][name].stage }).eq('id', studentId);
 
   // 写入加分记录
-  await supabase.from('pet_score_history').insert({
+  await sb.from('pet_score_history').insert({
     student_id: studentId, teacher_name: teacher, student_name: name,
     type: type || '其他', score: points, created_at: new Date().toISOString()
   });
@@ -541,8 +541,8 @@ async function addScoreToStudent(teacher, name, points, type) {
 async function removeStudentFromClass(teacher, name) {
   const s = classes[teacher] && classes[teacher][name];
   if (!s) return;
-  await supabase.from('pet_score_history').delete().eq('student_id', s.id);
-  await supabase.from('pet_students').delete().eq('id', s.id);
+  await sb.from('pet_score_history').delete().eq('student_id', s.id);
+  await sb.from('pet_students').delete().eq('id', s.id);
   delete classes[teacher][name];
 }
 
@@ -896,7 +896,7 @@ async function showHistory(teacher, name) {
     return;
   }
   // 从 Supabase 加载历史
-  const { data: history } = await supabase
+  const { data: history } = await sb
     .from('pet_score_history')
     .select('type, score, created_at')
     .eq('student_id', s.id)
