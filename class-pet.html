@@ -569,6 +569,33 @@ tr:hover td { background: var(--input-bg); }
       </div>
       <div class="hidden" id="emptyScoreRank" style="text-align:center;padding:40px;color:var(--c-text-muted)">暂无数据</div>
     </div>
+
+    <div class="card">
+      <div class="card-title">⚙️ 晋升阈值设置</div>
+      <p style="color:var(--c-text-muted);font-size:13px;margin-bottom:16px">设定宠物从低阶段晋升到下一阶段所需的积分。改完后刷新排行榜即可看到效果。</p>
+      <div class="form-row" id="thresholdInputs">
+        <div>
+          <label>蛋(0)→幼年：</label>
+          <input type="number" id="thr_1" min="1" style="width:80px" value="20" onchange="onThresholdChange()">
+        </div>
+        <div>
+          <label>幼年→成长：</label>
+          <input type="number" id="thr_2" min="1" style="width:80px" value="50" onchange="onThresholdChange()">
+        </div>
+        <div>
+          <label>成长→成年：</label>
+          <input type="number" id="thr_3" min="1" style="width:80px" value="100" onchange="onThresholdChange()">
+        </div>
+        <div>
+          <label>成年→完全体：</label>
+          <input type="number" id="thr_4" min="1" style="width:80px" value="200" onchange="onThresholdChange()">
+        </div>
+      </div>
+      <div style="margin-top:12px;display:flex;align-items:center;gap:12px">
+        <button id="saveThresholdBtn" onclick="saveThresholds()" disabled>💾 保存设置</button>
+        <span id="thresholdMsg" style="font-size:13px;color:var(--c-success)"></span>
+      </div>
+    </div>
   </div>
 
   <!-- Tab: 同事班级 -->
@@ -623,8 +650,58 @@ const sb = window.supabase.createClient(
 );
 
 // ========== IN-MEMORY STATE ==========
-const STAGE_THRESHOLDS = [0, 20, 50, 100, 200];
+let STAGE_THRESHOLDS = [0, 20, 50, 100, 200];
 const STAGE_NAMES = ['蛋 🥚', '幼年', '成长', '成年', '完全体'];
+
+// ===== 阈值持久化 =====
+let thresholdDirty = false;
+function loadThresholds(){
+  const raw = localStorage.getItem('petStageThresholds');
+  if(raw){
+    try {
+      const arr = JSON.parse(raw);
+      if(Array.isArray(arr) && arr.length===4){
+        STAGE_THRESHOLDS = [0, ...arr];
+      }
+    } catch(e){}
+  }
+  // 同步到输入框
+  for(let i=1;i<=4;i++){
+    const inp = document.getElementById('thr_'+i);
+    if(inp) inp.value = STAGE_THRESHOLDS[i];
+  }
+  thresholdDirty = false;
+  setTimeout(()=>{ const btn = document.getElementById('saveThresholdBtn'); if(btn) btn.disabled=true; },0);
+  const msg = document.getElementById('thresholdMsg'); if(msg) msg.textContent='';
+}
+function onThresholdChange(){
+  thresholdDirty = true;
+  const btn = document.getElementById('saveThresholdBtn'); if(btn) btn.disabled=false;
+  const msg = document.getElementById('thresholdMsg'); if(msg) msg.textContent='';
+}
+function saveThresholds(){
+  const vals = [];
+  for(let i=1;i<=4;i++){
+    const inp = document.getElementById('thr_'+i);
+    let v = parseInt(inp.value,10) || 1;
+    if(v<1) v=1;
+    vals.push(v);
+  }
+  // 确保递增
+  for(let i=1;i<4;i++){
+    if(vals[i]<=vals[i-1]) vals[i]=vals[i-1]+1;
+  }
+  // 写回 DOM
+  for(let i=0;i<4;i++) document.getElementById('thr_'+(i+1)).value = vals[i];
+  STAGE_THRESHOLDS = [0, ...vals];
+  localStorage.setItem('petStageThresholds', JSON.stringify(vals));
+  thresholdDirty = false;
+  document.getElementById('saveThresholdBtn').disabled = true;
+  const msg = document.getElementById('thresholdMsg');
+  msg.textContent='已保存！排行榜已自动刷新';
+  renderRankings();
+  setTimeout(()=>{ if(msg.textContent==='已保存！排行榜已自动刷新') msg.textContent=''; },3000);
+}
 
 const PETS = {
   cat:       { name:'猫咪',    emoji:'🐱', rarity:'rare',      color:'#ff9f43' },
@@ -1338,6 +1415,7 @@ document.querySelectorAll('.tab').forEach(tab=>{
 
 // ========== INIT ==========
 (async function init(){
+  loadThresholds();
   try { await loadFromSupabase(); } catch(e) { console.error('初始化失败:', e); }
   if (selectedType===null && Object.keys(scoreTypes).length>0) {
     selectedType=Object.keys(scoreTypes)[0];
