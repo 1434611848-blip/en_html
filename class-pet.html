@@ -513,6 +513,13 @@ function renderTeacherSwitcher() {
   document.getElementById('currentClassLabel').textContent = data.currentTeacher || '-';
 }
 
+function switchTeacher(name) {
+  if (!name || !data.teachers[name]) return;
+  data.currentTeacher = name;
+  saveData();
+  updateUI();
+}
+
 function updateUI() {
   renderTeacherSwitcher();
   updateStats();
