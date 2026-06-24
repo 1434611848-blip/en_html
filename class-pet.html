@@ -608,8 +608,6 @@ function renderTypeTags() {
 }
 function selectType(type) {
   selectedType = type;
-  document.getElementById('scoreValue').value = data.scoreTypes[type]||1;
-  document.getElementById('batchScoreValue').value = data.scoreTypes[type]||1;
   renderTypeTags();
 }
 function renderScoreSelect() {
@@ -897,8 +895,6 @@ document.querySelectorAll('.tab').forEach(tab=>{
 // ========== INIT ==========
 if (selectedType===null && Object.keys(data.scoreTypes).length>0) {
   selectedType=Object.keys(data.scoreTypes)[0];
-  document.getElementById('scoreValue').value=data.scoreTypes[selectedType]||1;
-  document.getElementById('batchScoreValue').value=data.scoreTypes[selectedType]||1;
 }
 renderAll();
 </script>
