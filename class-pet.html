@@ -997,13 +997,12 @@ function renderScoreSelect() {
 async function queryScoreRecords() {
   const type = document.getElementById('queryType').value;
   const div = document.getElementById('queryResults');
-  if (!type) { div.innerHTML = '<p style="color:var(--c-danger)">请先选择加分类型</p>'; return; }
+  if (!type) { div.innerHTML = '<p style="color:#ff6b6b">请先选择加分类型</p>'; return; }
   div.innerHTML = '<p>查询中...</p>';
-  const teacher = getMyTeacher();
-  if (!teacher) return;
-  const { data, error } = await sb.from('pet_score_history').select('student_name').eq('teacher_name', teacher.name).eq('type', type).order('created_at', { ascending: false });
-  if (error) { div.innerHTML = '<p style="color:var(--c-danger)">查询失败: ' + error.message + '</p>'; return; }
-  if (!data || data.length===0) { div.innerHTML = '<p style="color:var(--c-text-muted)">暂无该类型的加分记录</p>'; return; }
+  if (!currentTeacher) return;
+  const { data, error } = await sb.from('pet_score_history').select('student_name').eq('teacher_name', currentTeacher).eq('type', type).order('created_at', { ascending: false });
+  if (error) { div.innerHTML = '<p style="color:#ff6b6b">查询失败: ' + error.message + '</p>'; return; }
+  if (!data || data.length===0) { div.innerHTML = '<p style="color:var(--text-muted)">暂无该类型的加分记录</p>'; return; }
   const count = {};
   data.forEach(r=>{ count[r.student_name] = (count[r.student_name]||0)+1; });
   const rows = Object.entries(count).sort((a,b)=>b[1]-a[1])
