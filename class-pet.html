@@ -309,22 +309,28 @@ const STAGE_THRESHOLDS = [0, 20, 50, 100, 200];
 const STAGE_NAMES = ['蛋 🥚', '幼年', '成长', '成年', '完全体'];
 
 const PETS = {
-  cat:    { name:'猫咪',   emoji:'🐱', rarity:'common',    color:'#ff9f43' },
-  dog:    { name:'小狗',   emoji:'🐶', rarity:'common',    color:'#ee5a24' },
-  rabbit: { name:'兔子',   emoji:'🐰', rarity:'common',    color:'#f8a5c2' },
-  frog:   { name:'青蛙',   emoji:'🐸', rarity:'common',    color:'#2ecc71' },
-  panda:  { name:'熊猫',   emoji:'🐼', rarity:'rare',      color:'#636e72' },
-  fox:    { name:'狐狸',   emoji:'🦊', rarity:'rare',      color:'#e17055' },
-  penguin:{ name:'企鹅',   emoji:'🐧', rarity:'rare',      color:'#74b9ff' },
-  unicorn:{ name:'独角兽', emoji:'🦄', rarity:'legendary', color:'#a29bfe' },
-  dragon: { name:'小龙',   emoji:'🐲', rarity:'legendary', color:'#fd79a8' },
-  phoenix:{ name:'凤凰',   emoji:'🦅', rarity:'mythic',    color:'#fdcb6e' },
+  cat:       { name:'猫咪',    emoji:'🐱', rarity:'rare',      color:'#ff9f43' },
+  dog:       { name:'小狗',    emoji:'🐶', rarity:'rare',      color:'#ee5a24' },
+  rabbit:    { name:'兔子',    emoji:'🐰', rarity:'rare',      color:'#f8a5c2' },
+  frog:      { name:'青蛙',    emoji:'🐸', rarity:'rare',      color:'#2ecc71' },
+  panda:     { name:'熊猫',    emoji:'🐼', rarity:'rare',      color:'#636e72' },
+  fox:       { name:'狐狸',    emoji:'🦊', rarity:'rare',      color:'#e17055' },
+  penguin:   { name:'企鹅',    emoji:'🐧', rarity:'rare',      color:'#74b9ff' },
+  capybara:  { name:'卡皮巴拉',emoji:'🦫', rarity:'rare',      color:'#d4a574' },
+  redpanda:  { name:'小熊猫',  emoji:'🦝', rarity:'rare',      color:'#e67e22' },
+  alpaca:    { name:'羊驼',    emoji:'🦙', rarity:'rare',      color:'#f5e6ca' },
+  otter:     { name:'海獭',    emoji:'🦦', rarity:'rare',      color:'#6ab04c' },
+  badger:    { name:'蜜獾',    emoji:'🦡', rarity:'rare',      color:'#535c68' },
+  unicorn:   { name:'独角兽',  emoji:'🦄', rarity:'legendary', color:'#a29bfe' },
+  sloth:     { name:'树懒',    emoji:'🦥', rarity:'legendary', color:'#778ca3' },
+  dragon:    { name:'神龙',    emoji:'🐲', rarity:'mythic',    color:'#fd79a8' },
+  phoenix:   { name:'凤凰',    emoji:'🔥', rarity:'mythic',    color:'#fdcb6e' },
+  kraken:    { name:'海怪',    emoji:'🐙', rarity:'mythic',    color:'#6c5ce7' },
 };
 
-const RARITY_LABELS = { common:'普通', rare:'稀有', legendary:'传说', mythic:'神话' };
+const RARITY_LABELS = { rare:'稀有', legendary:'传说', mythic:'神话' };
 const RARITY_WEIGHTS = [
-  { key:'common', weight:60 }, { key:'rare', weight:25 },
-  { key:'legendary', weight:10 }, { key:'mythic', weight:5 }
+  { key:'rare', weight:60 }, { key:'legendary', weight:25 }, { key:'mythic', weight:15 }
 ];
 const DEFAULT_SCORE_TYPES = {
   '单词游戏参与':5, '打卡参与':3, '暑假听课参与':5, '暑假作业参与':5,
@@ -563,11 +569,11 @@ function renderStudentGrid() {
       const display = getPetDisplay(s.pet, s.stage);
       const info = PETS[s.pet];
       return `<div class="student-card">
-        <div class="rarity-badge rarity-${s.rarity}">${RARITY_LABELS[s.rarity]}</div>
+        ${s.stage===0?'':`<div class="rarity-badge rarity-${s.rarity}">${RARITY_LABELS[s.rarity]}</div>`}
         <div class="score-badge">${s.score}分</div>
-        <div class="pet-display" onclick="event.stopPropagation();showHistory('${data.currentTeacher}','${name.replace(/'/g,"&#39;")}')" style="cursor:pointer" title="查看加分记录">${display}</div>
+        <div class="pet-display" onclick="event.stopPropagation();showHistory('${data.currentTeacher}','${name.replace(/'/g,"&#39;")}')" style="cursor:pointer" title="${s.stage===0?'点击揭开品种':'查看加分记录'}">${display}</div>
         <div class="name">${name}</div>
-        <div class="info">${info.name} · ${STAGE_NAMES[s.stage]}</div>
+        <div class="info">${s.stage===0?'？':info.name} · ${STAGE_NAMES[s.stage]}</div>
         <div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div></div>
         <button class="del-btn" onclick="event.stopPropagation();delStudent('${name}')">✕</button>
       </div>`;
@@ -637,7 +643,7 @@ function renderRankings() {
     emptyPet.classList.add('hidden');
     petBody.innerHTML = petRank.map((s,i)=>{
       const rk=i+1, rc=rk===1?'rank-1':(rk===2?'rank-2':(rk===3?'rank-3':''));
-      return `<tr><td><span class="rank-num ${rc}">${rk}</span></td><td><strong>${s.name}</strong></td><td>${s.teacher}</td><td>${getPetDisplay(s.pet,s.stage)} ${PETS[s.pet].name}</td><td>${STAGE_NAMES[s.stage]}</td><td>${s.score}分</td><td><div style="width:80px"><div class="progress-bar"><div class="progress-fill" style="width:${getStageProgress(s.score,s.stage)}%"></div></div></div></td></tr>`;
+      return `<tr><td><span class="rank-num ${rc}">${rk}</span></td><td><strong>${s.name}</strong></td><td>${s.teacher}</td><td>${getPetDisplay(s.pet,s.stage)} ${s.stage===0?'？':PETS[s.pet].name}</td><td>${STAGE_NAMES[s.stage]}</td><td>${s.score}分</td><td><div style="width:80px"><div class="progress-bar"><div class="progress-fill" style="width:${getStageProgress(s.score,s.stage)}%"></div></div></div></td></tr>`;
     }).join('');
   }
 
@@ -649,7 +655,7 @@ function renderRankings() {
     emptyScore.classList.add('hidden');
     scoreBody.innerHTML = scoreRank.map((s,i)=>{
       const rk=i+1, rc=rk===1?'rank-1':(rk===2?'rank-2':(rk===3?'rank-3':''));
-      return `<tr><td><span class="rank-num ${rc}">${rk}</span></td><td><strong>${s.name}</strong></td><td>${s.teacher}</td><td>${PETS[s.pet].emoji} ${PETS[s.pet].name}</td><td><strong>${s.score}分</strong></td><td>${STAGE_NAMES[s.stage]}</td></tr>`;
+      return `<tr><td><span class="rank-num ${rc}">${rk}</span></td><td><strong>${s.name}</strong></td><td>${s.teacher}</td><td>${s.stage===0?'🥚':PETS[s.pet].emoji} ${s.stage===0?'？':PETS[s.pet].name}</td><td><strong>${s.score}分</strong></td><td>${STAGE_NAMES[s.stage]}</td></tr>`;
     }).join('');
   }
 }
@@ -690,12 +696,12 @@ function renderColleagueView() {
       const display = getPetDisplay(s.pet, s.stage);
       const info = PETS[s.pet];
       return `<div class="student-card readonly-card">
-        <div class="rarity-badge rarity-${s.rarity}">${RARITY_LABELS[s.rarity]}</div>
+        ${s.stage===0?'':`<div class="rarity-badge rarity-${s.rarity}">${RARITY_LABELS[s.rarity]}</div>`}
         <div class="readonly-badge">只读</div>
         <div class="score-badge">${s.score}分</div>
-        <div class="pet-display" onclick="event.stopPropagation();showHistory('${teacher.replace(/'/g,"&#39;")}','${name.replace(/'/g,"&#39;")}')" style="cursor:pointer" title="查看加分记录">${display}</div>
+        <div class="pet-display" onclick="event.stopPropagation();showHistory('${teacher.replace(/'/g,"&#39;")}','${name.replace(/'/g,"&#39;")}')" style="cursor:pointer" title="${s.stage===0?'点击揭开品种':'查看加分记录'}">${display}</div>
         <div class="name">${name}</div>
-        <div class="info">${info.name} · ${STAGE_NAMES[s.stage]}</div>
+        <div class="info">${s.stage===0?'？':info.name} · ${STAGE_NAMES[s.stage]}</div>
         <div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div></div>
       </div>`;
     }).join('');
@@ -836,6 +842,16 @@ function closeModal() {
 function showHistory(teacher, name) {
   const s = (data.classes[teacher]||{})[name];
   if (!s) return;
+  if (s.stage === 0) {
+    // 蛋阶段：揭示品种
+    const info = PETS[s.pet];
+    document.getElementById('modalEmoji').textContent = info.emoji;
+    document.getElementById('modalTitle').textContent = '🥚 揭开品种！';
+    document.getElementById('modalDesc').innerHTML = `「${name}」的宠物蛋孵化出：<br><strong>${info.name}</strong>（${RARITY_LABELS[s.rarity]}）`;
+    document.getElementById('blindModal').classList.remove('hidden');
+    return;
+  }
+  // 非蛋阶段：加分记录
   const history = s.history || [];
   document.getElementById('historyTitle').textContent = `${name} 的加分记录`;
   if (history.length === 0) {
