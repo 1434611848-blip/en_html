@@ -318,10 +318,10 @@ const RARITY_WEIGHTS = [
   { key:'legendary', weight:10 }, { key:'mythic', weight:5 }
 ];
 const DEFAULT_SCORE_TYPES = {
-  '单词游戏参与':1, '打卡参与':1, '暑假听课参与':1, '暑假作业参与':1,
-  '错题订正参与':1, '问问题积极':1, '额外加分':1
+  '单词游戏参与':5, '打卡参与':3, '暑假听课参与':5, '暑假作业参与':5,
+  '错题订正参与':3, '问问题积极':2, '额外加分':1
 };
-const STORAGE_KEY = 'class_pet_data_v3';
+const STORAGE_KEY = 'class_pet_data_v4';
 
 function loadData() {
   try {
@@ -330,19 +330,33 @@ function loadData() {
       const d = JSON.parse(raw);
       if (!d.classes) d.classes = {};
       if (!d.teachers) d.teachers = {};
-      if (!d.scoreTypes) d.scoreTypes = { ...DEFAULT_SCORE_TYPES };
+      d.scoreTypes = { ...DEFAULT_SCORE_TYPES };
       if (!d.currentTeacher) d.currentTeacher = Object.keys(d.teachers)[0] || '';
-      if (d.students && Object.keys(d.students).length > 0) {
-        const defaultTeacher = Object.keys(d.teachers)[0] || '默认教师';
-        if (!d.teachers[defaultTeacher]) d.teachers[defaultTeacher] = {};
-        if (!d.classes[defaultTeacher]) d.classes[defaultTeacher] = {};
-        for (const [n,s] of Object.entries(d.students)) {
-          if (!d.classes[defaultTeacher][n]) d.classes[defaultTeacher][n] = s;
-        }
-        if (!d.currentTeacher) d.currentTeacher = defaultTeacher;
-        delete d.students;
-      }
       return d;
+    }
+    // 尝试从旧版本迁移
+    const oldKeys = ['class_pet_data_v3', 'class_pet_data_v2'];
+    for (const oldKey of oldKeys) {
+      const oldRaw = localStorage.getItem(oldKey);
+      if (oldRaw) {
+        const d = JSON.parse(oldRaw);
+        if (!d.teachers) d.teachers = {};
+        if (!d.classes) d.classes = {};
+        if (d.students && Object.keys(d.students).length > 0) {
+          const defaultTeacher = Object.keys(d.teachers)[0] || '默认教师';
+          if (!d.teachers[defaultTeacher]) d.teachers[defaultTeacher] = {};
+          if (!d.classes[defaultTeacher]) d.classes[defaultTeacher] = {};
+          for (const [n,s] of Object.entries(d.students)) {
+            if (!d.classes[defaultTeacher][n]) d.classes[defaultTeacher][n] = s;
+          }
+          if (!d.currentTeacher) d.currentTeacher = defaultTeacher;
+          delete d.students;
+        }
+        d.scoreTypes = { ...DEFAULT_SCORE_TYPES };
+        if (!d.currentTeacher) d.currentTeacher = Object.keys(d.teachers)[0] || '';
+        saveData();
+        return d;
+      }
     }
   } catch(e) {}
   return { teachers:{}, classes:{}, scoreTypes:{...DEFAULT_SCORE_TYPES}, currentTeacher:'' };
