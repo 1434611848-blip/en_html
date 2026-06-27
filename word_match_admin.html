@@ -714,7 +714,10 @@ async function renderLeaderboard(){
       document.getElementById('refreshNote').textContent='';
       return;
     }
-    const sorted=records.slice(0,5);
+    // 按 (姓名, 老师) 去重，保留最好成绩（查询已排好序，首次出现即为最优）
+    const seen=new Set();
+    const deduped=records.filter(r=>{const k=`${r.name}|||${r.teacher}`;if(seen.has(k))return false;seen.add(k);return true});
+    const sorted=deduped.slice(0,5);
     const badgeClass=i=>i<3?`badge-${i+1}`:'badge-n';
     if(isEscape){
       container.innerHTML=`
