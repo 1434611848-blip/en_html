@@ -20,7 +20,14 @@ async function loadTeachers() {
   try {
     const { data } = await window.SB.from('teachers').select('name').order('created_at', { ascending: true });
     if (data && data.length > 0) {
-      CACHED_TEACHERS = sortTeachers(data.map(r => r.name));
+      // 按「去除"老师"后缀」去重，保留首次出现的版本
+      const seen = new Set();
+      const deduped = [];
+      for (const r of data) {
+        const norm = r.name.replace(/老师$/g, '');
+        if (!seen.has(norm)) { seen.add(norm); deduped.push(r.name); }
+      }
+      CACHED_TEACHERS = sortTeachers(deduped);
       return CACHED_TEACHERS;
     }
     CACHED_TEACHERS = [];
