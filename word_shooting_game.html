@@ -228,6 +228,30 @@ label { display: block; max-width: 340px; margin: 0 auto; font-size: 14px; color
 .stats { margin: 12px 0; font-size: 15px; line-height: 2; }
 .stats span { color: var(--accent); font-weight: 600; }
 .encourage { font-size: 18px; color: var(--gold); margin: 12px 0; font-weight: 600; }
+
+/* Perfect result */
+.card.perfect {
+  border-color: var(--gold);
+  box-shadow: 0 0 40px rgba(255,215,0,0.25), 0 0 80px rgba(255,215,0,0.1);
+}
+#resultTitle.perfect-title {
+  font-size: 36px; color: var(--gold);
+  text-shadow: 0 0 20px rgba(255,215,0,0.6), 0 0 40px rgba(255,215,0,0.3);
+  animation: titleGlow 1.5s ease-in-out infinite alternate;
+}
+@keyframes titleGlow {
+  from { text-shadow: 0 0 20px rgba(255,215,0,0.4), 0 0 40px rgba(255,215,0,0.2); }
+  to { text-shadow: 0 0 30px rgba(255,215,0,0.8), 0 0 60px rgba(255,215,0,0.4); }
+}
+.stats.perfect-stats span { color: var(--gold); }
+.confetti {
+  position: fixed; top: -10px; z-index: 200; pointer-events: none;
+  animation: confettiFall linear forwards;
+}
+@keyframes confettiFall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(105vh) rotate(720deg); opacity: 0; }
+}
 .remaining { text-align: center; font-size: 14px; color: var(--text-dim); margin: 10px 0; }
 
 .score-pop {
@@ -1039,10 +1063,27 @@ async function showResult() {
   else if (accuracy >= 60) encourages = goodEncourages;
   else encourages = fairEncourages;
 
-  document.getElementById('encourageText').textContent = encourages[Math.floor(Math.random() * encourages.length)];
-  document.getElementById('resultTitle').textContent = accuracy >= 100 ? '完美通关！' : (accuracy >= 60 ? '挑战完成！' : '继续加油！');
+  var isPerfect = accuracy >= 100;
 
-  document.getElementById('resultStats').innerHTML =
+  document.getElementById('encourageText').textContent = encourages[Math.floor(Math.random() * encourages.length)];
+  document.getElementById('resultTitle').textContent = isPerfect ? '完美通关！' : (accuracy >= 60 ? '挑战完成！' : '继续加油！');
+
+  var card = document.getElementById('page-result');
+  var title = document.getElementById('resultTitle');
+  var stats = document.getElementById('resultStats');
+
+  if (isPerfect) {
+    card.classList.add('perfect');
+    title.classList.add('perfect-title');
+    stats.classList.add('perfect-stats');
+    spawnConfetti();
+  } else {
+    card.classList.remove('perfect');
+    title.classList.remove('perfect-title');
+    stats.classList.remove('perfect-stats');
+  }
+
+  stats.innerHTML =
     '总用时：<span>' + formatTime(STATE.totalTime) + '</span> &nbsp;|&nbsp;' +
     '正确：<span>' + STATE.correctCount + '</span> &nbsp;|&nbsp;' +
     '错误：<span>' + STATE.wrongCount + '</span> &nbsp;|&nbsp;' +
@@ -1139,6 +1180,26 @@ function restartGame() {
   STATE.roundWords = [];
   goToPage('setup');
   checkAttempts();
+}
+
+// ============ Confetti for Perfect Result ============
+function spawnConfetti() {
+  var shapes = ['■','▲','●','★','♦'];
+  var colors = ['#ffd740','#ff4081','#69f0ae','#00e5ff','#ff6e40','#e040fb','#fff'];
+  for (var i = 0; i < 50; i++) {
+    setTimeout(function() {
+      var el = document.createElement('div');
+      el.className = 'confetti';
+      el.style.left = Math.random() * 100 + '%';
+      el.style.fontSize = (10 + Math.random() * 18) + 'px';
+      el.style.color = colors[Math.floor(Math.random() * colors.length)];
+      el.style.animationDuration = (2 + Math.random() * 3) + 's';
+      el.style.animationDelay = Math.random() * 0.5 + 's';
+      el.textContent = shapes[Math.floor(Math.random() * shapes.length)];
+      document.body.appendChild(el);
+      setTimeout(function() { el.remove(); }, 4000);
+    }, i * 40);
+  }
 }
 
 // ============ Helpers ============
