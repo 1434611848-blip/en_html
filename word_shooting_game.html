@@ -1120,32 +1120,50 @@ async function showResult() {
 async function loadLeaderboard(myAccuracy, myTime) {
   try {
     var res = await window.SB.from('game_records').select('*')
-      .eq('game_type', 'shooting').eq('rounds', STATE.totalRounds)
-      .order('accuracy', { ascending: false }).order('time', { ascending: true })
-      .limit(10);
+      .eq('game_type', 'shooting').eq('rounds', STATE.totalRounds).eq('accuracy', 100)
+      .order('time', { ascending: true })
+      .limit(50);
 
-    var data = res.data || [];
+    var all = res.data || [];
+    // Deduplicate: keep only best (fastest) time per player
+    var bestMap = {};
+    all.forEach(function(r) {
+      var key = r.name + '|||' + r.teacher;
+      if (!bestMap[key] || r.time < bestMap[key].time) {
+        bestMap[key] = r;
+      }
+    });
+    var data = Object.values(bestMap);
+    data.sort(function(a, b) { return a.time - b.time; });
+    data = data.slice(0, 10);
+
     var tbody = document.getElementById('leaderboardTable');
     var html = '<tr><th>排名</th><th>姓名</th><th>老师</th><th>正确率</th><th>用时</th><th>日期</th></tr>';
     var myRank = -1;
 
     if (data.length > 0) {
       data.forEach(function(r, i) {
-        var isMe = r.name === STATE.playerName && r.teacher === STATE.teacher && r.time === myTime && r.accuracy === myAccuracy;
+        var isMe = r.name === STATE.playerName && r.teacher === STATE.teacher;
         if (isMe) myRank = i + 1;
         html += '<tr class="' + (isMe ? 'highlight' : '') + '">' +
           '<td>' + (i + 1) + '</td><td>' + r.name + '</td><td>' + r.teacher + '</td>' +
-          '<td>' + r.accuracy + '%</td><td>' + formatTime(r.time) + '</td><td>' + r.date + '</td>' +
+          '<td>100%</td><td>' + formatTime(r.time) + '</td><td>' + r.date + '</td>' +
           '</tr>';
       });
     }
     if (data.length === 0) {
-      html += '<tr><td colspan="6" style="padding:16px;color:var(--text-dim);">暂无记录，快来上榜吧！</td></tr>';
+      html += '<tr><td colspan="6" style="padding:16px;color:var(--text-dim);">暂无满分通关记录，快来挑战吧！</td></tr>';
     }
     tbody.innerHTML = html;
 
     if (myRank > 0) {
       document.getElementById('leaderboardYourPos').textContent = '你的排名：第 ' + myRank + ' 名（共 ' + data.length + ' 人）';
+    } else if (myAccuracy >= 100) {
+      document.getElementById('leaderboardYourPos').textContent = '你本次用时 ' + formatTime(myTime) + '，未进入前十';
+    } else if (STATE.gameCompleted) {
+      document.getElementById('leaderboardYourPos').textContent = '排行榜仅收录满分通关，继续加油！';
+    } else {
+      document.getElementById('leaderboardYourPos').textContent = '';
     }
   } catch(e) {
     document.getElementById('leaderboardTable').innerHTML = '<tr><td colspan="6" style="padding:16px;color:var(--text-dim);">排行榜加载失败</td></tr>';
