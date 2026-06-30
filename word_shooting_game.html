@@ -235,6 +235,23 @@ label { display: block; max-width: 340px; margin: 0 auto; font-size: 14px; color
   color: var(--success); pointer-events: none; z-index: 100;
   animation: scorePop 0.8s ease-out forwards;
 }
+
+.options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 18px auto; max-width: 440px; padding: 0 8px; }
+.btn-option {
+  display: block; width: 100%; margin: 0; padding: 16px 10px;
+  border: 2px solid var(--border-card); border-radius: 14px;
+  background: rgba(10,20,50,0.7); color: var(--text);
+  font-size: 17px; font-weight: 600; cursor: pointer; font-family: inherit;
+  transition: all 0.2s; text-align: center;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+@media (hover: hover) { .btn-option:hover { border-color: var(--accent); background: rgba(0,229,255,0.12); transform: scale(1.03); } }
+.btn-option:active { transform: scale(0.96); }
+.btn-option.correct-flash { border-color: var(--success); background: rgba(105,240,174,0.2); animation: optionCorrect 0.4s; }
+.btn-option.wrong-flash { border-color: var(--danger); background: rgba(255,23,68,0.2); animation: optionWrong 0.4s; }
+@keyframes optionCorrect { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+@keyframes optionWrong { 0%,100%{transform:scale(1)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
 @keyframes scorePop {
   0% { transform: translateY(0); opacity: 1; }
   100% { transform: translateY(-60px); opacity: 0; }
@@ -290,9 +307,11 @@ label { display: block; max-width: 340px; margin: 0 auto; font-size: 14px; color
     </div>
     <div class="timer-text" id="timerText">5</div>
     <div class="timer-bar"><div class="timer-fill" id="timerFill" style="width:100%"></div></div>
-    <div class="shoot-input-wrap">
-      <input type="text" id="shootInput" placeholder="输入翻译..." maxlength="30" autocomplete="off">
-      <button class="btn btn-fire" id="btnFire" style="width:auto;max-width:120px;margin:0;">🔥 发射</button>
+    <div class="options-grid" id="optionsGrid">
+      <button class="btn btn-option" data-idx="0"></button>
+      <button class="btn btn-option" data-idx="1"></button>
+      <button class="btn btn-option" data-idx="2"></button>
+      <button class="btn btn-option" data-idx="3"></button>
     </div>
     <div class="feedback-text" id="feedbackText"></div>
     <button class="btn btn-outline btn-small" style="margin-top:20px;" onclick="endGameEarly()">🏳️ 放弃挑战</button>
@@ -680,20 +699,18 @@ function nextQuestion() {
   STATE.questionTimeLeft = 5;
   STATE.questionStartTime = Date.now();
 
-  // Update UI
-  document.getElementById('wordFlyText').textContent = qType === 'zh2en' ? word.zh : word.en;
+  // Update UI - strip trailing pipes from display
+  document.getElementById('wordFlyText').textContent = (qType === 'zh2en' ? word.zh : word.en).replace(/\|+$/g, '');
   document.getElementById('wordFlyText').classList.remove('fast');
   void document.getElementById('wordFlyText').offsetWidth;
   document.getElementById('wordFlyText').classList.add('fast');
-  document.getElementById('shootInput').value = '';
-  document.getElementById('shootInput').placeholder = qType === 'zh2en' ? '输入英文...' : '输入中文...';
-  document.getElementById('shootInput').focus();
   document.getElementById('feedbackText').textContent = '';
   document.getElementById('feedbackText').className = 'feedback-text';
   document.getElementById('timerText').textContent = '5';
   document.getElementById('timerText').classList.remove('urgent');
   document.getElementById('timerFill').style.width = '100%';
-  document.getElementById('btnFire').disabled = false;
+
+  generateOptions();
 
   updateStatusBar();
   updateProgress();
@@ -751,18 +768,43 @@ function handleTimeout() {
   }, 1200);
 }
 
-// ============ Fire action ============
-document.getElementById('btnFire').addEventListener('click', function() { fireShot(); });
-document.getElementById('shootInput').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') fireShot();
-});
+// ============ Options Mode ============
+function generateOptions() {
+  var correct = STATE.currentAnswer;
+  var qType = getQuestionType();
+  var distractors = [];
+  var pool = STATE.words.filter(function(w) {
+    var val = qType === 'zh2en' ? w.en.toLowerCase().trim() : w.zh.trim();
+    return val !== correct.toLowerCase() && !distractors.includes(val);
+  });
+  for (var i = pool.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = pool[i]; pool[i] = pool[j]; pool[j] = t; }
+  for (var k = 0; k < pool.length && distractors.length < 3; k++) {
+    var val = qType === 'zh2en' ? pool[k].en.toLowerCase().trim() : pool[k].zh.trim();
+    if (!distractors.includes(val)) distractors.push(val);
+  }
+  if (distractors.length < 3) {
+    var fallback = qType === 'zh2en' ? ['apple','book','cat'] : ['苹果','书','猫'];
+    for (var f = 0; f < fallback.length && distractors.length < 3; f++) {
+      if (!distractors.includes(fallback[f]) && fallback[f] !== correct.toLowerCase()) distractors.push(fallback[f]);
+    }
+  }
+  var options = [correct].concat(distractors);
+  for (var m = options.length - 1; m > 0; m--) { var n = Math.floor(Math.random() * (m + 1)); var tmp = options[m]; options[m] = options[n]; options[n] = tmp; }
+  var btns = document.querySelectorAll('#optionsGrid .btn-option');
+  btns.forEach(function(btn, i) {
+    btn.textContent = options[i];
+    btn.className = 'btn btn-option';
+    btn.disabled = false;
+    btn.onclick = function() { selectOption(i, options, correct); };
+  });
+}
 
-function fireShot() {
+function selectOption(idx, options, correct) {
   if (!STATE.gameActive) return;
   clearInterval(STATE.questionTimer);
 
-  var userAnswer = document.getElementById('shootInput').value.trim();
-  var isCorrect = userAnswer.toLowerCase() === STATE.currentAnswer.toLowerCase();
+  var userAnswer = options[idx];
+  var isCorrect = userAnswer.toLowerCase() === correct.toLowerCase();
 
   STATE.totalTime += Date.now() - STATE.questionStartTime;
   STATE.pairLog.push({
@@ -770,45 +812,42 @@ function fireShot() {
     question: STATE.currentQuestion,
     word: STATE.currentWord.en,
     type: getQuestionType(),
-    correct: STATE.currentAnswer,
-    userAnswer: userAnswer || '(空)',
+    correct: correct,
+    userAnswer: userAnswer,
     result: isCorrect ? 'correct' : 'wrong'
   });
 
-  document.getElementById('btnFire').disabled = true;
+  var btns = document.querySelectorAll('#optionsGrid .btn-option');
+  btns.forEach(function(btn, i) {
+    btn.disabled = true;
+    if (options[i].toLowerCase() === correct.toLowerCase()) { btn.classList.add('correct-flash'); }
+  });
+  btns[idx].classList.add(isCorrect ? 'correct-flash' : 'wrong-flash');
 
   if (isCorrect) {
     STATE.correctCount++;
     document.getElementById('feedbackText').textContent = '命中！';
     document.getElementById('feedbackText').className = 'feedback-text correct';
-    sfxBiu();
-    spawnExplosion();
-    var flash = document.createElement('div');
-    flash.className = 'hit-flash';
-    document.body.appendChild(flash);
+    sfxBiu(); spawnExplosion();
+    var flash = document.createElement('div'); flash.className = 'hit-flash'; document.body.appendChild(flash);
     setTimeout(function() { flash.remove(); }, 350);
   } else {
     STATE.wrongCount++;
-    document.getElementById('feedbackText').textContent = '未命中！正确答案：' + STATE.currentAnswer;
+    document.getElementById('feedbackText').textContent = '未命中！正确答案：' + correct;
     document.getElementById('feedbackText').className = 'feedback-text wrong';
     sfxMiss();
-    var flash2 = document.createElement('div');
-    flash2.className = 'miss-flash';
-    document.body.appendChild(flash2);
+    var flash2 = document.createElement('div'); flash2.className = 'miss-flash'; document.body.appendChild(flash2);
     setTimeout(function() { flash2.remove(); }, 350);
   }
 
   updateStatusBar();
 
-  // If round completed (every 10 questions)
   if (STATE.currentQuestion % 10 === 0 && STATE.currentQuestion > 0) {
     STATE.currentRound = STATE.currentQuestion / 10;
     sfxRoundClear();
   }
 
-  setTimeout(function() {
-    nextQuestion();
-  }, 1000);
+  setTimeout(function() { nextQuestion(); }, 1000);
 }
 
 // ============ Explosion Effect ============
