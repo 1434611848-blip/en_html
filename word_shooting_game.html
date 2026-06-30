@@ -406,6 +406,7 @@ const STATE = {
   questionTimeLeft: 5,
   pairLog: [],
   roundWords: [],
+  gameCompleted: false,
   gameActive: false,
   currentWord: null,
   currentAnswer: '',
@@ -717,6 +718,7 @@ async function startGame() {
   STATE.currentRound = 1;
   STATE.currentQuestion = 0;
   STATE.roundQuestionIndex = 0;
+  STATE.gameCompleted = false;
   STATE.correctCount = 0;
   STATE.wrongCount = 0;
   STATE.totalTime = 0;
@@ -1022,6 +1024,7 @@ function endGameEarly() {
 
 async function endGame(completed) {
   STATE.gameActive = false;
+  STATE.gameCompleted = completed;
   stopBGM();
   clearInterval(STATE.questionTimer);
 
@@ -1063,10 +1066,18 @@ async function showResult() {
   else if (accuracy >= 60) encourages = goodEncourages;
   else encourages = fairEncourages;
 
-  var isPerfect = accuracy >= 100;
+  var isPerfect = accuracy >= 100 && STATE.gameCompleted;
+  var isCompleted = STATE.gameCompleted;
 
   document.getElementById('encourageText').textContent = encourages[Math.floor(Math.random() * encourages.length)];
-  document.getElementById('resultTitle').textContent = isPerfect ? '完美通关！' : (accuracy >= 60 ? '挑战完成！' : '继续加油！');
+
+  if (isPerfect) {
+    document.getElementById('resultTitle').textContent = '完美通关！';
+  } else if (isCompleted) {
+    document.getElementById('resultTitle').textContent = '挑战完成！';
+  } else {
+    document.getElementById('resultTitle').textContent = '挑战未完成';
+  }
 
   var card = document.getElementById('page-result');
   var title = document.getElementById('resultTitle');
@@ -1089,9 +1100,10 @@ async function showResult() {
     '错误：<span>' + STATE.wrongCount + '</span> &nbsp;|&nbsp;' +
     '正确率：<span>' + accuracy + '%</span>';
 
-  // Submit record
-  try {
-    await window.SB.from('game_records').insert([{
+  // Submit record (only for completed games)
+  if (STATE.gameCompleted) {
+    try {
+      await window.SB.from('game_records').insert([{
       name: STATE.playerName, teacher: STATE.teacher,
       date: new Date().toISOString().split('T')[0],
       time: STATE.totalTime, correct: STATE.correctCount,
@@ -1178,6 +1190,7 @@ function restartGame() {
   STATE.totalTime = 0;
   STATE.pairLog = [];
   STATE.roundWords = [];
+  STATE.gameCompleted = false;
   goToPage('setup');
   checkAttempts();
 }
