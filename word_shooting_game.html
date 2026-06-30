@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>单词射击大作战 Word Shooting</title>
+<style>
+:root {
+  --bg-deep: #020010;
+  --bg-card: rgba(10,15,40,0.75);
+  --border-card: rgba(100,140,255,0.2);
+  --accent: #00e5ff;
+  --accent2: #ff4081;
+  --gold: #ffd740;
+  --danger: #ff1744;
+  --success: #69f0ae;
+  --text: #e0e8ff;
+  --text-dim: #7e8db0;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'PingFang SC','Microsoft YaHei',sans-serif;
+  background: radial-gradient(ellipse at center, #0a0a2e 0%, #020010 70%);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.stars {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  pointer-events: none; z-index: 0;
+}
+.container {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 560px;
+  padding: 20px;
+}
+.card {
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-card);
+  border-radius: 20px;
+  padding: 36px 28px;
+  display: none;
+}
+.card.active { display: block; }
+
+h1 { font-size: 28px; text-align: center; margin-bottom: 6px; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+h2 { font-size: 16px; text-align: center; color: var(--text-dim); font-weight: 400; margin-bottom: 28px; }
+h3 { font-size: 20px; text-align: center; margin-bottom: 20px; color: var(--accent); }
+
+.btn {
+  display: block; width: 100%; max-width: 300px;
+  margin: 12px auto; padding: 14px 28px;
+  border: none; border-radius: 12px;
+  font-size: 17px; font-weight: 600; cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.2s, box-shadow 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+@media (hover: hover) { .btn:hover { transform: translateY(-2px); } }
+.btn:active { transform: translateY(0); }
+.btn-primary {
+  background: linear-gradient(135deg, #0077ff, #00e5ff);
+  color: #000; box-shadow: 0 4px 20px rgba(0,229,255,0.4);
+}
+.btn-primary:hover { box-shadow: 0 6px 28px rgba(0,229,255,0.6); }
+.btn-fire {
+  background: linear-gradient(135deg, var(--accent2), #ff6e40);
+  color: #fff; box-shadow: 0 4px 20px rgba(255,64,129,0.5);
+  font-size: 20px; letter-spacing: 2px;
+}
+.btn-fire:hover { box-shadow: 0 6px 30px rgba(255,64,129,0.7); }
+.btn-outline {
+  background: transparent; border: 2px solid var(--border-card);
+  color: var(--text);
+}
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+.btn-small { max-width: 200px; padding: 10px 20px; font-size: 15px; }
+.btn-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 16px; }
+
+input[type="text"], select {
+  display: block; width: 100%; max-width: 340px;
+  margin: 8px auto 16px; padding: 12px 16px;
+  border-radius: 10px; border: 1px solid var(--border-card);
+  background: rgba(10,20,50,0.6); color: var(--text);
+  font-size: 16px; font-family: inherit; outline: none;
+  transition: border-color 0.2s;
+}
+input:focus, select:focus { border-color: var(--accent); }
+select { appearance: none; -webkit-appearance: none; cursor: pointer; }
+label { display: block; max-width: 340px; margin: 0 auto; font-size: 14px; color: var(--text-dim); }
+
+.status-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 16px; background: rgba(0,229,255,0.06);
+  border-radius: 12px; margin-bottom: 16px; font-size: 14px;
+  flex-wrap: wrap; gap: 8px;
+}
+.status-item { display: flex; align-items: center; gap: 4px; }
+.status-item.warning { color: var(--danger); }
+
+/* Progress bar */
+.progress-bar {
+  height: 4px; background: rgba(255,255,255,0.08);
+  border-radius: 2px; margin-bottom: 20px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2));
+  border-radius: 2px; transition: width 0.4s;
+}
+
+/* Word fly area */
+.word-display-area {
+  position: relative; height: 100px; overflow: hidden;
+  margin-bottom: 20px; display: flex; align-items: center; justify-content: center;
+}
+.word-fly {
+  font-size: 36px; font-weight: 700; color: var(--accent);
+  text-shadow: 0 0 20px rgba(0,229,255,0.6), 0 0 40px rgba(0,229,255,0.3);
+  animation: flyIn 0.5s cubic-bezier(0.25,0.46,0.45,0.94);
+}
+.word-fly.fast { animation: flyInFast 0.3s cubic-bezier(0.25,0.46,0.45,0.94); }
+@keyframes flyIn {
+  0% { transform: translateY(-80px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+@keyframes flyInFast {
+  0% { transform: translateY(-80px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+/* Input area */
+.shoot-input-wrap {
+  display: flex; gap: 12px; align-items: center;
+  max-width: 400px; margin: 0 auto;
+}
+.shoot-input-wrap input {
+  flex: 1; margin: 0; max-width: none;
+  font-size: 18px; font-family: 'SF Mono','Menlo',monospace;
+  text-align: center;
+}
+
+/* Timer */
+.timer-bar {
+  height: 8px; background: rgba(255,255,255,0.1);
+  border-radius: 4px; margin-bottom: 12px; overflow: hidden;
+}
+.timer-fill {
+  height: 100%; background: linear-gradient(90deg, var(--success), var(--gold), var(--danger));
+  border-radius: 4px; transition: width 0.1s linear;
+}
+.timer-text {
+  text-align: center; font-size: 28px; font-weight: 700;
+  font-variant-numeric: tabular-nums; font-family: 'SF Mono','Menlo',monospace;
+  margin-bottom: 12px; transition: color 0.3s;
+}
+.timer-text.urgent { color: var(--danger); animation: pulse 0.5s infinite; }
+@keyframes pulse {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Explosion effect */
+.explosion {
+  position: absolute; pointer-events: none; z-index: 50;
+}
+.particle-burst {
+  position: absolute; width: 6px; height: 6px; border-radius: 50%;
+  animation: burst 0.6s ease-out forwards;
+}
+@keyframes burst {
+  0% { transform: translate(0,0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--dx),var(--dy)) scale(0); opacity: 0; }
+}
+
+/* Hit flash */
+.hit-flash {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  pointer-events: none; z-index: 200;
+  animation: flash 0.3s ease-out forwards;
+}
+@keyframes flash {
+  0% { background: rgba(0,229,255,0.15); }
+  100% { background: transparent; }
+}
+
+.miss-flash {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  pointer-events: none; z-index: 200;
+  animation: missFlash 0.3s ease-out forwards;
+}
+@keyframes missFlash {
+  0% { background: rgba(255,23,68,0.15); }
+  100% { background: transparent; }
+}
+
+/* Result */
+.feedback-text {
+  text-align: center; font-size: 20px; font-weight: 700;
+  margin-top: 10px; min-height: 32px;
+}
+.feedback-text.correct { color: var(--success); }
+.feedback-text.wrong { color: var(--danger); }
+
+/* Leaderboard */
+.leaderboard { width: 100%; border-collapse: collapse; margin: 16px 0; }
+.leaderboard th, .leaderboard td {
+  padding: 8px 6px; text-align: center; font-size: 13px;
+  border-bottom: 1px solid var(--border-card);
+}
+.leaderboard th { color: var(--gold); font-weight: 600; }
+.leaderboard .highlight td { background: rgba(0,229,255,0.12); color: #fff; }
+
+.sound-btn {
+  position: fixed; top: 16px; right: 16px; z-index: 50;
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid var(--border-card); background: var(--bg-card);
+  color: var(--text); font-size: 18px; cursor: pointer;
+  backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center;
+}
+.sound-btn:hover { border-color: var(--accent); }
+
+#page-result .card, #page-setup .card { text-align: center; }
+.stats { margin: 12px 0; font-size: 15px; line-height: 2; }
+.stats span { color: var(--accent); font-weight: 600; }
+.encourage { font-size: 18px; color: var(--gold); margin: 12px 0; font-weight: 600; }
+.remaining { text-align: center; font-size: 14px; color: var(--text-dim); margin: 10px 0; }
+
+.score-pop {
+  position: absolute; font-size: 22px; font-weight: 700;
+  color: var(--success); pointer-events: none; z-index: 100;
+  animation: scorePop 0.8s ease-out forwards;
+}
+@keyframes scorePop {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-60px); opacity: 0; }
+}
+</style>
+</head>
+<body>
+
+<canvas class="stars" id="starsCanvas"></canvas>
+<button class="sound-btn" id="soundToggle" title="音乐开关">🔊</button>
+
+<div class="container">
+
+  <!-- Entry -->
+  <div class="card active" id="page-entry">
+    <h1>单词射击大作战</h1>
+    <h2>Word Shooting</h2>
+    <p style="text-align:center;color:var(--text-dim);margin-bottom:20px;font-size:15px;">瞄准飞来的单词，输入正确翻译击落它！</p>
+    <button class="btn btn-fire" onclick="goToPage('setup')">开始挑战</button>
+  </div>
+
+  <!-- Setup -->
+  <div class="card" id="page-setup">
+    <div id="setupStep1">
+      <h3>你的名字</h3>
+      <p style="text-align:center;color:var(--text-dim);font-size:14px;margin-bottom:14px;">请输入你的名字开始挑战</p>
+      <label>名字</label>
+      <input type="text" id="playerName" placeholder="输入名字（最多20字）" maxlength="20">
+      <button class="btn btn-primary" id="btnNextStep">下一步</button>
+      <button class="btn btn-outline btn-small" onclick="goToPage('entry')">返回</button>
+    </div>
+    <div id="setupStep2" style="display:none">
+      <h3>你好，<span id="step2Greeting"></span>！</h3>
+      <p style="text-align:center;color:var(--text-dim);font-size:14px;margin-bottom:14px;">选择辅导老师，准备射击</p>
+      <label>选择辅导老师</label>
+      <select id="teacherSelect"><option value="">加载中...</option></select>
+      <p class="remaining" id="attemptsInfo"></p>
+      <button class="btn btn-fire" id="btnStartGame" onclick="startGame()" disabled>开始射击</button>
+      <button class="btn btn-outline btn-small" id="btnBackToStep1">返回修改名字</button>
+    </div>
+  </div>
+
+  <!-- Game -->
+  <div class="card" id="page-game">
+    <div class="status-bar">
+      <div class="status-item">🔫 <span id="statusRound">1/5</span></div>
+      <div class="status-item">✅ <span id="statusCorrect">0</span></div>
+      <div class="status-item">❌ <span id="statusWrong">0</span></div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <div class="word-display-area" id="wordDisplayArea">
+      <div class="word-fly" id="wordFlyText"></div>
+    </div>
+    <div class="timer-text" id="timerText">5</div>
+    <div class="timer-bar"><div class="timer-fill" id="timerFill" style="width:100%"></div></div>
+    <div class="shoot-input-wrap">
+      <input type="text" id="shootInput" placeholder="输入翻译..." maxlength="30" autocomplete="off">
+      <button class="btn btn-fire" id="btnFire" style="width:auto;max-width:120px;margin:0;">🔥 发射</button>
+    </div>
+    <div class="feedback-text" id="feedbackText"></div>
+    <button class="btn btn-outline btn-small" style="margin-top:20px;" onclick="endGameEarly()">🏳️ 放弃挑战</button>
+  </div>
+
+  <!-- Result -->
+  <div class="card" id="page-result">
+    <h3 id="resultTitle">挑战结束</h3>
+    <div class="encourage" id="encourageText"></div>
+    <div class="stats" id="resultStats"></div>
+    <table class="leaderboard" id="leaderboardTable"></table>
+    <p style="text-align:center;color:var(--text-dim);font-size:13px;margin:8px 0;" id="leaderboardYourPos"></p>
+    <div class="btn-row">
+      <button class="btn btn-outline btn-small" onclick="downloadStudentCSV()">📥 下载我的记录</button>
+      <button class="btn btn-fire" onclick="restartGame()">再来一局</button>
+      <button class="btn btn-outline btn-small" onclick="goToPage('entry')">返回首页</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="shared.js"></script>
+<script>
+// ============ State ============
+const STATE = {
+  page: 'entry',
+  playerName: '',
+  teacher: '',
+  editionId: null,
+  words: [],
+  remainingAttempts: 3,
+  currentRound: 0,
+  currentQuestion: 0,
+  totalQuestions: 50,
+  correctCount: 0,
+  wrongCount: 0,
+  totalTime: 0,
+  gameStartTime: 0,
+  questionStartTime: 0,
+  questionTimer: null,
+  questionTimeLeft: 5,
+  pairLog: [],
+  gameActive: false,
+  currentWord: null,
+  currentAnswer: '',
+  soundOn: true
+};
+
+// ============ Audio Engine ============
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  }
+  return audioCtx;
+}
+
+function playTone(freq, type, duration, vol, rampDown) {
+  if (!STATE.soundOn) return;
+  try {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type; osc.frequency.value = freq;
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration - rampDown);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(); osc.stop(ctx.currentTime + duration);
+  } catch(e) {}
+}
+
+function playSequence(notes, vol) {
+  if (!STATE.soundOn) return;
+  try {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    let t = ctx.currentTime;
+    notes.forEach(function(n) {
+      var freq = n[0], dur = n[1], type = n[2] || 'sine';
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = type; osc.frequency.value = freq;
+      gain.gain.setValueAtTime(vol, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + dur - 0.01);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(t); osc.stop(t + dur);
+      t += dur;
+    });
+  } catch(e) {}
+}
+
+function sfxBiu() { playSequence([[1200,0.05,'square'],[1600,0.06,'square'],[2000,0.1,'square']], 0.18); }
+function sfxMiss() { playTone(120, 'sawtooth', 0.35, 0.12, 0.03); }
+function sfxRoundClear() { playSequence([[523,0.08],[659,0.08],[784,0.08],[1047,0.2]], 0.15); }
+function sfxVictory() {
+  playSequence([[523,0.12],[659,0.12],[784,0.12],[1047,0.12],[784,0.12],[1047,0.12],[1319,0.35]], 0.16);
+}
+function sfxTick() { playTone(800, 'square', 0.05, 0.06, 0.01); }
+
+let bgmInterval = null, bgmGain = null;
+function startBGM() {
+  if (!STATE.soundOn) return;
+  try {
+    var ctx = getAudioCtx();
+    if (!ctx) return;
+    bgmGain = ctx.createGain();
+    bgmGain.gain.setValueAtTime(0.03, ctx.currentTime);
+    bgmGain.connect(ctx.destination);
+    function loop() {
+      var osc = ctx.createOscillator();
+      osc.type = 'triangle';
+      var notes = [110, 164.81, 196, 164.81, 130.81, 146.83, 174.61, 146.83];
+      var t = ctx.currentTime;
+      notes.forEach(function(f) {
+        osc.frequency.setValueAtTime(f, t);
+        t += 0.12;
+      });
+      var f = ctx.createBiquadFilter();
+      f.type = 'lowpass'; f.frequency.value = 400;
+      osc.connect(f); f.connect(bgmGain);
+      osc.start(); osc.stop(t);
+    }
+    loop();
+    bgmInterval = setInterval(loop, 960);
+  } catch(e) {}
+}
+
+function stopBGM() {
+  if (bgmInterval) { clearInterval(bgmInterval); bgmInterval = null; }
+  if (bgmGain) {
+    try { bgmGain.gain.exponentialRampToValueAtTime(0.001, (audioCtx||{}).currentTime + 0.3); } catch(e) {}
+  }
+}
+
+// AudioContext unlock on first click
+document.addEventListener('click', function() {
+  getAudioCtx();
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}, { once: true });
+
+document.getElementById('soundToggle').addEventListener('click', function() {
+  STATE.soundOn = !STATE.soundOn;
+  this.textContent = STATE.soundOn ? '🔊' : '🔇';
+  if (!STATE.soundOn) stopBGM();
+  else if (STATE.gameActive) startBGM();
+});
+
+// ============ Stars Canvas ============
+function initStars() {
+  var canvas = document.getElementById('starsCanvas');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  var ctx = canvas.getContext('2d');
+  var stars = [];
+  for (var i = 0; i < 120; i++) {
+    stars.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.8 + 0.3,
+      twinkle: Math.random() * Math.PI * 2,
+      speed: Math.random() * 0.02 + 0.005
+    });
+  }
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    stars.forEach(function(s) {
+      s.twinkle += s.speed;
+      var alpha = 0.3 + Math.sin(s.twinkle) * 0.4;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(180,210,255,' + alpha + ')';
+      ctx.fill();
+    });
+    requestAnimationFrame(animate);
+  }
+  animate();
+  window.addEventListener('resize', function() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  });
+}
+initStars();
+
+// ============ Page Navigation ============
+function goToPage(page) {
+  document.querySelectorAll('.card').forEach(function(c) { c.classList.remove('active'); });
+  var el = document.getElementById('page-' + page);
+  if (el) el.classList.add('active');
+  STATE.page = page;
+  if (page === 'setup') {
+    document.getElementById('setupStep1').style.display = 'block';
+    document.getElementById('setupStep2').style.display = 'none';
+    document.getElementById('playerName').value = '';
+    document.getElementById('playerName').focus();
+  }
+}
+
+// ============ Data Loading ============
+async function populateTeacherSelect() {
+  var sel = document.getElementById('teacherSelect');
+  var prevTeacher = STATE.teacher;
+  var teachers = await loadTeachers();
+  if (teachers && teachers.length > 0) {
+    sel.innerHTML = '<option value="">请选择老师</option>' + teachers.map(function(t) { return '<option value="' + t + '">' + t + '</option>'; }).join('');
+  } else {
+    sel.innerHTML = '<option value="">暂无教师</option>';
+  }
+  if (prevTeacher) sel.value = prevTeacher;
+}
+
+async function initGameWords() {
+  try {
+    // Priority 1: shooting_active_edition_id → word_editions
+    var res1 = await window.SB.from('app_settings').select('value').eq('key', 'shooting_active_edition_id').maybeSingle();
+    if (res1.data && res1.data.value) {
+      var res2 = await window.SB.from('word_editions').select('*').eq('name', res1.data.value).maybeSingle();
+      if (res2.data && res2.data.words && Array.isArray(res2.data.words) && res2.data.words.length >= 20) {
+        STATE.editionId = res2.data.id;
+        STATE.words = res2.data.words.map(function(w) { return { en: w.en || w.english || w.word, zh: w.zh || w.cn || w.chinese || w.meaning }; });
+        return;
+      }
+    }
+
+    // Priority 2: shooting_custom_word_list
+    var res3 = await window.SB.from('app_settings').select('value').eq('key', 'shooting_custom_word_list').maybeSingle();
+    if (res3.data && res3.data.value) {
+      try {
+        var parsed = JSON.parse(res3.data.value);
+        if (Array.isArray(parsed) && parsed.length >= 20) {
+          STATE.words = parsed.map(function(w) { return { en: w.en || w.english || w.word, zh: w.zh || w.cn || w.chinese || w.meaning }; });
+          return;
+        }
+      } catch(e) {}
+    }
+
+    // Write default words if not exists
+    await writeDefaultShootingWords();
+  } catch(e) {
+    console.error('initGameWords failed:', e);
+  }
+
+  // Default
+  STATE.words = [
+    {en:'apple',zh:'苹果'},{en:'beautiful',zh:'美丽的'},{en:'cat',zh:'猫'},{en:'dance',zh:'跳舞'},
+    {en:'elephant',zh:'大象'},{en:'flower',zh:'花'},{en:'garden',zh:'花园'},{en:'happy',zh:'快乐的'},
+    {en:'island',zh:'岛屿'},{en:'juice',zh:'果汁'},{en:'king',zh:'国王'},{en:'lion',zh:'狮子'},
+    {en:'mountain',zh:'山'},{en:'night',zh:'夜晚'},{en:'ocean',zh:'海洋'},{en:'piano',zh:'钢琴'},
+    {en:'queen',zh:'女王'},{en:'river',zh:'河流'},{en:'sun',zh:'太阳'},{en:'tiger',zh:'老虎'},
+    {en:'umbrella',zh:'雨伞'},{en:'village',zh:'村庄'},{en:'water',zh:'水'},{en:'yellow',zh:'黄色'}
+  ];
+}
+
+async function writeDefaultShootingWords() {
+  var defaultWords = [
+    {en:'abandon',zh:'放弃'},{en:'ability',zh:'能力'},{en:'absence',zh:'缺席'},
+    {en:'absorb',zh:'吸收'},{en:'abstract',zh:'抽象的'},{en:'abundant',zh:'丰富的'},
+    {en:'academic',zh:'学术的'},{en:'accelerate',zh:'加速'},{en:'accent',zh:'口音'},
+    {en:'access',zh:'进入'},{en:'accompany',zh:'陪伴'},{en:'accomplish',zh:'完成'},
+    {en:'accurate',zh:'准确的'},{en:'achieve',zh:'达成'},{en:'acknowledge',zh:'承认'},
+    {en:'acquire',zh:'获得'},{en:'adapt',zh:'适应'},{en:'adequate',zh:'充足的'},
+    {en:'adjust',zh:'调整'},{en:'admire',zh:'钦佩'}
+  ];
+  try {
+    await window.SB.from('app_settings').upsert(
+      { key: 'shooting_custom_word_list', value: JSON.stringify(defaultWords) },
+      { onConflict: 'key' }
+    );
+    STATE.words = defaultWords;
+  } catch(e) {}
+}
+
+// ============ Attempt Check ============
+async function checkAttempts() {
+  var name = STATE.playerName.trim();
+  var teacher = STATE.teacher;
+  if (!name || !teacher) return;
+  try {
+    var query = window.SB.from('game_records').select('id', { count: 'exact', head: true })
+      .eq('name', name).eq('teacher', teacher).eq('game_type', 'shooting').eq('rounds', 5);
+    var res = await query;
+    if (res.count !== null) {
+      STATE.remainingAttempts = Math.max(0, 3 - res.count);
+    } else {
+      STATE.remainingAttempts = 3;
+    }
+  } catch(e) {
+    STATE.remainingAttempts = 3;
+  }
+  document.getElementById('attemptsInfo').textContent = '剩余挑战次数：' + STATE.remainingAttempts + ' / 3';
+  document.getElementById('btnStartGame').disabled = STATE.remainingAttempts <= 0;
+  document.getElementById('btnStartGame').textContent = STATE.remainingAttempts <= 0 ? '次数已用完' : '开始射击';
+}
+
+// ============ Setup Flow ============
+document.getElementById('btnNextStep').addEventListener('click', async function() {
+  var name = document.getElementById('playerName').value.trim();
+  if (!name) return alert('请输入名字');
+  STATE.playerName = name;
+  document.getElementById('step2Greeting').textContent = name;
+  document.getElementById('setupStep1').style.display = 'none';
+  document.getElementById('setupStep2').style.display = 'block';
+  document.getElementById('attemptsInfo').textContent = '加载中...';
+  if (STATE.words.length === 0) await initGameWords();
+  await populateTeacherSelect();
+  var teacher = document.getElementById('teacherSelect').value;
+  if (teacher) { STATE.teacher = teacher; checkAttempts(); }
+});
+
+document.getElementById('btnBackToStep1').addEventListener('click', function() {
+  document.getElementById('setupStep1').style.display = 'block';
+  document.getElementById('setupStep2').style.display = 'none';
+  STATE.teacher = '';
+});
+
+document.getElementById('teacherSelect').addEventListener('change', async function() {
+  STATE.teacher = this.value;
+  if (!STATE.teacher) return;
+  document.getElementById('attemptsInfo').textContent = '查询中...';
+  if (STATE.words.length === 0) await initGameWords();
+  checkAttempts();
+});
+
+// ============ Game Start ============
+async function startGame() {
+  var name = STATE.playerName.trim();
+  if (!name) return alert('请输入名字');
+  if (!STATE.teacher) return alert('请选择辅导老师');
+  if (STATE.words.length < 20) {
+    await initGameWords();
+    if (STATE.words.length < 20) return alert('词汇不足，请联系老师添加词汇！');
+  }
+
+  // 记录参与人次
+  try {
+    await window.SB.from('game_records').insert([{
+      name: STATE.playerName, teacher: STATE.teacher,
+      date: new Date().toISOString().split('T')[0],
+      time: 0, correct: 0, wrong: 0, rounds: 0, accuracy: 0,
+      edition_id: STATE.editionId || '', game_type: 'shooting'
+    }]);
+  } catch(e) {}
+
+  goToPage('game');
+  STATE.gameActive = true;
+  STATE.currentRound = 0;
+  STATE.currentQuestion = 0;
+  STATE.correctCount = 0;
+  STATE.wrongCount = 0;
+  STATE.totalTime = 0;
+  STATE.gameStartTime = Date.now();
+  STATE.pairLog = [];
+
+  updateStatusBar();
+  updateProgress();
+  startBGM();
+  nextQuestion();
+}
+
+// ============ Question Flow ============
+function getQuestionType() {
+  var q = STATE.currentQuestion;
+  return (q % 2 === 0) ? 'zh2en' : 'en2zh';
+}
+
+function pickRandomWord() {
+  var pool = STATE.words;
+  var idx = Math.floor(Math.random() * pool.length);
+  return pool[idx];
+}
+
+function nextQuestion() {
+  if (STATE.currentQuestion >= STATE.totalQuestions) {
+    endGame(true);
+    return;
+  }
+
+  STATE.currentQuestion++;
+  var qType = getQuestionType();
+  var word = pickRandomWord();
+
+  STATE.currentWord = word;
+  STATE.currentAnswer = qType === 'zh2en' ? word.en.toLowerCase().trim() : word.zh.trim();
+  STATE.questionTimeLeft = 5;
+  STATE.questionStartTime = Date.now();
+
+  // Update UI
+  document.getElementById('wordFlyText').textContent = qType === 'zh2en' ? word.zh : word.en;
+  document.getElementById('wordFlyText').classList.remove('fast');
+  void document.getElementById('wordFlyText').offsetWidth;
+  document.getElementById('wordFlyText').classList.add('fast');
+  document.getElementById('shootInput').value = '';
+  document.getElementById('shootInput').placeholder = qType === 'zh2en' ? '输入英文...' : '输入中文...';
+  document.getElementById('shootInput').focus();
+  document.getElementById('feedbackText').textContent = '';
+  document.getElementById('feedbackText').className = 'feedback-text';
+  document.getElementById('timerText').textContent = '5';
+  document.getElementById('timerText').classList.remove('urgent');
+  document.getElementById('timerFill').style.width = '100%';
+  document.getElementById('btnFire').disabled = false;
+
+  updateStatusBar();
+  updateProgress();
+  startQuestionTimer();
+}
+
+function startQuestionTimer() {
+  clearInterval(STATE.questionTimer);
+  var startTime = Date.now();
+  STATE.questionTimer = setInterval(function() {
+    var elapsed = (Date.now() - startTime) / 1000;
+    var remaining = Math.max(0, 5 - elapsed);
+    STATE.questionTimeLeft = remaining;
+    document.getElementById('timerText').textContent = Math.ceil(remaining);
+    document.getElementById('timerFill').style.width = (remaining / 5 * 100) + '%';
+
+    if (remaining <= 2 && remaining > 0) {
+      document.getElementById('timerText').classList.add('urgent');
+      sfxTick();
+    }
+
+    if (remaining <= 0) {
+      clearInterval(STATE.questionTimer);
+      handleTimeout();
+    }
+  }, 100);
+}
+
+function handleTimeout() {
+  STATE.wrongCount++;
+  STATE.pairLog.push({
+    round: Math.ceil(STATE.currentQuestion / 10),
+    question: STATE.currentQuestion,
+    word: STATE.currentWord.en,
+    type: getQuestionType(),
+    correct: STATE.currentAnswer,
+    userAnswer: '(超时)',
+    result: 'wrong'
+  });
+
+  document.getElementById('feedbackText').textContent = '⏰ 时间到！正确答案：' + STATE.currentAnswer;
+  document.getElementById('feedbackText').className = 'feedback-text wrong';
+  document.getElementById('btnFire').disabled = true;
+  sfxMiss();
+
+  // Miss flash
+  var flash = document.createElement('div');
+  flash.className = 'miss-flash';
+  document.body.appendChild(flash);
+  setTimeout(function() { flash.remove(); }, 350);
+
+  updateStatusBar();
+
+  setTimeout(function() {
+    nextQuestion();
+  }, 1200);
+}
+
+// ============ Fire action ============
+document.getElementById('btnFire').addEventListener('click', function() { fireShot(); });
+document.getElementById('shootInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') fireShot();
+});
+
+function fireShot() {
+  if (!STATE.gameActive) return;
+  clearInterval(STATE.questionTimer);
+
+  var userAnswer = document.getElementById('shootInput').value.trim();
+  var isCorrect = userAnswer.toLowerCase() === STATE.currentAnswer.toLowerCase();
+
+  STATE.totalTime += Date.now() - STATE.questionStartTime;
+  STATE.pairLog.push({
+    round: Math.ceil(STATE.currentQuestion / 10),
+    question: STATE.currentQuestion,
+    word: STATE.currentWord.en,
+    type: getQuestionType(),
+    correct: STATE.currentAnswer,
+    userAnswer: userAnswer || '(空)',
+    result: isCorrect ? 'correct' : 'wrong'
+  });
+
+  document.getElementById('btnFire').disabled = true;
+
+  if (isCorrect) {
+    STATE.correctCount++;
+    document.getElementById('feedbackText').textContent = '命中！';
+    document.getElementById('feedbackText').className = 'feedback-text correct';
+    sfxBiu();
+    spawnExplosion();
+    var flash = document.createElement('div');
+    flash.className = 'hit-flash';
+    document.body.appendChild(flash);
+    setTimeout(function() { flash.remove(); }, 350);
+  } else {
+    STATE.wrongCount++;
+    document.getElementById('feedbackText').textContent = '未命中！正确答案：' + STATE.currentAnswer;
+    document.getElementById('feedbackText').className = 'feedback-text wrong';
+    sfxMiss();
+    var flash2 = document.createElement('div');
+    flash2.className = 'miss-flash';
+    document.body.appendChild(flash2);
+    setTimeout(function() { flash2.remove(); }, 350);
+  }
+
+  updateStatusBar();
+
+  // If round completed (every 10 questions)
+  if (STATE.currentQuestion % 10 === 0 && STATE.currentQuestion > 0) {
+    STATE.currentRound = STATE.currentQuestion / 10;
+    sfxRoundClear();
+  }
+
+  setTimeout(function() {
+    nextQuestion();
+  }, 1000);
+}
+
+// ============ Explosion Effect ============
+function spawnExplosion() {
+  var area = document.getElementById('wordDisplayArea');
+  var rect = area.getBoundingClientRect();
+  var cx = rect.left + rect.width / 2;
+  var cy = rect.top + rect.height / 2;
+
+  var container = document.createElement('div');
+  container.className = 'explosion';
+  container.style.left = cx + 'px';
+  container.style.top = cy + 'px';
+  document.body.appendChild(container);
+
+  var colors = ['#00e5ff', '#ff4081', '#ffd740', '#69f0ae', '#fff'];
+  for (var i = 0; i < 20; i++) {
+    var p = document.createElement('div');
+    p.className = 'particle-burst';
+    var angle = Math.random() * Math.PI * 2;
+    var dist = 30 + Math.random() * 80;
+    p.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
+    p.style.setProperty('--dy', Math.sin(angle) * dist + 'px');
+    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+    p.style.width = (3 + Math.random() * 6) + 'px';
+    p.style.height = p.style.width;
+    container.appendChild(p);
+  }
+
+  setTimeout(function() { container.remove(); }, 700);
+}
+
+// ============ UI Updates ============
+function updateStatusBar() {
+  document.getElementById('statusRound').textContent = Math.ceil(STATE.currentQuestion / 10) + '/5';
+  document.getElementById('statusCorrect').textContent = STATE.correctCount;
+  document.getElementById('statusWrong').textContent = STATE.wrongCount;
+}
+
+function updateProgress() {
+  var pct = (STATE.currentQuestion / STATE.totalQuestions) * 100;
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+// ============ End Game ============
+function endGameEarly() {
+  if (STATE.correctCount === 0) { alert('还没开始射击呢！'); return; }
+  STATE.gameActive = false;
+  stopBGM();
+  clearInterval(STATE.questionTimer);
+  showResult();
+}
+
+async function endGame(completed) {
+  STATE.gameActive = false;
+  stopBGM();
+  clearInterval(STATE.questionTimer);
+
+  if (completed) {
+    sfxVictory();
+  }
+
+  showResult();
+}
+
+async function showResult() {
+  goToPage('result');
+
+  var accuracy = STATE.correctCount + STATE.wrongCount > 0
+    ? Math.round((STATE.correctCount / (STATE.correctCount + STATE.wrongCount)) * 100) : 0;
+
+  var perfectEncourages = [
+    '完美射击！弹无虚发，单词之王！',
+    '全部命中！你是射击冠军！',
+    '满分通关，百发百中，无可匹敌！',
+    '零失误射击，词汇量满分！',
+    '弹无虚发！单词界的狙击手！'
+  ];
+  var goodEncourages = [
+    '射击结束！再练练就能满分了！',
+    '打得漂亮！查漏补缺，下次更强！',
+    '不错的身手！还有提升空间！',
+    '通关成功！继续瞄准满分目标！',
+    '击落了大部分目标，但满分才是终极追求！'
+  ];
+  var fairEncourages = [
+    '还需要多练习哦，加油！',
+    '再接再厉，瞄准更精准！',
+    '别灰心，神枪手都是练出来的！'
+  ];
+
+  var encourages;
+  if (accuracy >= 100) encourages = perfectEncourages;
+  else if (accuracy >= 60) encourages = goodEncourages;
+  else encourages = fairEncourages;
+
+  document.getElementById('encourageText').textContent = encourages[Math.floor(Math.random() * encourages.length)];
+  document.getElementById('resultTitle').textContent = accuracy >= 100 ? '完美通关！' : (accuracy >= 60 ? '挑战完成！' : '继续加油！');
+
+  document.getElementById('resultStats').innerHTML =
+    '总用时：<span>' + formatTime(STATE.totalTime) + '</span> &nbsp;|&nbsp;' +
+    '正确：<span>' + STATE.correctCount + '</span> &nbsp;|&nbsp;' +
+    '错误：<span>' + STATE.wrongCount + '</span> &nbsp;|&nbsp;' +
+    '正确率：<span>' + accuracy + '%</span>';
+
+  // Submit record
+  try {
+    await window.SB.from('game_records').insert([{
+      name: STATE.playerName, teacher: STATE.teacher,
+      date: new Date().toISOString().split('T')[0],
+      time: STATE.totalTime, correct: STATE.correctCount,
+      wrong: STATE.wrongCount, rounds: 5, accuracy: accuracy,
+      edition_id: STATE.editionId || '', game_type: 'shooting',
+      created_at: new Date().toISOString()
+    }]);
+  } catch(e) {}
+
+  // Load leaderboard
+  await loadLeaderboard(accuracy, STATE.totalTime);
+}
+
+async function loadLeaderboard(myAccuracy, myTime) {
+  try {
+    var res = await window.SB.from('game_records').select('*')
+      .eq('game_type', 'shooting').eq('rounds', 5)
+      .order('accuracy', { ascending: false }).order('time', { ascending: true })
+      .limit(10);
+
+    var data = res.data || [];
+    var tbody = document.getElementById('leaderboardTable');
+    var html = '<tr><th>排名</th><th>姓名</th><th>老师</th><th>正确率</th><th>用时</th><th>日期</th></tr>';
+    var myRank = -1;
+
+    if (data.length > 0) {
+      data.forEach(function(r, i) {
+        var isMe = r.name === STATE.playerName && r.teacher === STATE.teacher && r.time === myTime && r.accuracy === myAccuracy;
+        if (isMe) myRank = i + 1;
+        html += '<tr class="' + (isMe ? 'highlight' : '') + '">' +
+          '<td>' + (i + 1) + '</td><td>' + r.name + '</td><td>' + r.teacher + '</td>' +
+          '<td>' + r.accuracy + '%</td><td>' + formatTime(r.time) + '</td><td>' + r.date + '</td>' +
+          '</tr>';
+      });
+    }
+    if (data.length === 0) {
+      html += '<tr><td colspan="6" style="padding:16px;color:var(--text-dim);">暂无记录，快来上榜吧！</td></tr>';
+    }
+    tbody.innerHTML = html;
+
+    if (myRank > 0) {
+      document.getElementById('leaderboardYourPos').textContent = '你的排名：第 ' + myRank + ' 名（共 ' + data.length + ' 人）';
+    }
+  } catch(e) {
+    document.getElementById('leaderboardTable').innerHTML = '<tr><td colspan="6" style="padding:16px;color:var(--text-dim);">排行榜加载失败</td></tr>';
+  }
+}
+
+// ============ CSV Download ============
+function downloadStudentCSV() {
+  var accuracy = STATE.correctCount + STATE.wrongCount > 0
+    ? Math.round((STATE.correctCount / (STATE.correctCount + STATE.wrongCount)) * 100) : 0;
+
+  var csv = '\uFEFF姓名,老师,日期,用时(秒),正确数,错误数,正确率(%),通关轮次\n';
+  csv += STATE.playerName + ',' + STATE.teacher + ',' + new Date().toISOString().split('T')[0] + ',' +
+    (STATE.totalTime / 1000).toFixed(1) + ',' + STATE.correctCount + ',' + STATE.wrongCount + ',' + accuracy + ',5/5\n';
+  csv += '\n答题详情\n轮次,题号,类型,单词,正确答案,你的答案,结果\n';
+
+  STATE.pairLog.forEach(function(q) {
+    var typeLabel = q.type === 'en2zh' ? '英→中' : '中→英';
+    var resultLabel = q.result === 'correct' ? '正确' : '错误';
+    csv += q.round + ',' + q.question + ',' + typeLabel + ',' + q.word + ',' + q.correct + ',' + q.userAnswer + ',' + resultLabel + '\n';
+  });
+
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = STATE.playerName + '_射击大作战记录_' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ============ Restart ============
+function restartGame() {
+  STATE.gameActive = false;
+  stopBGM();
+  clearInterval(STATE.questionTimer);
+  goToPage('setup');
+  checkAttempts();
+}
+
+// ============ Helpers ============
+function formatTime(ms) {
+  var s = Math.floor(ms / 1000);
+  var m = Math.floor(s / 60);
+  var sec = s % 60;
+  return m > 0 ? m + '分' + sec + '秒' : sec + '秒';
+}
+
+// ============ Leave Protection ============
+window.addEventListener('beforeunload', function(e) {
+  if (STATE.gameActive) {
+    e.preventDefault();
+    e.returnValue = '游戏进行中，确定离开吗？';
+    return e.returnValue;
+  }
+});
+
+// ============ Init ============
+goToPage('entry');
+initGameWords();
+</script>
+</body>
+</html>

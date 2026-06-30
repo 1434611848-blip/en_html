@@ -293,6 +293,7 @@ tbody tr:hover{background:#f8fafc}
     <div class="tab-nav">
       <button class="active" id="tabMatch" onclick="switchTab('match')">🧩 单词消消乐</button>
       <button id="tabEscape" onclick="switchTab('escape')">🔑 单词密室逃脱</button>
+      <button id="tabShooting" onclick="switchTab('shooting')">🎯 单词射击</button>
     </div>
 
     <!-- Stats -->
@@ -366,6 +367,40 @@ tbody tr:hover{background:#f8fafc}
         上传单词自动生成新一期。同一时间只有一期处于「激活中」状态。
       </p>
       <div id="escapeEditionsContainer">
+        <div class="empty-state">暂无单词期次，上传单词后将自动生成</div>
+      </div>
+    </div>
+
+    <!-- Shooting Word Upload -->
+    <div class="section" id="shootingUploadSection" style="display:none">
+      <h3><span class="dot" style="background:#ff4081"></span> 🎯 射击单词上传</h3>
+      <div class="upload-area" id="shootingUploadArea">
+        <div class="icon">📂</div>
+        <div class="text">点击上传或拖拽单词文件到此处</div>
+        <div class="hint">支持 .txt / .json / .docx / .pdf 格式（至少 20 组）</div>
+        <div class="upload-info" id="shootingUploadInfo"></div>
+      </div>
+      <input type="file" id="shootingFileInput" accept=".txt,.json,.docx,.pdf" style="display:none">
+      <button class="manual-toggle" id="shootingManualToggle" onclick="toggleShootingManual()">
+        <span class="arrow">▶</span> 手动输入单词
+      </button>
+      <div class="manual-panel" id="shootingManualPanel">
+        <textarea id="shootingManualText" placeholder="abandon,放弃&#10;ability,能力&#10;..."></textarea>
+        <p class="hint">每行一组，英文和中文用逗号、空格或制表符分隔</p>
+        <button class="btn btn-primary btn-small" onclick="importShootingManual()">导入单词</button>
+      </div>
+      <p style="font-size:0.85em;color:var(--text-muted)">
+        当前词汇池：<strong id="shootingVocabCount">0</strong> 组单词
+      </p>
+    </div>
+
+    <!-- Shooting Editions Management -->
+    <div class="section" id="shootingEditionsSection" style="display:none">
+      <h3><span class="dot" style="background:#ff4081"></span> 🎯 射击期次管理</h3>
+      <p style="font-size:0.85em;color:var(--text-muted);margin-bottom:12px">
+        上传单词自动生成新一期。同一时间只有一期处于「激活中」状态。
+      </p>
+      <div id="shootingEditionsContainer">
         <div class="empty-state">暂无单词期次，上传单词后将自动生成</div>
       </div>
     </div>
@@ -499,24 +534,41 @@ function switchTab(tab){
   currentTab=tab;
   document.getElementById('tabMatch').classList.toggle('active',tab==='match');
   document.getElementById('tabEscape').classList.toggle('active',tab==='escape');
-  document.getElementById('headerTitle').textContent=tab==='match'?'📋 教师后台 - 单词消消乐':'📋 教师后台 - 单词密室逃脱';
-  document.getElementById('lbTitle').textContent=tab==='match'?'消消乐排行榜 TOP 5':'密室逃脱排行榜 TOP 5';
-  document.getElementById('lbHint').textContent=tab==='match'?'排序规则：正确率降序 > 用时升序':'排序规则：用时升序（仅统计 5 关全部逃脱的完整记录）';
+  document.getElementById('tabShooting').classList.toggle('active',tab==='shooting');
+  var headerTitle='📋 教师后台 - ';
+  if(tab==='match')headerTitle+='单词消消乐';
+  else if(tab==='escape')headerTitle+='单词密室逃脱';
+  else headerTitle+='单词射击';
+  document.getElementById('headerTitle').textContent=headerTitle;
+
+  if(tab==='shooting'){
+    document.getElementById('lbTitle').textContent='射击排行榜 TOP 5';
+    document.getElementById('lbHint').textContent='排序规则：正确率降序 > 用时升序';
+  }else if(tab==='escape'){
+    document.getElementById('lbTitle').textContent='密室逃脱排行榜 TOP 5';
+    document.getElementById('lbHint').textContent='排序规则：用时升序（仅统计 5 关全部逃脱的完整记录）';
+  }else{
+    document.getElementById('lbTitle').textContent='消消乐排行榜 TOP 5';
+    document.getElementById('lbHint').textContent='排序规则：正确率降序 > 用时升序';
+  }
 
   // 密室逃脱专属区
   document.getElementById('escapeUploadSection').style.display=tab==='escape'?'':'none';
   document.getElementById('escapeEditionsSection').style.display=tab==='escape'?'':'none';
+  // 射击专属区
+  document.getElementById('shootingUploadSection').style.display=tab==='shooting'?'':'none';
+  document.getElementById('shootingEditionsSection').style.display=tab==='shooting'?'':'none';
 
-  // 消消乐管理区（仅消消乐标签可见）
-  const manageSections=document.querySelectorAll('.section');
-  const escapeIds=['escapeUploadSection','escapeEditionsSection'];
-  for(let i=0;i<manageSections.length;i++){
-    const el=manageSections[i];
-    if(escapeIds.includes(el.id)) continue; // 密室区由上方单独控制
-    const h3=el.querySelector('h3');
+  // 管理区显隐控制（消消乐标签显示消消乐专属，其他标签隐藏）
+  var manageSections=document.querySelectorAll('.section');
+  var specialIds=['escapeUploadSection','escapeEditionsSection','shootingUploadSection','shootingEditionsSection'];
+  for(var i=0;i<manageSections.length;i++){
+    var el=manageSections[i];
+    if(specialIds.includes(el.id)) continue;
+    var h3=el.querySelector('h3');
     if(!h3)continue;
-    const txt=h3.textContent||'';
-    if(tab==='escape'){
+    var txt=h3.textContent||'';
+    if(tab==='escape'||tab==='shooting'){
       if(txt.includes('单词文件上传')||txt.includes('老师名单')||txt.includes('修改登录密码')||txt.includes('单词管理')||txt.includes('期次')){
         el.style.display='none';
       }
@@ -526,10 +578,11 @@ function switchTab(tab){
   }
 
   clearInterval(lbTimer);
-  if(tab==='escape'){lbTimer=setInterval(renderLeaderboard,5000)}
+  if(tab==='escape'||tab==='shooting'){lbTimer=setInterval(renderLeaderboard,5000)}
   renderLeaderboard();
   renderStats();
   if(tab==='escape') renderEscapeEditions();
+  else if(tab==='shooting') renderShootingEditions();
   else renderEditions();
 }
 
@@ -596,33 +649,38 @@ async function refreshAll(){
   await renderLeaderboard();
   await renderStats();
   await renderEditions();
-  const matchEditions=await getEditions();
-  document.getElementById('adminVocabCount').textContent=matchEditions.reduce((s,e)=>s+(e.words?e.words.length:0),0);
+  var matchEditions=await getEditions();
+  document.getElementById('adminVocabCount').textContent=matchEditions.reduce(function(s,e){return s+(e.words?e.words.length:0)},0);
+  if(currentTab==='escape') renderEscapeEditions();
+  else if(currentTab==='shooting') renderShootingEditions();
 }
 
 async function renderStats(){
-  const isEscape=currentTab==='escape';
-  let gameCount=0, totalWords=0;
+  var isEscape=currentTab==='escape';
+  var isShooting=currentTab==='shooting';
+  var gameCount=0, totalWords=0;
   try{
     if(isEscape){
-      const{count:gc}=await supabaseAdmin.from('game_records').select('*',{count:'exact',head:true}).eq('game_type','escape').eq('rounds',0);
-      if(gc!=null)gameCount=gc;
+      var res1=await supabaseAdmin.from('game_records').select('*',{count:'exact',head:true}).eq('game_type','escape').eq('rounds',0);
+      if(res1.count!=null)gameCount=res1.count;
+    }else if(isShooting){
+      var res2=await supabaseAdmin.from('game_records').select('*',{count:'exact',head:true}).eq('game_type','shooting').eq('rounds',0);
+      if(res2.count!=null)gameCount=res2.count;
     }else{
-      const{count:gc}=await supabaseAdmin.from('game_records').select('*',{count:'exact',head:true}).or('game_type.eq.match,game_type.is.null').eq('rounds',0);
-      if(gc!=null)gameCount=gc;
+      var res3=await supabaseAdmin.from('game_records').select('*',{count:'exact',head:true}).or('game_type.eq.match,game_type.is.null').eq('rounds',0);
+      if(res3.count!=null)gameCount=res3.count;
     }
   }catch(e){gameCount='—'}
   try{
-    const editions=isEscape?await getEscapeEditions():await getEditions();
-    totalWords=editions.reduce((sum,e)=>sum+(e.words?e.words.length:0),0);
+    var editions=isEscape?await getEscapeEditions():(isShooting?await getShootingEditions():await getEditions());
+    totalWords=editions.reduce(function(sum,e){return sum+(e.words?e.words.length:0)},0);
   }catch(e){totalWords='—'}
-  const teachers=await getTeachers();
-  const label=isEscape?'密室逃脱':'消消乐';
-  document.getElementById('statRow').innerHTML=`
-    <div class="stat-item"><div class="val">${gameCount}</div><div class="lbl">${label}参与人次</div></div>
-    <div class="stat-item"><div class="val">${teachers.length}</div><div class="lbl">老师数量</div></div>
-    <div class="stat-item"><div class="val">${totalWords}</div><div class="lbl">词汇组数（全部期次合计）</div></div>
-  `;
+  var teachers=await getTeachers();
+  var label=isEscape?'密室逃脱':(isShooting?'射击':'消消乐');
+  document.getElementById('statRow').innerHTML=
+    '<div class="stat-item"><div class="val">'+gameCount+'</div><div class="lbl">'+label+'参与人次</div></div>'+
+    '<div class="stat-item"><div class="val">'+teachers.length+'</div><div class="lbl">老师数量</div></div>'+
+    '<div class="stat-item"><div class="val">'+totalWords+'</div><div class="lbl">词汇组数（全部期次合计）</div></div>';
 }
 
 // ==================== Teacher Management ====================
@@ -695,61 +753,72 @@ async function deleteRecord(id){
 }
 
 async function renderLeaderboard(){
-  const container=document.getElementById('adminLeaderboard');
-  const isEscape=currentTab==='escape';
+  var container=document.getElementById('adminLeaderboard');
+  var isEscape=currentTab==='escape';
+  var isShooting=currentTab==='shooting';
   try{
-    let query=supabaseAdmin.from('game_records').select('*');
-    if(isEscape){
+    // 先清除旧内容，防止重复渲染
+    container.innerHTML='';
+    var query=supabaseAdmin.from('game_records').select('*');
+    if(isShooting){
+      // 射击：按正确率降序 > 用时升序，去重
+      query=query.eq('game_type','shooting').eq('rounds',5).order('accuracy',{ascending:false}).order('time',{ascending:true});
+    }else if(isEscape){
       // 密室逃脱：仅 accuracy=100 + rounds=5，按用时升序
       query=query.eq('rounds',5).eq('accuracy',100).neq('game_type','match').order('time',{ascending:true});
     }else{
       // 消消乐：只统计完整通关（10轮），按正确率倒排
-      const activeId=await getActiveEditionId();
+      var activeId=await getActiveEditionId();
       query=query.eq('rounds',10).order('accuracy',{ascending:false}).order('time',{ascending:true});
       if(activeId)query=query.eq('edition_id',activeId);
     }
-    const {data:records}=await query;
+    var res=await query;
+    var records=res.data;
     if(!records||records.length===0){
       container.innerHTML='<div class="empty-state">暂无学生参与记录</div>';
       document.getElementById('refreshNote').textContent='';
       return;
     }
-    // 按 (姓名, 老师) 去重，保留最好成绩（查询已排好序，首次出现即为最优）
-    const seen=new Set();
-    const deduped=records.filter(r=>{const k=`${r.name}|||${r.teacher}`;if(seen.has(k))return false;seen.add(k);return true});
-    const sorted=deduped.slice(0,5);
-    const badgeClass=i=>i<3?`badge-${i+1}`:'badge-n';
-    if(isEscape){
-      container.innerHTML=`
-        <table>
-          <thead><tr><th>排名</th><th>姓名</th><th>老师</th><th>用时</th><th>正确数</th><th>错误数</th><th>正确率</th><th>日期</th><th>操作</th></tr></thead>
-          <tbody>${sorted.map((e,i)=>
-            `<tr>
-              <td><span class="badge ${badgeClass(i)}">${i+1}</span></td>
-              <td>${e.name}</td><td>${e.teacher}</td>
-              <td><strong>${formatTime(e.time)}</strong></td>
-              <td>${e.correct}</td><td>${e.wrong}</td>
-              <td>${e.accuracy}%</td><td>${e.date}</td>
-              <td><button class="btn btn-danger btn-small" onclick="deleteRecord('${e.id}')">删除</button></td>
-            </tr>`
-          ).join('')}</tbody>
-        </table>`;
+    // 按 (姓名, 老师) 去重，保留最好成绩
+    var seen=new Set();
+    var deduped=records.filter(function(r){var k=r.name+'|||'+r.teacher;if(seen.has(k))return false;seen.add(k);return true});
+    var sorted=deduped.slice(0,5);
+    var badgeClass=function(i){return i<3?'badge-'+(i+1):'badge-n'};
+    if(isShooting){
+      container.innerHTML=
+        '<table><thead><tr><th>排名</th><th>姓名</th><th>老师</th><th>用时</th><th>正确数</th><th>错误数</th><th>正确率</th><th>日期</th><th>操作</th></tr></thead>'+
+        '<tbody>'+sorted.map(function(e,i){
+          return '<tr><td><span class="badge '+badgeClass(i)+'">'+(i+1)+'</span></td>'+
+            '<td>'+e.name+'</td><td>'+e.teacher+'</td>'+
+            '<td><strong>'+formatTime(e.time)+'</strong></td>'+
+            '<td>'+e.correct+'</td><td>'+e.wrong+'</td>'+
+            '<td>'+e.accuracy+'%</td><td>'+e.date+'</td>'+
+            "<td><button class=\"btn btn-danger btn-small\" onclick=\"deleteRecord('"+e.id+"')\">删除</button></td></tr>";
+        }).join('')+'</tbody></table>';
+      document.getElementById('refreshNote').textContent='每 5 秒自动刷新';
+    }else if(isEscape){
+      container.innerHTML=
+        '<table><thead><tr><th>排名</th><th>姓名</th><th>老师</th><th>用时</th><th>正确数</th><th>错误数</th><th>正确率</th><th>日期</th><th>操作</th></tr></thead>'+
+        '<tbody>'+sorted.map(function(e,i){
+          return '<tr><td><span class="badge '+badgeClass(i)+'">'+(i+1)+'</span></td>'+
+            '<td>'+e.name+'</td><td>'+e.teacher+'</td>'+
+            '<td><strong>'+formatTime(e.time)+'</strong></td>'+
+            '<td>'+e.correct+'</td><td>'+e.wrong+'</td>'+
+            '<td>'+e.accuracy+'%</td><td>'+e.date+'</td>'+
+            "<td><button class=\"btn btn-danger btn-small\" onclick=\"deleteRecord('"+e.id+"')\">删除</button></td></tr>";
+        }).join('')+'</tbody></table>';
       document.getElementById('refreshNote').textContent='每 5 秒自动刷新';
     }else{
-      container.innerHTML=`
-        <table>
-          <thead><tr><th>排名</th><th>姓名</th><th>老师</th><th>期次</th><th>用时</th><th>正确数</th><th>错误数</th><th>正确率</th><th>日期</th><th>操作</th></tr></thead>
-          <tbody>${sorted.map((e,i)=>
-            `<tr>
-              <td><span class="badge ${badgeClass(i)}">${i+1}</span></td>
-              <td>${e.name}</td><td>${e.teacher}</td>
-              <td style="font-size:0.82em;color:var(--text-secondary)">${e.edition_id||'—'}</td>
-              <td>${formatTime(e.time)}</td><td>${e.correct}</td><td>${e.wrong}</td>
-              <td><strong>${e.accuracy}%</strong></td><td>${e.date}</td>
-              <td><button class="btn btn-danger btn-small" onclick="deleteRecord('${e.id}')">删除</button></td>
-            </tr>`
-          ).join('')}</tbody>
-        </table>`;
+      container.innerHTML=
+        '<table><thead><tr><th>排名</th><th>姓名</th><th>老师</th><th>期次</th><th>用时</th><th>正确数</th><th>错误数</th><th>正确率</th><th>日期</th><th>操作</th></tr></thead>'+
+        '<tbody>'+sorted.map(function(e,i){
+          return '<tr><td><span class="badge '+badgeClass(i)+'">'+(i+1)+'</span></td>'+
+            '<td>'+e.name+'</td><td>'+e.teacher+'</td>'+
+            '<td style="font-size:0.82em;color:var(--text-secondary)">'+(e.edition_id||'—')+'</td>'+
+            '<td>'+formatTime(e.time)+'</td><td>'+e.correct+'</td><td>'+e.wrong+'</td>'+
+            '<td><strong>'+e.accuracy+'%</strong></td><td>'+e.date+'</td>'+
+            "<td><button class=\"btn btn-danger btn-small\" onclick=\"deleteRecord('"+e.id+"')\">删除</button></td></tr>";
+        }).join('')+'</tbody></table>';
       document.getElementById('refreshNote').textContent='';
     }
   }catch(e){container.innerHTML='<div class="empty-state">加载失败，请刷新重试</div>';document.getElementById('refreshNote').textContent=''}
@@ -758,37 +827,40 @@ async function renderLeaderboard(){
 // ==================== CSV Download ====================
 async function downloadCurrentCSV(){
   try{
-    const isEscape=currentTab==='escape';
-    let query=supabaseAdmin.from('game_records').select('*');
-    if(isEscape){
+    var isEscape=currentTab==='escape';
+    var isShooting=currentTab==='shooting';
+    var query=supabaseAdmin.from('game_records').select('*');
+    if(isShooting){
+      query=query.eq('game_type','shooting').eq('rounds',5).order('accuracy',{ascending:false}).order('time',{ascending:true});
+    }else if(isEscape){
       query=query.eq('rounds',5).neq('game_type','match').order('accuracy',{ascending:false}).order('time',{ascending:true});
     }else{
-      const activeId=await getActiveEditionId();
+      var activeId=await getActiveEditionId();
       query=query.order('accuracy',{ascending:false}).order('time',{ascending:true});
       if(activeId)query=query.eq('edition_id',activeId);
     }
-    const{data:records}=await query;
+    var res=await query;
+    var records=res.data;
     if(!records||records.length===0){showToast('暂无记录','error');return}
 
-    // 按 (姓名, 老师) 去重，保留最好成绩（正确率最高 → 用时最短）
-    const bestMap={};
-    records.forEach(r=>{
-      const key=`${r.name}|||${r.teacher}`;
+    // 按 (姓名, 老师) 去重，保留最好成绩
+    var bestMap={};
+    records.forEach(function(r){
+      var key=r.name+'|||'+r.teacher;
       if(!bestMap[key]){bestMap[key]=r;}
     });
-    const bestRecords=Object.values(bestMap);
-    // 排序
-    bestRecords.sort((a,b)=>b.accuracy-a.accuracy||a.time-b.time);
+    var bestRecords=Object.values(bestMap);
+    bestRecords.sort(function(a,b){return b.accuracy-a.accuracy||a.time-b.time});
 
-    let csv='\uFEFF姓名,老师,日期,用时(秒),正确数,错误数,正确率(%),轮次\n';
-    bestRecords.forEach(r=>{
-      csv+=`${r.name},${r.teacher},${r.date},${(r.time/1000).toFixed(1)},${r.correct},${r.wrong},${r.accuracy},${r.rounds}\n`;
+    var csv='\uFEFF姓名,老师,日期,用时(秒),正确数,错误数,正确率(%),轮次\n';
+    bestRecords.forEach(function(r){
+      csv+=r.name+','+r.teacher+','+r.date+','+(r.time/1000).toFixed(1)+','+r.correct+','+r.wrong+','+r.accuracy+','+r.rounds+'\n';
     });
-    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
-    const url=URL.createObjectURL(blob),a=document.createElement('a');
-    const prefix=isEscape?'密室逃脱':'消消乐';
-    a.href=url;a.download=`${prefix}_最好成绩_${new Date().toISOString().slice(0,10)}.csv`;a.click();
-    URL.revokeObjectURL(url);showToast(`已导出 ${bestRecords.length} 人最好成绩（原 ${records.length} 条去重）`,'success');
+    var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    var url=URL.createObjectURL(blob),a=document.createElement('a');
+    var prefix=isShooting?'射击':(isEscape?'密室逃脱':'消消乐');
+    a.href=url;a.download=prefix+'_最好成绩_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+    URL.revokeObjectURL(url);showToast('已导出 '+bestRecords.length+' 人最好成绩（原 '+records.length+' 条去重）','success');
   }catch(e){showToast('下载失败，请重试','error')}
 }
 
@@ -1235,6 +1307,155 @@ async function renderEscapeEditions(){
   `;
 }
 // ==================== End Escape ====================
+
+// ==================== Shooting: Upload & Edition ====================
+// --- Shooting file upload ---
+document.getElementById('shootingUploadArea').addEventListener('click',function(){document.getElementById('shootingFileInput').click()});
+document.getElementById('shootingUploadArea').addEventListener('dragover',function(e){e.preventDefault();e.currentTarget.style.borderColor='var(--primary)'});
+document.getElementById('shootingUploadArea').addEventListener('dragleave',function(e){e.currentTarget.style.borderColor='var(--border)'});
+document.getElementById('shootingUploadArea').addEventListener('drop',async function(e){
+  e.preventDefault();e.currentTarget.style.borderColor='var(--border)';
+  var f=e.dataTransfer.files[0];if(f)await handleShootingFile(f);
+});
+document.getElementById('shootingFileInput').addEventListener('change',async function(e){
+  var f=e.target.files[0];if(f)await handleShootingFile(f);
+});
+
+async function handleShootingFile(file){
+  try{
+    var ext=file.name.split('.').pop().toLowerCase();
+    var text='';
+    if(ext==='txt'){text=await file.text()}
+    else if(ext==='json'){var j=JSON.parse(await file.text());if(Array.isArray(j)){text=j.map(function(w){return (w.en||w.english||w.word)+','+(w.zh||w.chinese||w.meaning)}).join('\n')}else{throw new Error('JSON 格式错误')}}
+    else{showToast('仅支持 .txt / .json 文件','error');return;}
+    var words=extractPairs(text);
+    if(words.length<20){showToast('至少需要 20 组单词，当前仅 '+words.length+' 组','error');return;}
+    await addShootingEdition(words);
+  }catch(e){showToast('上传失败: '+e.message,'error')}
+}
+
+function toggleShootingManual(){
+  var panel=document.getElementById('shootingManualPanel');
+  var toggle=document.getElementById('shootingManualToggle');
+  var isOpen=panel.classList.toggle('open');
+  toggle.querySelector('.arrow').textContent=isOpen?'▼':'▶';
+}
+async function importShootingManual(){
+  var text=document.getElementById('shootingManualText').value.trim();
+  if(!text){showToast('请输入单词','error');return;}
+  var words=extractPairs(text);
+  if(words.length<20){showToast('至少需要 20 组单词，当前仅 '+words.length+' 组','error');return;}
+  await addShootingEdition(words);
+  document.getElementById('shootingManualText').value='';
+  toggleShootingManual();
+  var shootingEds=await getShootingEditions();
+  document.getElementById('shootingVocabCount').textContent=shootingEds.reduce(function(s,e){return s+(e.words?e.words.length:0)},0);
+}
+
+// --- Shooting: Edition CRUD ---
+async function getShootingEditions(){
+  try{var res=await supabaseAdmin.from('word_editions').select('*').eq('note','shooting').order('created_at',{ascending:false});return res.data||[]}
+  catch(e){return[]}
+}
+async function getShootingActiveId(){
+  try{var res=await supabaseAdmin.from('app_settings').select('value').eq('key','shooting_active_edition_id').maybeSingle();return res.data&&res.data.value?res.data.value:null}
+  catch(e){return null}
+}
+async function setShootingActiveId(name){
+  if(name){
+    await supabaseAdmin.from('app_settings').upsert({key:'shooting_active_edition_id',value:name},{onConflict:'key'});
+  }else{
+    await supabaseAdmin.from('app_settings').delete().eq('key','shooting_active_edition_id');
+  }
+}
+async function getShootingWordsFromDB(){
+  try{var res=await supabaseAdmin.from('app_settings').select('value').eq('key','shooting_custom_word_list').maybeSingle();if(res.data&&res.data.value)return JSON.parse(res.data.value)}
+  catch(e){}
+  return null;
+}
+async function setShootingWordsToDB(words){
+  await supabaseAdmin.from('app_settings').upsert({key:'shooting_custom_word_list',value:JSON.stringify(words)},{onConflict:'key'});
+}
+
+async function addShootingEdition(words){
+  var name=await generateShootingEditionName();
+  var res=await supabaseAdmin.from('word_editions').insert({name:name,words:words,note:'shooting',created_at:new Date().toISOString()}).select();
+  if(res.error){showToast('上传失败: '+res.error.message,'error');return}
+  var activeId=await getShootingActiveId();
+  if(!activeId){await setShootingActiveId(name);await setShootingWordsToDB(words)}
+  await renderShootingEditions();
+  var shootingEds=await getShootingEditions();
+  document.getElementById('shootingVocabCount').textContent=shootingEds.reduce(function(s,e){return s+(e.words?e.words.length:0)},0);
+  await renderStats();
+  showToast('射击期次「'+name+'」已上传（'+words.length+' 组单词）','success');
+}
+async function generateShootingEditionName(){
+  var today=new Date();
+  var base='SHT-'+today.getFullYear()+String(today.getMonth()+1).padStart(2,'0')+String(today.getDate()).padStart(2,'0');
+  var editions=await getShootingEditions();
+  var sameDay=editions.filter(function(e){return e.name&&e.name.startsWith(base)});
+  if(sameDay.length===0)return base;
+  var maxSuffix=Math.max.apply(null,sameDay.map(function(e){
+    var parts=e.name.split('-');
+    return parts.length===3?parseInt(parts[2]):0;
+  }));
+  return base+'-'+String(maxSuffix+1).padStart(3,'0');
+}
+
+async function activateShootingEdition(name){
+  await setShootingActiveId(name);
+  await renderShootingEditions();
+  var editions=await getShootingEditions();
+  var active=editions.find(function(e){return e.name===name});
+  if(active){await setShootingWordsToDB(active.words)}
+  var shootingEds=await getShootingEditions();
+  document.getElementById('shootingVocabCount').textContent=shootingEds.reduce(function(s,e){return s+(e.words?e.words.length:0)},0);
+  await renderStats();
+  showToast('射击已激活：'+name,'success');
+}
+async function deactivateShootingEdition(){
+  if(!isSuperAdmin()){showToast('仅超级管理员可操作','error');return}
+  await setShootingActiveId(null);
+  await setShootingWordsToDB([]);
+  await renderShootingEditions();
+  var shootingEds=await getShootingEditions();
+  document.getElementById('shootingVocabCount').textContent=shootingEds.reduce(function(s,e){return s+(e.words?e.words.length:0)},0);
+  await renderStats();
+  showToast('射击已下架，游戏端将使用默认单词表','info');
+}
+
+async function renderShootingEditions(){
+  var container=document.getElementById('shootingEditionsContainer');
+  var editions=await getShootingEditions();
+  var activeId=await getShootingActiveId();
+  document.getElementById('shootingVocabCount').textContent=editions.reduce(function(s,e){return s+(e.words?e.words.length:0)},0);
+  if(editions.length===0){
+    container.innerHTML='<div class="empty-state">暂无射击期次，上传单词后将自动生成</div>';
+    return;
+  }
+  var isSA=isSuperAdmin();
+  container.innerHTML=
+    '<table class="edition-table"><thead><tr><th>期次名称</th><th>单词数</th><th>状态</th><th>创建时间</th><th>备注</th><th>操作</th></tr></thead>'+
+    '<tbody>'+editions.map(function(e){
+      var isActive=e.name===activeId;
+      var date=new Date(e.created_at);
+      var dateStr=date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0')+' '+String(date.getHours()).padStart(2,'0')+':'+String(date.getMinutes()).padStart(2,'0');
+      var ops=isSA?(isActive?
+        '<button class="btn btn-outline btn-small" onclick="deactivateShootingEdition()">下架</button>':
+        '<button class="btn btn-primary btn-small" onclick="activateShootingEdition(\''+e.name+'\')">上架</button>'
+      ):'';
+      return '<tr><td><strong>'+e.name+'</strong></td>'+
+        '<td>'+e.words.length+' 组</td>'+
+        '<td><span class="status-tag '+(isActive?'status-active':'status-inactive')+'">'+(isActive?'激活中':'未激活')+'</span></td>'+
+        '<td style="color:var(--text-muted);font-size:0.85em">'+dateStr+'</td>'+
+        '<td><span class="edition-note" onclick="startEditNote(\''+e.id+'\',this)" title="'+(e.note||'点击添加备注')+'"><span class="note-icon">✏️</span>'+(e.note||'—')+'</span></td>'+
+        '<td><div class="edition-actions">'+ops+
+        '<button class="btn btn-outline btn-small" onclick="viewEditionDetail(\''+e.id+'\')">详情</button>'+
+        (isSA&&!isActive?'<button class="btn btn-danger btn-small" onclick="confirmDeleteEdition(\''+e.id+'\')">删除</button>':'')+
+        '</div></td></tr>';
+    }).join('')+'</tbody></table>';
+}
+// ==================== End Shooting ====================
 
 // Click outside modal to close
 document.addEventListener('DOMContentLoaded',function(){
