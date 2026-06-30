@@ -736,7 +736,6 @@ function handleTimeout() {
 
   document.getElementById('feedbackText').textContent = '⏰ 时间到！正确答案：' + STATE.currentAnswer;
   document.getElementById('feedbackText').className = 'feedback-text wrong';
-  document.getElementById('btnFire').disabled = true;
   sfxMiss();
 
   // Miss flash
