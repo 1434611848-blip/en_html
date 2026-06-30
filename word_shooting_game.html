@@ -557,7 +557,7 @@ async function initGameWords() {
     var res1 = await window.SB.from('app_settings').select('value').eq('key', 'shooting_active_edition_id').maybeSingle();
     if (res1.data && res1.data.value) {
       var res2 = await window.SB.from('word_editions').select('*').eq('name', res1.data.value).maybeSingle();
-      if (res2.data && res2.data.words && Array.isArray(res2.data.words) && res2.data.words.length >= 20) {
+      if (res2.data && res2.data.words && Array.isArray(res2.data.words) && res2.data.words.length >= 30) {
         STATE.editionId = res2.data.id;
         STATE.words = res2.data.words.map(function(w) { return { en: w.en || w.english || w.word, zh: w.zh || w.cn || w.chinese || w.meaning }; });
         return;
@@ -569,7 +569,7 @@ async function initGameWords() {
     if (res3.data && res3.data.value) {
       try {
         var parsed = JSON.parse(res3.data.value);
-        if (Array.isArray(parsed) && parsed.length >= 20) {
+        if (Array.isArray(parsed) && parsed.length >= 30) {
           STATE.words = parsed.map(function(w) { return { en: w.en || w.english || w.word, zh: w.zh || w.cn || w.chinese || w.meaning }; });
           return;
         }
@@ -601,7 +601,12 @@ async function writeDefaultShootingWords() {
     {en:'access',zh:'进入'},{en:'accompany',zh:'陪伴'},{en:'accomplish',zh:'完成'},
     {en:'accurate',zh:'准确的'},{en:'achieve',zh:'达成'},{en:'acknowledge',zh:'承认'},
     {en:'acquire',zh:'获得'},{en:'adapt',zh:'适应'},{en:'adequate',zh:'充足的'},
-    {en:'adjust',zh:'调整'},{en:'admire',zh:'钦佩'}
+    {en:'adjust',zh:'调整'},{en:'admire',zh:'钦佩'},
+    {en:'strategy',zh:'策略'},{en:'significant',zh:'重要的'},
+    {en:'perspective',zh:'观点'},{en:'comprehensive',zh:'全面的'},
+    {en:'demonstrate',zh:'演示'},{en:'enthusiasm',zh:'热情'},
+    {en:'sophisticated',zh:'精密的'},{en:'extraordinary',zh:'非凡的'},
+    {en:'circumstance',zh:'情况'},{en:'consequence',zh:'后果'}
   ];
   try {
     await window.SB.from('app_settings').upsert(
