@@ -256,6 +256,19 @@ label { display: block; max-width: 340px; margin: 0 auto; font-size: 14px; color
   0% { transform: translateY(0); opacity: 1; }
   100% { transform: translateY(-60px); opacity: 0; }
 }
+
+/* Round Complete */
+.round-complete-wrap { text-align: center; padding: 20px 10px; }
+.round-complete-title {
+  font-size: 32px; font-weight: 800; color: var(--gold);
+  text-shadow: 0 0 20px rgba(255,215,0,0.5); margin-bottom: 12px;
+}
+.round-complete-sub {
+  font-size: 18px; color: var(--accent); margin-bottom: 16px;
+}
+.round-complete-stats {
+  font-size: 15px; color: var(--text-dim); margin-bottom: 24px;
+}
 </style>
 </head>
 <body>
@@ -317,6 +330,17 @@ label { display: block; max-width: 340px; margin: 0 auto; font-size: 14px; color
     <button class="btn btn-outline btn-small" style="margin-top:20px;" onclick="endGameEarly()">🏳️ 放弃挑战</button>
   </div>
 
+  <!-- Round Complete Overlay -->
+  <div class="card" id="page-round-complete">
+    <div class="round-complete-wrap">
+      <h3 class="round-complete-title" id="roundCompleteTitle">第 1 轮结束</h3>
+      <p class="round-complete-sub" id="roundCompleteSub">难度升级！准备好迎接更强的单词了吗？</p>
+      <p class="round-complete-stats" id="roundCompleteStats"></p>
+      <button class="btn btn-fire" onclick="advanceRound()">进入下一轮</button>
+      <button class="btn btn-outline btn-small" style="margin-top:12px;" onclick="endGameEarly()">🏳️ 放弃挑战</button>
+    </div>
+  </div>
+
   <!-- Result -->
   <div class="card" id="page-result">
     <h3 id="resultTitle">挑战结束</h3>
@@ -344,9 +368,11 @@ const STATE = {
   editionId: null,
   words: [],
   remainingAttempts: 3,
-  currentRound: 0,
+  currentRound: 1,
   currentQuestion: 0,
-  totalQuestions: 50,
+  roundQuestionIndex: 0,
+  totalQuestions: 30,
+  totalRounds: 3,
   correctCount: 0,
   wrongCount: 0,
   totalTime: 0,
@@ -355,6 +381,7 @@ const STATE = {
   questionTimer: null,
   questionTimeLeft: 5,
   pairLog: [],
+  roundWords: [],
   gameActive: false,
   currentWord: null,
   currentAnswer: '',
@@ -592,7 +619,7 @@ async function checkAttempts() {
   if (!name || !teacher) return;
   try {
     var query = window.SB.from('game_records').select('id', { count: 'exact', head: true })
-      .eq('name', name).eq('teacher', teacher).eq('game_type', 'shooting').eq('rounds', 5);
+      .eq('name', name).eq('teacher', teacher).eq('game_type', 'shooting').eq('rounds', STATE.totalRounds);
     var res = await query;
     if (res.count !== null) {
       STATE.remainingAttempts = Math.max(0, 3 - res.count);
@@ -658,13 +685,15 @@ async function startGame() {
 
   goToPage('game');
   STATE.gameActive = true;
-  STATE.currentRound = 0;
+  STATE.currentRound = 1;
   STATE.currentQuestion = 0;
+  STATE.roundQuestionIndex = 0;
   STATE.correctCount = 0;
   STATE.wrongCount = 0;
   STATE.totalTime = 0;
   STATE.gameStartTime = Date.now();
   STATE.pairLog = [];
+  buildRoundWords();
 
   updateStatusBar();
   updateProgress();
@@ -672,27 +701,52 @@ async function startGame() {
   nextQuestion();
 }
 
-// ============ Question Flow ============
-function getQuestionType() {
-  var q = STATE.currentQuestion;
-  return (q % 2 === 0) ? 'zh2en' : 'en2zh';
+// ============ Build Round Words (sorted by difficulty) ============
+function buildRoundWords() {
+  var pool = STATE.words.slice();
+  // Sort by word length (shorter = easier)
+  pool.sort(function(a, b) { return a.en.length - b.en.length; });
+  var perRound = 10;
+  STATE.roundWords = [];
+  for (var i = 0; i < STATE.totalRounds; i++) {
+    STATE.roundWords.push(pool.slice(i * perRound, (i + 1) * perRound));
+  }
+  // Shuffle within each round for variety, but keep difficulty tiers
+  for (var r = 0; r < STATE.totalRounds; r++) {
+    var arr = STATE.roundWords[r];
+    for (var j = arr.length - 1; j > 0; j--) {
+      var k = Math.floor(Math.random() * (j + 1));
+      var t = arr[j]; arr[j] = arr[k]; arr[k] = t;
+    }
+  }
 }
 
-function pickRandomWord() {
-  var pool = STATE.words;
-  var idx = Math.floor(Math.random() * pool.length);
-  return pool[idx];
+// ============ Question Flow ============
+function getQuestionType() {
+  // Within each round: first 5 zh2en, last 5 en2zh
+  return STATE.roundQuestionIndex < 5 ? 'zh2en' : 'en2zh';
+}
+
+function pickCurrentWord() {
+  var roundIdx = STATE.currentRound - 1;
+  return STATE.roundWords[roundIdx][STATE.roundQuestionIndex];
 }
 
 function nextQuestion() {
-  if (STATE.currentQuestion >= STATE.totalQuestions) {
-    endGame(true);
+  // Check if round completed
+  if (STATE.roundQuestionIndex >= 10) {
+    if (STATE.currentRound >= STATE.totalRounds) {
+      endGame(true);
+      return;
+    }
+    // Transition to next round
+    showRoundComplete();
     return;
   }
 
   STATE.currentQuestion++;
   var qType = getQuestionType();
-  var word = pickRandomWord();
+  var word = pickCurrentWord();
 
   STATE.currentWord = word;
   STATE.currentAnswer = qType === 'zh2en' ? word.en.toLowerCase().trim() : word.zh.trim();
@@ -742,7 +796,7 @@ function startQuestionTimer() {
 function handleTimeout() {
   STATE.wrongCount++;
   STATE.pairLog.push({
-    round: Math.ceil(STATE.currentQuestion / 10),
+    round: STATE.currentRound,
     question: STATE.currentQuestion,
     word: STATE.currentWord.en,
     type: getQuestionType(),
@@ -762,6 +816,8 @@ function handleTimeout() {
   setTimeout(function() { flash.remove(); }, 350);
 
   updateStatusBar();
+
+  STATE.roundQuestionIndex++;
 
   setTimeout(function() {
     nextQuestion();
@@ -808,7 +864,7 @@ function selectOption(idx, options, correct) {
 
   STATE.totalTime += Date.now() - STATE.questionStartTime;
   STATE.pairLog.push({
-    round: Math.ceil(STATE.currentQuestion / 10),
+    round: STATE.currentRound,
     question: STATE.currentQuestion,
     word: STATE.currentWord.en,
     type: getQuestionType(),
@@ -842,10 +898,7 @@ function selectOption(idx, options, correct) {
 
   updateStatusBar();
 
-  if (STATE.currentQuestion % 10 === 0 && STATE.currentQuestion > 0) {
-    STATE.currentRound = STATE.currentQuestion / 10;
-    sfxRoundClear();
-  }
+  STATE.roundQuestionIndex++;
 
   setTimeout(function() { nextQuestion(); }, 1000);
 }
@@ -882,14 +935,51 @@ function spawnExplosion() {
 
 // ============ UI Updates ============
 function updateStatusBar() {
-  document.getElementById('statusRound').textContent = Math.ceil(STATE.currentQuestion / 10) + '/5';
+  document.getElementById('statusRound').textContent = STATE.currentRound + '/' + STATE.totalRounds;
   document.getElementById('statusCorrect').textContent = STATE.correctCount;
   document.getElementById('statusWrong').textContent = STATE.wrongCount;
 }
 
 function updateProgress() {
-  var pct = (STATE.currentQuestion / STATE.totalQuestions) * 100;
+  var done = (STATE.currentRound - 1) * 10 + STATE.roundQuestionIndex;
+  var pct = (done / STATE.totalQuestions) * 100;
   document.getElementById('progressFill').style.width = pct + '%';
+}
+
+// ============ Round Transition ============
+function showRoundComplete() {
+  STATE.gameActive = false;
+  clearInterval(STATE.questionTimer);
+  sfxRoundClear();
+
+  var roundCorrect = STATE.correctCount - (STATE.roundWords[STATE.currentRound - 1] ? 0 : 0);
+  document.getElementById('roundCompleteTitle').textContent = '第 ' + STATE.currentRound + ' 轮结束！';
+  if (STATE.currentRound < STATE.totalRounds) {
+    document.getElementById('roundCompleteSub').textContent = '难度升级！准备好迎接更强的单词了吗？';
+  } else {
+    document.getElementById('roundCompleteSub').textContent = '最终轮完成！看看你的总成绩吧！';
+  }
+  document.getElementById('roundCompleteStats').innerHTML =
+    '总命中：<span style="color:var(--success)">' + STATE.correctCount + '</span> &nbsp;|&nbsp;' +
+    '总失误：<span style="color:var(--danger)">' + STATE.wrongCount + '</span> &nbsp;|&nbsp;' +
+    '用时：' + formatTime(Date.now() - STATE.gameStartTime);
+
+  goToPage('round-complete');
+}
+
+function advanceRound() {
+  if (STATE.currentRound >= STATE.totalRounds) {
+    endGame(true);
+    return;
+  }
+  STATE.currentRound++;
+  STATE.roundQuestionIndex = 0;
+  STATE.gameActive = true;
+  goToPage('game');
+  updateStatusBar();
+  updateProgress();
+  startBGM();
+  nextQuestion();
 }
 
 // ============ End Game ============
@@ -959,7 +1049,7 @@ async function showResult() {
       name: STATE.playerName, teacher: STATE.teacher,
       date: new Date().toISOString().split('T')[0],
       time: STATE.totalTime, correct: STATE.correctCount,
-      wrong: STATE.wrongCount, rounds: 5, accuracy: accuracy,
+      wrong: STATE.wrongCount, rounds: STATE.totalRounds, accuracy: accuracy,
       edition_id: STATE.editionId || '', game_type: 'shooting',
       created_at: new Date().toISOString()
     }]);
@@ -972,7 +1062,7 @@ async function showResult() {
 async function loadLeaderboard(myAccuracy, myTime) {
   try {
     var res = await window.SB.from('game_records').select('*')
-      .eq('game_type', 'shooting').eq('rounds', 5)
+      .eq('game_type', 'shooting').eq('rounds', STATE.totalRounds)
       .order('accuracy', { ascending: false }).order('time', { ascending: true })
       .limit(10);
 
@@ -1011,7 +1101,7 @@ function downloadStudentCSV() {
 
   var csv = '\uFEFF姓名,老师,日期,用时(秒),正确数,错误数,正确率(%),通关轮次\n';
   csv += STATE.playerName + ',' + STATE.teacher + ',' + new Date().toISOString().split('T')[0] + ',' +
-    (STATE.totalTime / 1000).toFixed(1) + ',' + STATE.correctCount + ',' + STATE.wrongCount + ',' + accuracy + ',5/5\n';
+    (STATE.totalTime / 1000).toFixed(1) + ',' + STATE.correctCount + ',' + STATE.wrongCount + ',' + accuracy + ',' + STATE.totalRounds + '/' + STATE.totalRounds + '\n';
   csv += '\n答题详情\n轮次,题号,类型,单词,正确答案,你的答案,结果\n';
 
   STATE.pairLog.forEach(function(q) {
@@ -1034,6 +1124,14 @@ function restartGame() {
   STATE.gameActive = false;
   stopBGM();
   clearInterval(STATE.questionTimer);
+  STATE.currentRound = 1;
+  STATE.currentQuestion = 0;
+  STATE.roundQuestionIndex = 0;
+  STATE.correctCount = 0;
+  STATE.wrongCount = 0;
+  STATE.totalTime = 0;
+  STATE.pairLog = [];
+  STATE.roundWords = [];
   goToPage('setup');
   checkAttempts();
 }
