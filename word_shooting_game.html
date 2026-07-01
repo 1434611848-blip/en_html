@@ -324,29 +324,7 @@ function step1Next() {
   if (g) g.textContent = name;
   var ai = document.getElementById('attemptsInfo');
   if (ai) ai.textContent = '正在加载...';
-  // 如果 Supabase 已就绪，触发后续初始化
-  if (window.SB && window.initGameWords && window.populateTeacherSelect) {
-    initGameWords().then(function(){
-      return populateTeacherSelect();
-    }).then(function(){
-      updateAttemptsDisplay();
-      if (window.checkAttempts) checkAttempts();
-    });
-  } else {
-    // 等待 Supabase 加载
-    var check = setInterval(function(){
-      if (window.SB && window.initGameWords && window.populateTeacherSelect) {
-        clearInterval(check);
-        initGameWords().then(function(){
-          return populateTeacherSelect();
-        }).then(function(){
-          updateAttemptsDisplay();
-          if (window.checkAttempts) checkAttempts();
-        });
-      }
-    }, 300);
-    setTimeout(function(){ clearInterval(check); updateAttemptsDisplay(); }, 8000);
-  }
+  // 后续逻辑由主脚本的 window._step1Done 检测接管
 }
 function updateAttemptsDisplay() {
   var ai = document.getElementById('attemptsInfo');
@@ -440,9 +418,9 @@ function updateAttemptsDisplay() {
 
 </div>
 
-<script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js'"></script>
-<script defer src="shared.js"></script>
-<script defer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js'"></script>
+<script src="shared.js"></script>
+<script>
 // ============ State ============
 const DEFAULT_WORDS = [
   {en:'apple',zh:'苹果'},{en:'beautiful',zh:'美丽的'},{en:'cat',zh:'猫'},{en:'dance',zh:'跳舞'},
@@ -634,13 +612,7 @@ function goToPage(page) {
 async function populateTeacherSelect() {
   var sel = document.getElementById('teacherSelect');
   var prevTeacher = STATE.teacher;
-  var teachers;
-  // shared.js 可能未加载，兜底用默认教师列表
-  if (typeof loadTeachers === 'function') {
-    teachers = await loadTeachers();
-  } else {
-    teachers = ['亚飞老师','亚楠老师','佳萌老师'];
-  }
+  var teachers = await loadTeachers();
   if (teachers && teachers.length > 0) {
     sel.innerHTML = '<option value="">请选择老师</option>' + teachers.map(function(t) { return '<option value="' + t + '">' + t + '</option>'; }).join('');
   } else {
@@ -650,52 +622,60 @@ async function populateTeacherSelect() {
 }
 
 async function initGameWords() {
-  // 离线模式：直接用默认词库，不依赖 Supabase
+  try {
+    // 1. 读取射击游戏激活期 ID
+    var res1 = await window.SB.from('app_settings').select('value').eq('key', 'shooting_active_edition_id').maybeSingle();
+    if (!res1.error && res1.data && res1.data.value) {
+      var res2 = await window.SB.from('word_editions').select('*').eq('name', res1.data.value).maybeSingle();
+      if (!res2.error && res2.data && res2.data.words && Array.isArray(res2.data.words) && res2.data.words.length >= 30) {
+        STATE.editionId = res2.data.id;
+        STATE.words = res2.data.words.map(function(w) { return { en: w.en || w.english || w.word, zh: w.zh || w.cn || w.chinese || w.meaning }; });
+        console.log('[Init] Loaded ' + STATE.words.length + ' words from edition: ' + res1.data.value);
+        return;
+      }
+    }
+    // 2. 读取自定义单词列表
+    var res3 = await window.SB.from('app_settings').select('value').eq('key', 'shooting_custom_word_list').maybeSingle();
+    if (!res3.error && res3.data && res3.data.value) {
+      try {
+        var parsed = JSON.parse(res3.data.value);
+        if (Array.isArray(parsed) && parsed.length >= 30) {
+          STATE.words = parsed.map(function(w) { return { en: w.en || w.english || w.word, zh: w.zh || w.cn || w.chinese || w.meaning }; });
+          console.log('[Init] Loaded ' + STATE.words.length + ' words from custom list');
+          return;
+        }
+      } catch(e) {}
+    }
+    // 3. 写入默认单词到 Supabase
+    await window.SB.from('app_settings').upsert(
+      { key: 'shooting_custom_word_list', value: JSON.stringify(DEFAULT_WORDS) },
+      { onConflict: 'key' }
+    );
+  } catch(e) {
+    console.error('[Init] Supabase fetch failed:', e);
+  }
+  // 兜底
   STATE.words = DEFAULT_WORDS;
-}
-
-// ============ Timeout Helper ============
-function sbQuery(promise, ms) {
-  ms = ms || 3000;
-  return Promise.race([
-    promise,
-    new Promise(function(_, reject) { setTimeout(function() { reject(new Error('timeout')); }, ms); })
-  ]);
+  console.log('[Init] Using default ' + DEFAULT_WORDS.length + ' words');
 }
 
 // ============ Attempt Check ============
-function checkAttempts() {
-  // 离线模式：Supabase 不可用时默认 3 次
+async function checkAttempts() {
   var name = STATE.playerName.trim();
   var teacher = STATE.teacher;
   if (!name || !teacher) return;
-  if (window.SB) {
-    // Supabase 可用时异步查询，但先立即显示默认值
-    updateAttemptsUI(3);
-    tryQueryAttempts(name, teacher);
-  } else {
-    updateAttemptsUI(3);
-  }
-}
-
-function updateAttemptsUI(remaining) {
-  STATE.remainingAttempts = remaining;
-  document.getElementById('attemptsInfo').textContent = '剩余挑战次数：' + remaining + ' / 3';
-  document.getElementById('btnStartGame').disabled = remaining <= 0;
-  document.getElementById('btnStartGame').textContent = remaining <= 0 ? '次数已用完' : '开始射击';
-}
-
-async function tryQueryAttempts(name, teacher) {
   try {
-    var query = window.SB.from('game_records').select('id', { count: 'exact', head: true })
+    var res = await window.SB.from('game_records').select('id', { count: 'exact', head: true })
       .eq('name', name).eq('teacher', teacher).eq('game_type', 'shooting').eq('rounds', STATE.totalRounds);
-    var res = await sbQuery(query, 3000);
     var remaining = 3;
     if (res.count !== null) { remaining = Math.max(0, 3 - res.count); }
-    updateAttemptsUI(remaining);
+    STATE.remainingAttempts = remaining;
   } catch(e) {
-    // 保持默认 3 次
+    STATE.remainingAttempts = 3;
   }
+  document.getElementById('attemptsInfo').textContent = '剩余挑战次数：' + STATE.remainingAttempts + ' / 3';
+  document.getElementById('btnStartGame').disabled = STATE.remainingAttempts <= 0;
+  document.getElementById('btnStartGame').textContent = STATE.remainingAttempts <= 0 ? '次数已用完' : '开始射击';
 }
 
 // ============ Setup Flow ============
@@ -725,8 +705,8 @@ document.getElementById('teacherSelect').addEventListener('change', async functi
   STATE.teacher = this.value;
   if (!STATE.teacher) return;
   document.getElementById('attemptsInfo').textContent = '查询中...';
-  if (STATE.words.length === 0) { STATE.words = DEFAULT_WORDS; }
-  checkAttempts();
+  if (STATE.words.length === 0) await initGameWords();
+  await checkAttempts();
 });
 
 // ============ Game Start ============
@@ -739,7 +719,16 @@ async function startGame() {
     if (STATE.words.length < 20) return alert('词汇不足，请联系老师添加词汇！');
   }
 
-  // 离线模式：跳过 Supabase 记录
+  // 记录参与人次
+  try {
+    await window.SB.from('game_records').insert([{
+      name: STATE.playerName, teacher: STATE.teacher,
+      date: new Date().toISOString().split('T')[0],
+      time: 0, correct: 0, wrong: 0, rounds: 0, accuracy: 0,
+      edition_id: STATE.editionId || '', game_type: 'shooting'
+    }]);
+  } catch(e) {}
+
   goToPage('game');
   STATE.gameActive = true;
   STATE.currentRound = 1;
@@ -1130,14 +1119,14 @@ async function showResult() {
   // Submit record (only for completed games)
   if (STATE.gameCompleted) {
     try {
-      await sbQuery(window.SB.from('game_records').insert([{
+      await window.SB.from('game_records').insert([{
       name: STATE.playerName, teacher: STATE.teacher,
       date: new Date().toISOString().split('T')[0],
       time: STATE.totalTime, correct: STATE.correctCount,
       wrong: STATE.wrongCount, rounds: STATE.totalRounds, accuracy: accuracy,
       edition_id: STATE.editionId || '', game_type: 'shooting',
       created_at: new Date().toISOString()
-    }]), 5000);
+    }]);
   } catch(e) {}
 
   // Load leaderboard
@@ -1147,10 +1136,10 @@ async function showResult() {
 
 async function loadLeaderboard(myAccuracy, myTime) {
   try {
-    var res = await sbQuery(window.SB.from('game_records').select('*')
+    var res = await window.SB.from('game_records').select('*')
       .eq('game_type', 'shooting').eq('rounds', STATE.totalRounds).eq('accuracy', 100)
       .order('time', { ascending: true })
-      .limit(50), 5000);
+      .limit(50);
 
     var all = res.data || [];
     // Deduplicate: keep only best (fastest) time per player
@@ -1281,6 +1270,7 @@ window.addEventListener('beforeunload', function(e) {
 // ============ Init ============
 goToPage('entry');
 initGameWords();
+
 // 如果 early script 已经执行了 step1Next，同步状态
 if (window._playerName && window._step1Done) {
   STATE.playerName = window._playerName;
