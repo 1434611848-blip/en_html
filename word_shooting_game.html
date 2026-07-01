@@ -644,64 +644,8 @@ async function populateTeacherSelect() {
 }
 
 async function initGameWords() {
-  try {
-    // SB 未就绪则直接使用默认词库
-    if (!window.SB) { STATE.words = DEFAULT_WORDS; return; }
-    // Priority 1: shooting_active_edition_id → word_editions
-    var res1 = await sbQuery(window.SB.from('app_settings').select('value').eq('key', 'shooting_active_edition_id').maybeSingle(), 3000);
-    if (res1.data && res1.data.value) {
-      var res2 = await sbQuery(window.SB.from('word_editions').select('*').eq('name', res1.data.value).maybeSingle(), 3000);
-      if (res2.data && res2.data.words && Array.isArray(res2.data.words) && res2.data.words.length >= 30) {
-        STATE.editionId = res2.data.id;
-        STATE.words = res2.data.words.map(function(w) { return { en: w.en || w.english || w.word, zh: w.zh || w.cn || w.chinese || w.meaning }; });
-        return;
-      }
-    }
-
-    // Priority 2: shooting_custom_word_list
-    var res3 = await sbQuery(window.SB.from('app_settings').select('value').eq('key', 'shooting_custom_word_list').maybeSingle(), 3000);
-    if (res3.data && res3.data.value) {
-      try {
-        var parsed = JSON.parse(res3.data.value);
-        if (Array.isArray(parsed) && parsed.length >= 30) {
-          STATE.words = parsed.map(function(w) { return { en: w.en || w.english || w.word, zh: w.zh || w.cn || w.chinese || w.meaning }; });
-          return;
-        }
-      } catch(e) {}
-    }
-
-    // Write default words if not exists
-    await writeDefaultShootingWords();
-  } catch(e) {
-    console.error('initGameWords failed:', e);
-  }
-
-  // Default
+  // 离线模式：直接用默认词库，不依赖 Supabase
   STATE.words = DEFAULT_WORDS;
-}
-
-async function writeDefaultShootingWords() {
-  var defaultWords = [
-    {en:'abandon',zh:'放弃'},{en:'ability',zh:'能力'},{en:'absence',zh:'缺席'},
-    {en:'absorb',zh:'吸收'},{en:'abstract',zh:'抽象的'},{en:'abundant',zh:'丰富的'},
-    {en:'academic',zh:'学术的'},{en:'accelerate',zh:'加速'},{en:'accent',zh:'口音'},
-    {en:'access',zh:'进入'},{en:'accompany',zh:'陪伴'},{en:'accomplish',zh:'完成'},
-    {en:'accurate',zh:'准确的'},{en:'achieve',zh:'达成'},{en:'acknowledge',zh:'承认'},
-    {en:'acquire',zh:'获得'},{en:'adapt',zh:'适应'},{en:'adequate',zh:'充足的'},
-    {en:'adjust',zh:'调整'},{en:'admire',zh:'钦佩'},
-    {en:'strategy',zh:'策略'},{en:'significant',zh:'重要的'},
-    {en:'perspective',zh:'观点'},{en:'comprehensive',zh:'全面的'},
-    {en:'demonstrate',zh:'演示'},{en:'enthusiasm',zh:'热情'},
-    {en:'sophisticated',zh:'精密的'},{en:'extraordinary',zh:'非凡的'},
-    {en:'circumstance',zh:'情况'},{en:'consequence',zh:'后果'}
-  ];
-  try {
-    await sbQuery(window.SB.from('app_settings').upsert(
-      { key: 'shooting_custom_word_list', value: JSON.stringify(defaultWords) },
-      { onConflict: 'key' }
-    ), 3000);
-    STATE.words = defaultWords;
-  } catch(e) {}
 }
 
 // ============ Timeout Helper ============
@@ -714,27 +658,38 @@ function sbQuery(promise, ms) {
 }
 
 // ============ Attempt Check ============
-async function checkAttempts(timeoutMs) {
-  timeoutMs = timeoutMs || 3000;
+function checkAttempts() {
+  // 离线模式：Supabase 不可用时默认 3 次
   var name = STATE.playerName.trim();
   var teacher = STATE.teacher;
   if (!name || !teacher) return;
+  if (window.SB) {
+    // Supabase 可用时异步查询，但先立即显示默认值
+    updateAttemptsUI(3);
+    tryQueryAttempts(name, teacher);
+  } else {
+    updateAttemptsUI(3);
+  }
+}
+
+function updateAttemptsUI(remaining) {
+  STATE.remainingAttempts = remaining;
+  document.getElementById('attemptsInfo').textContent = '剩余挑战次数：' + remaining + ' / 3';
+  document.getElementById('btnStartGame').disabled = remaining <= 0;
+  document.getElementById('btnStartGame').textContent = remaining <= 0 ? '次数已用完' : '开始射击';
+}
+
+async function tryQueryAttempts(name, teacher) {
   try {
-    if (!window.SB) throw new Error('SB not ready');
     var query = window.SB.from('game_records').select('id', { count: 'exact', head: true })
       .eq('name', name).eq('teacher', teacher).eq('game_type', 'shooting').eq('rounds', STATE.totalRounds);
-    var res = await sbQuery(query, timeoutMs);
-    if (res.count !== null) {
-      STATE.remainingAttempts = Math.max(0, 3 - res.count);
-    } else {
-      STATE.remainingAttempts = 3;
-    }
+    var res = await sbQuery(query, 3000);
+    var remaining = 3;
+    if (res.count !== null) { remaining = Math.max(0, 3 - res.count); }
+    updateAttemptsUI(remaining);
   } catch(e) {
-    STATE.remainingAttempts = 3;
+    // 保持默认 3 次
   }
-  document.getElementById('attemptsInfo').textContent = '剩余挑战次数：' + STATE.remainingAttempts + ' / 3';
-  document.getElementById('btnStartGame').disabled = STATE.remainingAttempts <= 0;
-  document.getElementById('btnStartGame').textContent = STATE.remainingAttempts <= 0 ? '次数已用完' : '开始射击';
 }
 
 // ============ Setup Flow ============
@@ -764,16 +719,7 @@ document.getElementById('teacherSelect').addEventListener('change', async functi
   STATE.teacher = this.value;
   if (!STATE.teacher) return;
   document.getElementById('attemptsInfo').textContent = '查询中...';
-  var fallbackTimer = setTimeout(function() {
-    if (document.getElementById('attemptsInfo').textContent === '查询中...') {
-      STATE.remainingAttempts = 3;
-      document.getElementById('attemptsInfo').textContent = '剩余挑战次数：3 / 3';
-      document.getElementById('btnStartGame').disabled = false;
-      document.getElementById('btnStartGame').textContent = '开始射击';
-    }
-  }, 5000);
-  if (STATE.words.length === 0) await initGameWords();
-  clearTimeout(fallbackTimer);
+  if (STATE.words.length === 0) { STATE.words = DEFAULT_WORDS; }
   checkAttempts();
 });
 
@@ -787,16 +733,7 @@ async function startGame() {
     if (STATE.words.length < 20) return alert('词汇不足，请联系老师添加词汇！');
   }
 
-  // 记录参与人次
-  try {
-    await sbQuery(window.SB.from('game_records').insert([{
-      name: STATE.playerName, teacher: STATE.teacher,
-      date: new Date().toISOString().split('T')[0],
-      time: 0, correct: 0, wrong: 0, rounds: 0, accuracy: 0,
-      edition_id: STATE.editionId || '', game_type: 'shooting'
-    }]), 3000);
-  } catch(e) {}
-
+  // 离线模式：跳过 Supabase 记录
   goToPage('game');
   STATE.gameActive = true;
   STATE.currentRound = 1;
