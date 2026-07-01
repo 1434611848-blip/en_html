@@ -10,7 +10,7 @@ const DEFAULT_TEACHERS = ['亚飞老师','亚楠老师','佳萌老师'];
       'sb_publishable_PATbkfSdIrjUug0C7qqnsg__fGlTOLZ'
     );
   } else {
-    // CDN 尚未加载，轮询等待
+    // CDN 尚未加载，轮询等待（最多 4.5s）
     var retries = 0;
     var check = setInterval(function() {
       retries++;
@@ -20,9 +20,9 @@ const DEFAULT_TEACHERS = ['亚飞老师','亚楠老师','佳萌老师'];
           'https://xwnvsydndaclamzcfrpl.supabase.co',
           'sb_publishable_PATbkfSdIrjUug0C7qqnsg__fGlTOLZ'
         );
-      } else if (retries > 50) {
+      } else if (retries > 15) {
         clearInterval(check);
-        console.error('Supabase CDN failed to load after 15s');
+        console.error('Supabase CDN failed to load after 4.5s');
       }
     }, 300);
   }
@@ -38,12 +38,12 @@ function sortTeachers(arr) {
 
 async function loadTeachers() {
   try {
-    // 等待 SB 就绪（最多 8 秒）
+    // 等待 SB 就绪（最多 3 秒）
     if (!window.SB) { 
       await new Promise(function(resolve) {
         var start = Date.now();
         var check = setInterval(function() {
-          if (window.SB || Date.now() - start > 8000) { 
+          if (window.SB || Date.now() - start > 3000) { 
             clearInterval(check); 
             resolve(); 
           }
