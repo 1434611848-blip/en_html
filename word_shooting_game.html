@@ -764,7 +764,16 @@ document.getElementById('teacherSelect').addEventListener('change', async functi
   STATE.teacher = this.value;
   if (!STATE.teacher) return;
   document.getElementById('attemptsInfo').textContent = '查询中...';
+  var fallbackTimer = setTimeout(function() {
+    if (document.getElementById('attemptsInfo').textContent === '查询中...') {
+      STATE.remainingAttempts = 3;
+      document.getElementById('attemptsInfo').textContent = '剩余挑战次数：3 / 3';
+      document.getElementById('btnStartGame').disabled = false;
+      document.getElementById('btnStartGame').textContent = '开始射击';
+    }
+  }, 5000);
   if (STATE.words.length === 0) await initGameWords();
+  clearTimeout(fallbackTimer);
   checkAttempts();
 });
 
