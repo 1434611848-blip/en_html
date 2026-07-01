@@ -294,7 +294,23 @@ label { display: block; max-width: 340px; margin: 0 auto; font-size: 14px; color
   font-size: 15px; color: var(--text-dim); margin-bottom: 24px;
 }
 </style>
-<script>function goToPage(p){}</script>
+<script>
+// Early stub — works even if CDN scripts block
+function goToPage(page) {
+  var cards = document.getElementsByClassName('card');
+  for (var i = 0; i < cards.length; i++) cards[i].classList.remove('active');
+  var el = document.getElementById('page-' + page);
+  if (el) el.classList.add('active');
+  if (page === 'setup') {
+    var s1 = document.getElementById('setupStep1');
+    var s2 = document.getElementById('setupStep2');
+    if (s1) s1.style.display = 'block';
+    if (s2) s2.style.display = 'none';
+    var pn = document.getElementById('playerName');
+    if (pn) { pn.value = ''; setTimeout(function(){ pn.focus(); }, 100); }
+  }
+}
+</script>
 </head>
 <body>
 
