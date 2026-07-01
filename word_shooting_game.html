@@ -634,7 +634,13 @@ function goToPage(page) {
 async function populateTeacherSelect() {
   var sel = document.getElementById('teacherSelect');
   var prevTeacher = STATE.teacher;
-  var teachers = await loadTeachers();
+  var teachers;
+  // shared.js 可能未加载，兜底用默认教师列表
+  if (typeof loadTeachers === 'function') {
+    teachers = await loadTeachers();
+  } else {
+    teachers = ['亚飞老师','亚楠老师','佳萌老师'];
+  }
   if (teachers && teachers.length > 0) {
     sel.innerHTML = '<option value="">请选择老师</option>' + teachers.map(function(t) { return '<option value="' + t + '">' + t + '</option>'; }).join('');
   } else {
