@@ -648,9 +648,9 @@ async function initGameWords() {
     // SB 未就绪则直接使用默认词库
     if (!window.SB) { STATE.words = DEFAULT_WORDS; return; }
     // Priority 1: shooting_active_edition_id → word_editions
-    var res1 = await window.SB.from('app_settings').select('value').eq('key', 'shooting_active_edition_id').maybeSingle();
+    var res1 = await sbQuery(window.SB.from('app_settings').select('value').eq('key', 'shooting_active_edition_id').maybeSingle(), 3000);
     if (res1.data && res1.data.value) {
-      var res2 = await window.SB.from('word_editions').select('*').eq('name', res1.data.value).maybeSingle();
+      var res2 = await sbQuery(window.SB.from('word_editions').select('*').eq('name', res1.data.value).maybeSingle(), 3000);
       if (res2.data && res2.data.words && Array.isArray(res2.data.words) && res2.data.words.length >= 30) {
         STATE.editionId = res2.data.id;
         STATE.words = res2.data.words.map(function(w) { return { en: w.en || w.english || w.word, zh: w.zh || w.cn || w.chinese || w.meaning }; });
@@ -659,7 +659,7 @@ async function initGameWords() {
     }
 
     // Priority 2: shooting_custom_word_list
-    var res3 = await window.SB.from('app_settings').select('value').eq('key', 'shooting_custom_word_list').maybeSingle();
+    var res3 = await sbQuery(window.SB.from('app_settings').select('value').eq('key', 'shooting_custom_word_list').maybeSingle(), 3000);
     if (res3.data && res3.data.value) {
       try {
         var parsed = JSON.parse(res3.data.value);
@@ -696,23 +696,34 @@ async function writeDefaultShootingWords() {
     {en:'circumstance',zh:'情况'},{en:'consequence',zh:'后果'}
   ];
   try {
-    await window.SB.from('app_settings').upsert(
+    await sbQuery(window.SB.from('app_settings').upsert(
       { key: 'shooting_custom_word_list', value: JSON.stringify(defaultWords) },
       { onConflict: 'key' }
-    );
+    ), 3000);
     STATE.words = defaultWords;
   } catch(e) {}
 }
 
+// ============ Timeout Helper ============
+function sbQuery(promise, ms) {
+  ms = ms || 3000;
+  return Promise.race([
+    promise,
+    new Promise(function(_, reject) { setTimeout(function() { reject(new Error('timeout')); }, ms); })
+  ]);
+}
+
 // ============ Attempt Check ============
-async function checkAttempts() {
+async function checkAttempts(timeoutMs) {
+  timeoutMs = timeoutMs || 3000;
   var name = STATE.playerName.trim();
   var teacher = STATE.teacher;
   if (!name || !teacher) return;
   try {
+    if (!window.SB) throw new Error('SB not ready');
     var query = window.SB.from('game_records').select('id', { count: 'exact', head: true })
       .eq('name', name).eq('teacher', teacher).eq('game_type', 'shooting').eq('rounds', STATE.totalRounds);
-    var res = await query;
+    var res = await sbQuery(query, timeoutMs);
     if (res.count !== null) {
       STATE.remainingAttempts = Math.max(0, 3 - res.count);
     } else {
@@ -769,12 +780,12 @@ async function startGame() {
 
   // 记录参与人次
   try {
-    await window.SB.from('game_records').insert([{
+    await sbQuery(window.SB.from('game_records').insert([{
       name: STATE.playerName, teacher: STATE.teacher,
       date: new Date().toISOString().split('T')[0],
       time: 0, correct: 0, wrong: 0, rounds: 0, accuracy: 0,
       edition_id: STATE.editionId || '', game_type: 'shooting'
-    }]);
+    }]), 3000);
   } catch(e) {}
 
   goToPage('game');
@@ -1167,14 +1178,14 @@ async function showResult() {
   // Submit record (only for completed games)
   if (STATE.gameCompleted) {
     try {
-      await window.SB.from('game_records').insert([{
+      await sbQuery(window.SB.from('game_records').insert([{
       name: STATE.playerName, teacher: STATE.teacher,
       date: new Date().toISOString().split('T')[0],
       time: STATE.totalTime, correct: STATE.correctCount,
       wrong: STATE.wrongCount, rounds: STATE.totalRounds, accuracy: accuracy,
       edition_id: STATE.editionId || '', game_type: 'shooting',
       created_at: new Date().toISOString()
-    }]);
+    }]), 5000);
   } catch(e) {}
 
   // Load leaderboard
@@ -1184,10 +1195,10 @@ async function showResult() {
 
 async function loadLeaderboard(myAccuracy, myTime) {
   try {
-    var res = await window.SB.from('game_records').select('*')
+    var res = await sbQuery(window.SB.from('game_records').select('*')
       .eq('game_type', 'shooting').eq('rounds', STATE.totalRounds).eq('accuracy', 100)
       .order('time', { ascending: true })
-      .limit(50);
+      .limit(50), 5000);
 
     var all = res.data || [];
     // Deduplicate: keep only best (fastest) time per player
