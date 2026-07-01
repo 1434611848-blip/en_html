@@ -310,6 +310,47 @@ function goToPage(page) {
     if (pn) { pn.value = ''; setTimeout(function(){ pn.focus(); }, 100); }
   }
 }
+function step1Next() {
+  var nameEl = document.getElementById('playerName');
+  var name = (nameEl.value || '').trim();
+  if (!name) { alert('请输入名字'); return; }
+  // 暂存名字到全局
+  window._playerName = name;
+  var s1 = document.getElementById('setupStep1');
+  var s2 = document.getElementById('setupStep2');
+  if (s1) s1.style.display = 'none';
+  if (s2) s2.style.display = 'block';
+  var g = document.getElementById('step2Greeting');
+  if (g) g.textContent = name;
+  var ai = document.getElementById('attemptsInfo');
+  if (ai) ai.textContent = '正在加载...';
+  // 如果 Supabase 已就绪，触发后续初始化
+  if (window.SB && window.initGameWords && window.populateTeacherSelect) {
+    window._step1Done = true;
+    window._playerName = name;
+    initGameWords().then(function(){
+      return populateTeacherSelect();
+    }).then(function(){
+      if (window.checkAttempts) checkAttempts();
+    });
+  } else {
+    // 等待 Supabase 加载
+    var check = setInterval(function(){
+      if (window.SB && window.initGameWords && window.populateTeacherSelect) {
+        clearInterval(check);
+        window._step1Done = true;
+        window._playerName = name;
+        initGameWords().then(function(){
+          return populateTeacherSelect();
+        }).then(function(){
+          if (window.checkAttempts) checkAttempts();
+        });
+      }
+    }, 300);
+    // 5秒超时
+    setTimeout(function(){ clearInterval(check); }, 5000);
+  }
+}
 </script>
 </head>
 <body>
@@ -334,7 +375,7 @@ function goToPage(page) {
       <p style="text-align:center;color:var(--text-dim);font-size:14px;margin-bottom:14px;">请输入你的名字开始挑战</p>
       <label>名字</label>
       <input type="text" id="playerName" placeholder="输入名字（最多20字）" maxlength="20">
-      <button class="btn btn-primary" id="btnNextStep">下一步</button>
+      <button class="btn btn-primary" id="btnNextStep" onclick="step1Next()">下一步</button>
       <button class="btn btn-outline btn-small" onclick="goToPage('entry')">返回</button>
     </div>
     <div id="setupStep2" style="display:none">
@@ -398,9 +439,9 @@ function goToPage(page) {
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="shared.js"></script>
-<script>
+<script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js'"></script>
+<script defer src="shared.js"></script>
+<script defer>
 // ============ State ============
 const STATE = {
   page: 'entry',
@@ -564,7 +605,7 @@ function initStars() {
     canvas.height = window.innerHeight;
   });
 }
-initStars();
+try { initStars(); } catch(e) { console.warn('Stars init failed:', e); }
 
 // ============ Page Navigation ============
 function goToPage(page) {
@@ -683,8 +724,10 @@ async function checkAttempts() {
 
 // ============ Setup Flow ============
 document.getElementById('btnNextStep').addEventListener('click', async function() {
+  if (window._step1Done) return; // already handled by early onclick
   var name = document.getElementById('playerName').value.trim();
   if (!name) return alert('请输入名字');
+  window._step1Done = true;
   STATE.playerName = name;
   document.getElementById('step2Greeting').textContent = name;
   document.getElementById('setupStep1').style.display = 'none';
@@ -1270,6 +1313,17 @@ window.addEventListener('beforeunload', function(e) {
 // ============ Init ============
 goToPage('entry');
 initGameWords();
+// 如果 early script 已经执行了 step1Next，同步状态
+if (window._playerName && window._step1Done) {
+  STATE.playerName = window._playerName;
+  populateTeacherSelect().then(function(){
+    var teacher = document.getElementById('teacherSelect');
+    if (teacher && teacher.value) { 
+      STATE.teacher = teacher.value; 
+      checkAttempts(); 
+    }
+  });
+}
 </script>
 </body>
 </html>
