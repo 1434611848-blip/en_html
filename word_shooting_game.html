@@ -314,8 +314,8 @@ function step1Next() {
   var nameEl = document.getElementById('playerName');
   var name = (nameEl.value || '').trim();
   if (!name) { alert('请输入名字'); return; }
-  // 暂存名字到全局
   window._playerName = name;
+  window._step1Done = true;
   var s1 = document.getElementById('setupStep1');
   var s2 = document.getElementById('setupStep2');
   if (s1) s1.style.display = 'none';
@@ -326,11 +326,10 @@ function step1Next() {
   if (ai) ai.textContent = '正在加载...';
   // 如果 Supabase 已就绪，触发后续初始化
   if (window.SB && window.initGameWords && window.populateTeacherSelect) {
-    window._step1Done = true;
-    window._playerName = name;
     initGameWords().then(function(){
       return populateTeacherSelect();
     }).then(function(){
+      updateAttemptsDisplay();
       if (window.checkAttempts) checkAttempts();
     });
   } else {
@@ -338,18 +337,20 @@ function step1Next() {
     var check = setInterval(function(){
       if (window.SB && window.initGameWords && window.populateTeacherSelect) {
         clearInterval(check);
-        window._step1Done = true;
-        window._playerName = name;
         initGameWords().then(function(){
           return populateTeacherSelect();
         }).then(function(){
+          updateAttemptsDisplay();
           if (window.checkAttempts) checkAttempts();
         });
       }
     }, 300);
-    // 5秒超时
-    setTimeout(function(){ clearInterval(check); }, 5000);
+    setTimeout(function(){ clearInterval(check); updateAttemptsDisplay(); }, 8000);
   }
+}
+function updateAttemptsDisplay() {
+  var ai = document.getElementById('attemptsInfo');
+  if (ai && ai.textContent === '正在加载...') ai.textContent = '剩余挑战次数：3 / 3';
 }
 </script>
 </head>
@@ -443,6 +444,14 @@ function step1Next() {
 <script defer src="shared.js"></script>
 <script defer>
 // ============ State ============
+const DEFAULT_WORDS = [
+  {en:'apple',zh:'苹果'},{en:'beautiful',zh:'美丽的'},{en:'cat',zh:'猫'},{en:'dance',zh:'跳舞'},
+  {en:'elephant',zh:'大象'},{en:'flower',zh:'花'},{en:'garden',zh:'花园'},{en:'happy',zh:'快乐的'},
+  {en:'island',zh:'岛屿'},{en:'juice',zh:'果汁'},{en:'king',zh:'国王'},{en:'lion',zh:'狮子'},
+  {en:'mountain',zh:'山'},{en:'night',zh:'夜晚'},{en:'ocean',zh:'海洋'},{en:'piano',zh:'钢琴'},
+  {en:'queen',zh:'女王'},{en:'river',zh:'河流'},{en:'sun',zh:'太阳'},{en:'tiger',zh:'老虎'},
+  {en:'umbrella',zh:'雨伞'},{en:'village',zh:'村庄'},{en:'water',zh:'水'},{en:'yellow',zh:'黄色'}
+];
 const STATE = {
   page: 'entry',
   playerName: '',
@@ -636,6 +645,8 @@ async function populateTeacherSelect() {
 
 async function initGameWords() {
   try {
+    // SB 未就绪则直接使用默认词库
+    if (!window.SB) { STATE.words = DEFAULT_WORDS; return; }
     // Priority 1: shooting_active_edition_id → word_editions
     var res1 = await window.SB.from('app_settings').select('value').eq('key', 'shooting_active_edition_id').maybeSingle();
     if (res1.data && res1.data.value) {
@@ -666,14 +677,7 @@ async function initGameWords() {
   }
 
   // Default
-  STATE.words = [
-    {en:'apple',zh:'苹果'},{en:'beautiful',zh:'美丽的'},{en:'cat',zh:'猫'},{en:'dance',zh:'跳舞'},
-    {en:'elephant',zh:'大象'},{en:'flower',zh:'花'},{en:'garden',zh:'花园'},{en:'happy',zh:'快乐的'},
-    {en:'island',zh:'岛屿'},{en:'juice',zh:'果汁'},{en:'king',zh:'国王'},{en:'lion',zh:'狮子'},
-    {en:'mountain',zh:'山'},{en:'night',zh:'夜晚'},{en:'ocean',zh:'海洋'},{en:'piano',zh:'钢琴'},
-    {en:'queen',zh:'女王'},{en:'river',zh:'河流'},{en:'sun',zh:'太阳'},{en:'tiger',zh:'老虎'},
-    {en:'umbrella',zh:'雨伞'},{en:'village',zh:'村庄'},{en:'water',zh:'水'},{en:'yellow',zh:'黄色'}
-  ];
+  STATE.words = DEFAULT_WORDS;
 }
 
 async function writeDefaultShootingWords() {

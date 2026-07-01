@@ -38,13 +38,22 @@ function sortTeachers(arr) {
 
 async function loadTeachers() {
   try {
-    // 等待 SB 就绪
+    // 等待 SB 就绪（最多 8 秒）
     if (!window.SB) { 
       await new Promise(function(resolve) {
+        var start = Date.now();
         var check = setInterval(function() {
-          if (window.SB) { clearInterval(check); resolve(); }
+          if (window.SB || Date.now() - start > 8000) { 
+            clearInterval(check); 
+            resolve(); 
+          }
         }, 200);
       });
+    }
+    // SB 超时未就绪，直接用默认列表
+    if (!window.SB) {
+      CACHED_TEACHERS = DEFAULT_TEACHERS;
+      return DEFAULT_TEACHERS;
     }
     const { data } = await window.SB.from('teachers').select('name').order('created_at', { ascending: true });
     if (data && data.length > 0) {
