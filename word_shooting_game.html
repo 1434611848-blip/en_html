@@ -680,7 +680,17 @@ async function checkAttempts() {
 
 // ============ Setup Flow ============
 document.getElementById('btnNextStep').addEventListener('click', async function() {
-  if (window._step1Done) return; // already handled by early onclick
+  if (window._step1Done) {
+    // 早期脚本已切换 UI，这里补做数据加载
+    var name = document.getElementById('playerName').value.trim();
+    STATE.playerName = name;
+    document.getElementById('step2Greeting').textContent = name;
+    if (STATE.words.length === 0) await initGameWords();
+    await populateTeacherSelect();
+    var teacher = document.getElementById('teacherSelect').value;
+    if (teacher) { STATE.teacher = teacher; checkAttempts(); }
+    return;
+  }
   var name = document.getElementById('playerName').value.trim();
   if (!name) return alert('请输入名字');
   window._step1Done = true;
