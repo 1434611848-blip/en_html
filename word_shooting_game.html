@@ -1129,7 +1129,7 @@ async function showResult() {
   // Submit record (only for completed games)
   if (STATE.gameCompleted) {
     try {
-      await window.SB.from('game_records').insert([{
+      var insertResult = await window.SB.from('game_records').insert([{
       name: STATE.playerName, teacher: STATE.teacher,
       date: new Date().toISOString().split('T')[0],
       time: STATE.totalTime, correct: STATE.correctCount,
@@ -1137,7 +1137,8 @@ async function showResult() {
       edition_id: STATE.editionId || '', game_type: 'shooting',
       created_at: new Date().toISOString()
     }]);
-  } catch(e) {}
+    if (insertResult.error) console.error('写入成绩失败:', insertResult.error);
+  } catch(e) { console.error('写入成绩异常:', e); }
 
   // Load leaderboard
   await loadLeaderboard(accuracy, STATE.totalTime);
