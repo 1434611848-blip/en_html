@@ -762,7 +762,7 @@ async function renderLeaderboard(){
     var query=supabaseAdmin.from('game_records').select('*');
     if(isShooting){
       // 射击：按正确率降序 > 用时升序，去重
-      query=query.eq('game_type','shooting').eq('rounds',5).order('accuracy',{ascending:false}).order('time',{ascending:true});
+      query=query.eq('game_type','shooting').gt('rounds',0).order('accuracy',{ascending:false}).order('time',{ascending:true});
     }else if(isEscape){
       // 密室逃脱：仅 accuracy=100 + rounds=5，按用时升序
       query=query.eq('rounds',5).eq('accuracy',100).neq('game_type','match').order('time',{ascending:true});
@@ -831,7 +831,7 @@ async function downloadCurrentCSV(){
     var isShooting=currentTab==='shooting';
     var query=supabaseAdmin.from('game_records').select('*');
     if(isShooting){
-      query=query.eq('game_type','shooting').eq('rounds',5).order('accuracy',{ascending:false}).order('time',{ascending:true});
+      query=query.eq('game_type','shooting').gt('rounds',0).order('accuracy',{ascending:false}).order('time',{ascending:true});
     }else if(isEscape){
       query=query.eq('rounds',5).neq('game_type','match').order('accuracy',{ascending:false}).order('time',{ascending:true});
     }else{
