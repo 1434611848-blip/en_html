@@ -1742,7 +1742,7 @@ async function downloadWeekendCSV(mode){
       .eq('game_type','weekend_check').eq('mode',mode)
       .order('accuracy',{ascending:false}).order('time',{ascending:true});
     var records=res.data;
-    if(!records||records.length===0){showToast('暂无'+（mode==='spell'?'拼写':'连连看'）+'记录','error');return}
+    if(!records||records.length===0){showToast('暂无'+(mode==='spell'?'拼写':'连连看')+'记录','error');return}
 
     // Dedupe
     var seen=new Set();
