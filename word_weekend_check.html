@@ -350,36 +350,49 @@ let bgMusicCtx = null;
 let bgMusicGain = null;
 let bgMusicInterval = null;
 
-function startBgMusic() {
-  try {
-    bgMusicCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (bgMusicCtx.state === 'suspended') bgMusicCtx.resume();
-    bgMusicGain = bgMusicCtx.createGain();
-    bgMusicGain.gain.value = 0.06;
-    bgMusicGain.connect(bgMusicCtx.destination);
+// Pre-init AudioContext on first user tap (browser policy requires user gesture)
+function ensureAudioContext() {
+  if (!bgMusicCtx) {
+    try {
+      bgMusicCtx = new (window.AudioContext || window.webkitAudioContext)();
+      bgMusicGain = bgMusicCtx.createGain();
+      bgMusicGain.gain.value = 0.08;
+      bgMusicGain.connect(bgMusicCtx.destination);
+    } catch(e) { console.log('Audio init:', e); }
+  }
+  if (bgMusicCtx && bgMusicCtx.state === 'suspended') {
+    bgMusicCtx.resume();
+  }
+}
 
-    // Cheerful melody: C major pentatonic scale
+function startBgMusic() {
+  ensureAudioContext();
+  if (!bgMusicCtx || bgMusicInterval) return;
+  try {
     const notes = [523.25, 587.33, 659.25, 783.99, 880.00]; // C5 D5 E5 G5 A5
     let idx = 0;
-    const pattern = [0,2,4,2,1,3,4,2,0,1,3,4,2,3,1,0]; // cheerful pattern
+    const pattern = [0,2,4,2,1,3,4,2,0,1,3,4,2,3,1,0];
 
     function playNote() {
-      const osc = bgMusicCtx.createOscillator();
-      const noteGain = bgMusicCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = notes[pattern[idx % pattern.length]];
-      noteGain.gain.setValueAtTime(0.12, bgMusicCtx.currentTime);
-      noteGain.gain.exponentialRampToValueAtTime(0.001, bgMusicCtx.currentTime + 0.3);
-      osc.connect(noteGain);
-      noteGain.connect(bgMusicGain);
-      osc.start();
-      osc.stop(bgMusicCtx.currentTime + 0.35);
-      idx++;
+      if (!bgMusicCtx || bgMusicCtx.state === 'closed') return;
+      try {
+        const osc = bgMusicCtx.createOscillator();
+        const noteGain = bgMusicCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.value = notes[pattern[idx % pattern.length]];
+        noteGain.gain.setValueAtTime(0.15, bgMusicCtx.currentTime);
+        noteGain.gain.exponentialRampToValueAtTime(0.001, bgMusicCtx.currentTime + 0.3);
+        osc.connect(noteGain);
+        noteGain.connect(bgMusicGain);
+        osc.start();
+        osc.stop(bgMusicCtx.currentTime + 0.4);
+        idx++;
+      } catch(e) {}
     }
 
     playNote();
     bgMusicInterval = setInterval(playNote, 320);
-  } catch(e) { console.log('BGM init failed:', e); }
+  } catch(e) { console.log('BGM start:', e); }
 }
 
 function stopBgMusic() {
@@ -403,6 +416,7 @@ async function goToTeacher() {
   const name = document.getElementById('playerName').value.trim();
   if (!name) { alert('请输入你的名字'); return; }
   playerName = name;
+  ensureAudioContext();
 
   // Load teachers
   const sel = document.getElementById('teacherSelect');
