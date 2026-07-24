@@ -1572,24 +1572,11 @@ async function getWeekendEditions(){
   try{var res=await supabaseAdmin.from('word_editions').select('*').eq('note','weekend_check').order('created_at',{ascending:false});return res.data||[]}
   catch(e){return[]}
 }
-async function getWeekendActiveId(){
-  try{var res=await supabaseAdmin.from('app_settings').select('value').eq('key','weekend_check_active_edition_id').maybeSingle();return res.data&&res.data.value?res.data.value:null}
-  catch(e){return null}
-}
-async function setWeekendActiveId(name){
-  if(name){
-    await supabaseAdmin.from('app_settings').upsert({key:'weekend_check_active_edition_id',value:name},{onConflict:'key'});
-  }else{
-    await supabaseAdmin.from('app_settings').delete().eq('key','weekend_check_active_edition_id');
-  }
-}
 
 async function addWeekendEdition(words){
   var name=await generateWeekendEditionName();
   var res=await supabaseAdmin.from('word_editions').insert({name:name,words:words,note:'weekend_check',created_at:new Date().toISOString()}).select();
   if(res.error){showToast('上传失败: '+res.error.message,'error');return}
-  var activeId=await getWeekendActiveId();
-  if(!activeId){await setWeekendActiveId(name)}
   await renderWeekendEditions();
   var wkEds=await getWeekendEditions();
   document.getElementById('weekendVocabCount').textContent=wkEds.reduce(function(s,e){return s+(e.words?e.words.length:0)},0);
@@ -1610,27 +1597,26 @@ async function generateWeekendEditionName(){
 }
 
 async function activateWeekendEdition(name){
-  await setWeekendActiveId(name);
+  await supabaseAdmin.from('word_editions').update({note:'weekend_check'}).eq('name',name);
   await renderWeekendEditions();
   var wkEds=await getWeekendEditions();
   document.getElementById('weekendVocabCount').textContent=wkEds.reduce(function(s,e){return s+(e.words?e.words.length:0)},0);
   await renderWeekendStats();
-  showToast('周末检测已激活：'+name,'success');
+  showToast('周末检测已上架：'+name,'success');
 }
-async function deactivateWeekendEdition(){
+async function deactivateWeekendEdition(name){
   if(!isSuperAdmin()){showToast('仅超级管理员可操作','error');return}
-  await setWeekendActiveId(null);
+  await supabaseAdmin.from('word_editions').update({note:'weekend_check_inactive'}).eq('name',name);
   await renderWeekendEditions();
   var wkEds=await getWeekendEditions();
   document.getElementById('weekendVocabCount').textContent=wkEds.reduce(function(s,e){return s+(e.words?e.words.length:0)},0);
   await renderWeekendStats();
-  showToast('周末检测已下架','info');
+  showToast('周末检测已下架：'+name,'info');
 }
 
 async function renderWeekendEditions(){
   var container=document.getElementById('weekendEditionsContainer');
   var editions=await getWeekendEditions();
-  var activeId=await getWeekendActiveId();
   document.getElementById('weekendVocabCount').textContent=editions.reduce(function(s,e){return s+(e.words?e.words.length:0)},0);
   if(editions.length===0){
     container.innerHTML='<div class="empty-state">暂无周末检测期次，上传单词后将自动生成</div>';
@@ -1640,16 +1626,16 @@ async function renderWeekendEditions(){
   container.innerHTML=
     '<table class="edition-table"><thead><tr><th>期次名称</th><th>单词数</th><th>状态</th><th>创建时间</th><th>备注</th><th>操作</th></tr></thead>'+
     '<tbody>'+editions.map(function(e){
-      var isActive=e.name===activeId;
+      var isActive=e.note==='weekend_check';
       var date=new Date(e.created_at);
       var dateStr=date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0')+' '+String(date.getHours()).padStart(2,'0')+':'+String(date.getMinutes()).padStart(2,'0');
       var ops=isSA?(isActive?
-        '<button class="btn btn-outline btn-small" onclick="deactivateWeekendEdition()">下架</button>':
+        '<button class="btn btn-outline btn-small" onclick="deactivateWeekendEdition(\''+e.name+'\')">下架</button>':
         '<button class="btn btn-primary btn-small" onclick="activateWeekendEdition(\''+e.name+'\')">上架</button>'
       ):'';
       return '<tr><td><strong>'+e.name+'</strong></td>'+
         '<td>'+e.words.length+' 组</td>'+
-        '<td><span class="status-tag '+(isActive?'status-active':'status-inactive')+'">'+(isActive?'激活中':'未激活')+'</span></td>'+
+        '<td><span class="status-tag '+(isActive?'status-active':'status-inactive')+'">'+(isActive?'上架中':'已下架')+'</span></td>'+
         '<td style="color:var(--text-muted);font-size:0.85em">'+dateStr+'</td>'+
         '<td><span class="edition-note" onclick="startEditNote(\''+e.id+'\',this)" title="'+(e.note||'点击添加备注')+'"><span class="note-icon">✏️</span>'+(e.note||'—')+'</span></td>'+
         '<td><div class="edition-actions">'+ops+
@@ -1663,8 +1649,7 @@ async function confirmDeleteWeekendEdition(id){
   var editions=await getWeekendEditions();
   var edition=editions.find(function(e){return e.id===id});
   if(!edition)return;
-  var activeId=await getWeekendActiveId();
-  if(edition.name===activeId){showToast('无法删除激活中的期次，请先下架','error');return}
+  if(edition.note==='weekend_check'){showToast('无法删除上架中的期次，请先下架','error');return}
   pendingDeleteId=id;
   document.getElementById('deleteConfirmText').textContent='确定删除周末检测期次「'+edition.name+'」（'+edition.words.length+' 组单词）吗？此操作不可恢复。';
   document.getElementById('deleteConfirm').classList.remove('hidden');

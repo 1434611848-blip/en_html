@@ -396,33 +396,38 @@ async function goToEdition() {
   showScreen('screenEdition');
 
   try {
-    // Get active edition id
-    const { data: activeSetting } = await SB.from('app_settings').select('value')
-      .eq('key', 'weekend_check_active_edition_id').maybeSingle();
-    const activeId = activeSetting?.value || null;
+    // Query all editions with note='weekend_check'
+    const { data: editions } = await SB.from('word_editions')
+      .select('id,name,words')
+      .eq('note', 'weekend_check')
+      .order('created_at', { ascending: false });
 
-    if (!activeId) {
-      sel.innerHTML = '<option value="">未找到激活版本</option>';
-      document.getElementById('btnStart').disabled = true;
-      document.getElementById('limitNotice').style.display = 'none';
-      showScreen('screenEdition');
-      return;
-    }
-
-    // Get the edition
-    const { data: editions } = await SB.from('word_editions').select('*')
-      .eq('note', 'weekend_check').eq('name', activeId);
     if (!editions || editions.length === 0) {
-      sel.innerHTML = '<option value="">未找到激活版本</option>';
+      sel.innerHTML = '<option value="">暂无可用版本，请联系老师上传</option>';
       document.getElementById('btnStart').disabled = true;
       document.getElementById('limitNotice').style.display = 'none';
       return;
     }
 
-    const ed = editions[0];
-    selectedEdition = { id: ed.id, name: ed.name, words: ed.words || [] };
-    sel.innerHTML = `<option value="${ed.id}" selected>${ed.name}（${ed.words.length}词）</option>`;
+    // Cache all editions for later lookup
+    window._weekendEditions = editions;
+
+    sel.innerHTML = '<option value="">-- 请选择版本 --</option>' +
+      editions.map(ed => 
+        `<option value="${ed.id}">${ed.name}（${ed.words.length}词）</option>`
+      ).join('');
     document.getElementById('btnStart').disabled = false;
+
+    // Update selectedEdition on change
+    sel.onchange = function() {
+      const id = this.value;
+      const ed = window._weekendEditions.find(e => e.id === id);
+      if (ed) {
+        selectedEdition = { id: ed.id, name: ed.name, words: ed.words || [] };
+      } else {
+        selectedEdition = null;
+      }
+    };
 
     showScreen('screenEdition');
   } catch (e) {
