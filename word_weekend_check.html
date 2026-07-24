@@ -612,7 +612,7 @@ function renderSpellQuestion(area, words, idx) {
   area.innerHTML = `
     <div class="cn-display">
       <div class="cn-word">${word.cn}</div>
-      <div class="cn-hint">请输入对应的英文单词（${idx + 1}/${words.length}）</div>
+      <div class="cn-hint">请输入对应的英文单词（${idx + 1}/${words.length}，${word.en.length}个字母）</div>
     </div>
     <div class="spell-input-wrap">
       <input type="text" class="spell-input" id="spellInput" placeholder="输入英文单词" autocomplete="off">
