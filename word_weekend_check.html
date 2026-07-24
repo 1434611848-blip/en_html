@@ -534,8 +534,7 @@ async function startGame(mode) {
   }
 
   // Generate shuffled questions for 5 rounds
-  const words = [...selectedEdition.words];
-  shuffleArray(words);
+  const words = shuffleArray([...selectedEdition.words]);
   allQuestions = [];
   for (let r = 0; r < totalRounds; r++) {
     const start = r * questionsPerRound;
