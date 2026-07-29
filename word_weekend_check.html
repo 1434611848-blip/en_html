@@ -159,6 +159,7 @@ h1{
 .final-result{text-align:center;padding:16px}
 .final-score{font-size:3em;font-weight:700;color:var(--red);margin:8px 0}
 .final-detail{color:var(--text-secondary);margin-bottom:20px;line-height:1.8}
+.final-cheer{font-size:1.1em;font-weight:600;margin-top:12px;padding:8px 16px;border-radius:12px;display:inline-block}
 
 /* Leaderboard table */
 .lb-table{width:100%;border-collapse:collapse;font-size:0.88em;margin-top:16px}
@@ -304,6 +305,7 @@ h1{
       <div style="font-size:0.9em;color:var(--text-secondary)">检测完成</div>
       <div class="final-score" id="finalScore">90%</div>
       <div class="final-detail" id="finalDetail"></div>
+      <div class="final-cheer" id="finalCheer"></div>
       <button class="btn btn-primary" onclick="downloadWrongWords()">下载错题 (CSV)</button>
       <div style="margin-top:20px">
         <div style="font-size:0.9em;color:var(--text-muted);margin-bottom:10px">排行榜 TOP 5</div>
@@ -817,6 +819,27 @@ async function showFinalResult() {
     总用时：${formatTime(timeSec)}<br>
     版本：${selectedEdition.name} | 模式：${gameMode === 'spell' ? '拼写' : '连连看'}
   `;
+
+  // 鼓励话语
+  var cheerEl = document.getElementById('finalCheer');
+  var cheers = {
+    perfect: ['词汇量爆表！你就是行走的词典！🧠✨', '满分战神降临！请收下我的膝盖！👑', '全对通关！英语老师看了连夜给你加鸡腿！🍗'],
+    great:   ['太强了！离满分就差一丢丢，下次必拿下！💪', '稳如老狗！这水平班里横着走！😎', '优秀到发光！保持住，学霸就是你！🌟'],
+    good:    ['不错哦！再多练几组直接起飞！🚀', '中上游选手！再加把劲就上一档了！🔥', '有内味了！继续刷，单词见你就发抖！😈'],
+    ok:      ['及格线以上！假期偷偷卷，开学惊艳所有人！📚', '还行还行，但这绝不是你的上限！冲！⚡', '底子有了，就差临门一脚，下周再战！🎯'],
+    low:     ['别灰心！每个单词大佬都从这步开始的！🌱', '问题不大！错的都是你下次的得分点！📌', '发现漏洞就是进步！干掉错题，下周逆袭！🦸']
+  };
+  var tier, color;
+  if (accuracy === 100) { tier = 'perfect'; color = '#e11d48'; }
+  else if (accuracy >= 90) { tier = 'great'; color = '#f59e0b'; }
+  else if (accuracy >= 75) { tier = 'good'; color = '#10b981'; }
+  else if (accuracy >= 60) { tier = 'ok'; color = '#3b82f6'; }
+  else { tier = 'low'; color = '#8b5cf6'; }
+  var msgs = cheers[tier];
+  var msg = msgs[Math.floor(Math.random() * msgs.length)];
+  cheerEl.textContent = msg;
+  cheerEl.style.color = color;
+  cheerEl.style.background = color + '15';
 
   showScreen('screenFinal');
 
