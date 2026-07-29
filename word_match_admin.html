@@ -412,6 +412,15 @@ tbody tr:hover{background:#f8fafc}
       <div class="stat-row" id="weekendStatRow"></div>
     </div>
 
+    <div class="section" id="weekendLeaderboardSection" style="display:none">
+      <h3><span class="dot" style="background:#06b6d4"></span> 📋 周末检测排行榜</h3>
+      <div id="weekendLB"><div class="empty-state">暂无记录</div></div>
+      <div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-small" onclick="downloadWeekendCSV()">📥 下载记录 (CSV)</button>
+        <button class="btn btn-outline btn-small" onclick="refreshWeekend()">🔄 刷新</button>
+      </div>
+    </div>
+
     <div class="section" id="weekendUploadSection" style="display:none">
       <h3><span class="dot" style="background:#06b6d4"></span> 📋 周末检测单词上传</h3>
       <div class="upload-area" id="weekendUploadArea">
@@ -441,15 +450,6 @@ tbody tr:hover{background:#f8fafc}
       </p>
       <div id="weekendEditionsContainer">
         <div class="empty-state">暂无单词期次，上传单词后将自动生成</div>
-      </div>
-    </div>
-
-    <div class="section" id="weekendLeaderboardSection" style="display:none">
-      <h3><span class="dot" style="background:#06b6d4"></span> 📋 周末检测排行榜</h3>
-      <div id="weekendLB"><div class="empty-state">暂无记录</div></div>
-      <div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap">
-        <button class="btn btn-primary btn-small" onclick="downloadWeekendCSV()">📥 下载记录 (CSV)</button>
-        <button class="btn btn-outline btn-small" onclick="refreshWeekend()">🔄 刷新</button>
       </div>
     </div>
     <!-- End Weekend Check Sections -->
