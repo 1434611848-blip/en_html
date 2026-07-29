@@ -728,6 +728,7 @@ async function refreshAll(){
 }
 
 async function renderStats(){
+  if(currentTab==='weekend') return;
   var isEscape=currentTab==='escape';
   var isShooting=currentTab==='shooting';
   var gameCount=0, totalWords=0;
