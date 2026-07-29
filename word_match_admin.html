@@ -1694,7 +1694,7 @@ async function renderWeekendLBMode(mode,containerId){
   var container=document.getElementById(containerId);
   try{
     var res=await supabaseAdmin.from('game_records').select('*')
-      .eq('game_type','weekend_check').eq('mode',mode)
+      .eq('game_type','weekend_check')
       .order('accuracy',{ascending:false}).order('time',{ascending:true})
       .limit(100);
     var records=res.data;
@@ -1724,10 +1724,10 @@ async function renderWeekendLBMode(mode,containerId){
 async function downloadWeekendCSV(mode){
   try{
     var res=await supabaseAdmin.from('game_records').select('*')
-      .eq('game_type','weekend_check').eq('mode',mode)
+      .eq('game_type','weekend_check')
       .order('accuracy',{ascending:false}).order('time',{ascending:true});
     var records=res.data;
-    if(!records||records.length===0){showToast('暂无'+(mode==='spell'?'拼写':'连连看')+'记录','error');return}
+    if(!records||records.length===0){showToast('暂无周末检测记录','error');return}
 
     // Dedupe
     var seen=new Set();
@@ -1739,14 +1739,13 @@ async function downloadWeekendCSV(mode){
     var bestRecords=Object.values(bestMap);
     bestRecords.sort(function(a,b){return b.accuracy-a.accuracy||a.time-b.time});
 
-    var csv='\uFEFF名字,老师,日期,用时(秒),正确数,错误数,轮次,正确率(%),版本,模式\n';
+    var csv='\uFEFF名字,老师,日期,用时(秒),正确数,错误数,轮次,正确率(%),版本\n';
     bestRecords.forEach(function(r){
-      csv+=r.name+','+r.teacher+','+r.date+','+(r.time/1000).toFixed(1)+','+r.correct+','+r.wrong+','+r.rounds+','+r.accuracy+','+(r.edition_id||'')+','+r.mode+'\n';
+      csv+=r.name+','+r.teacher+','+r.date+','+(r.time/1000).toFixed(1)+','+r.correct+','+r.wrong+','+r.rounds+','+r.accuracy+','+(r.edition_id||'')+'\n';
     });
     var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
     var url=URL.createObjectURL(blob),a=document.createElement('a');
-    var label=mode==='spell'?'拼写':'连连看';
-    a.href=url;a.download='周末检测_'+label+'_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+    a.href=url;a.download='周末检测_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
     URL.revokeObjectURL(url);showToast('已导出 '+bestRecords.length+' 条记录','success');
   }catch(e){showToast('下载失败，请重试','error')}
 }
