@@ -327,7 +327,7 @@ tbody tr:hover{background:#f8fafc}
     </div>
 
     <!-- Leaderboard -->
-    <div class="section">
+    <div class="section" id="generalLeaderboardSection">
       <h3><span class="dot" style="background:#ef4444"></span> <span id="lbTitle">排行榜 TOP 5</span></h3>
       <p style="font-size:0.85em;color:var(--text-muted);margin-bottom:12px" id="lbHint">
         排序规则：正确率降序 > 用时升序
@@ -592,10 +592,7 @@ function switchTab(tab){
   else headerTitle+='周末检测';
   document.getElementById('headerTitle').textContent=headerTitle;
 
-  if(tab==='weekend'){
-    document.getElementById('lbTitle').textContent='周末检测排行榜';
-    document.getElementById('lbHint').textContent='排序规则：正确率降序 > 用时升序';
-  }else if(tab==='shooting'){
+  if(tab==='shooting'){
     document.getElementById('lbTitle').textContent='射击排行榜 TOP 5';
     document.getElementById('lbHint').textContent='排序规则：正确率降序 > 用时升序';
   }else if(tab==='escape'){
@@ -614,6 +611,7 @@ function switchTab(tab){
   document.getElementById('shootingEditionsSection').style.display=tab==='shooting'?'':'none';
   // 周末检测专属区
   document.getElementById('statRow').style.display=tab==='weekend'?'none':'';
+  document.getElementById('generalLeaderboardSection').style.display=tab==='weekend'?'none':'';
   document.getElementById('weekendStatsSection').style.display=tab==='weekend'?'':'none';
   document.getElementById('weekendUploadSection').style.display=tab==='weekend'?'':'none';
   document.getElementById('weekendEditionsSection').style.display=tab==='weekend'?'':'none';
@@ -1695,16 +1693,28 @@ async function renderWeekendLeaderboard(){
     var top5=deduped.slice(0,5);
     var badgeClass=function(i){return i<3?'badge-'+(i+1):'badge-n'};
     container.innerHTML=
-      '<table><thead><tr><th>排名</th><th>名字</th><th>老师</th><th>用时</th><th>正确/错误</th><th>正确率</th><th>版本</th></tr></thead>'+
+      '<table><thead><tr><th>排名</th><th>姓名</th><th>老师</th><th>期次</th><th>用时</th><th>正确数</th><th>错误数</th><th>正确率</th><th>日期</th><th>操作</th></tr></thead>'+
       '<tbody>'+top5.map(function(e,i){
         return '<tr><td><span class="badge '+badgeClass(i)+'">'+(i+1)+'</span></td>'+
           '<td>'+e.name+'</td><td>'+e.teacher+'</td>'+
+          '<td style="font-size:0.82em;color:var(--text-secondary)">'+(e.edition_id||'—')+'</td>'+
           '<td><strong>'+formatTime(e.time)+'</strong></td>'+
-          '<td>'+e.correct+'/'+e.wrong+'</td>'+
-          '<td>'+e.accuracy+'%</td>'+
-          '<td style="font-size:0.82em;color:var(--text-secondary)">'+(e.edition_id||'—')+'</td></tr>';
+          '<td>'+e.correct+'</td><td>'+e.wrong+'</td>'+
+          '<td>'+e.accuracy+'%</td><td>'+e.date+'</td>'+
+          "<td><button class=\"btn btn-danger btn-small\" onclick=\"deleteWeekendRecord('"+e.id+"')\">删除</button></td></tr>";
       }).join('')+'</tbody></table>';
   }catch(e){container.innerHTML='<div class="empty-state">加载失败</div>'}
+}
+
+// --- Weekend: Delete Record ---
+async function deleteWeekendRecord(id){
+  if(!confirm('确定删除这条周末检测记录吗？此操作不可恢复。'))return;
+  try{
+    await supabaseAdmin.from('game_records').delete().eq('id',id);
+    renderWeekendLeaderboard();
+    renderWeekendStats();
+    showToast('记录已删除','info');
+  }catch(e){showToast('删除失败','error')}
 }
 
 // --- Weekend: CSV Download ---
