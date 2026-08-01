@@ -586,8 +586,7 @@ function updateGameStats() {
   document.getElementById('roundInfo').textContent = `第${currentRound + 1}/${totalRounds}轮`;
   document.getElementById('correctCount').textContent = totalCorrect;
   document.getElementById('wrongCount').textContent = totalWrong;
-  const totalQ = (currentRound) * questionsPerRound + roundCorrect + roundWrong;
-  const pct = totalQ > 0 ? Math.round((totalCorrect / totalQ) * 100) : 0;
+  const pct = (totalCorrect + totalWrong) > 0 ? Math.round((totalCorrect / (totalCorrect + totalWrong)) * 100) : 0;
   document.getElementById('scorePercent').textContent = pct + '%';
   document.getElementById('progressFill').style.width = ((currentRound) / totalRounds * 100) + '%';
 
@@ -809,8 +808,7 @@ function goNextRound() {
 async function showFinalResult() {
   stopBgMusic();
   gameEndTime = Date.now();
-  const totalQ = totalRounds * questionsPerRound;
-  const accuracy = totalQ > 0 ? Math.round((totalCorrect / totalQ) * 100) : 0;
+  const accuracy = (totalCorrect + totalWrong) > 0 ? Math.round((totalCorrect / (totalCorrect + totalWrong)) * 100) : 0;
   const timeSec = Math.round((gameEndTime - gameStartTime) / 1000);
 
   document.getElementById('finalScore').textContent = accuracy + '%';
