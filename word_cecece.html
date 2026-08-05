@@ -196,6 +196,106 @@ h1{
   color:var(--orange);font-size:0.88em;text-align:center;line-height:1.6;
 }
 
+/* ===== 卡通风格 - 名字 & 老师页 ===== */
+#screenName .panel, #screenTeacher .panel {
+  border:3px dashed var(--border);
+  border-radius:24px;
+  background:linear-gradient(180deg, #fffef9 0%, #fff5e6 40%, #fff0d6 100%);
+  box-shadow:0 8px 40px rgba(255,159,67,0.2), 0 2px 8px rgba(255,107,107,0.1);
+  animation:cartoonBounceIn 0.6s cubic-bezier(.34,1.56,.64,1);
+  position:relative;
+  overflow:hidden;
+}
+@keyframes cartoonBounceIn {
+  0%{opacity:0;transform:scale(0.7) translateY(30px)}
+  60%{transform:scale(1.05) translateY(-5px)}
+  100%{opacity:1;transform:scale(1) translateY(0)}
+}
+
+#screenName h1, #screenTeacher h1 {
+  font-size:2.4em;
+  font-weight:900;
+  background:linear-gradient(135deg, #ff6b6b, #ff9f43, #feca57, #26de81, #45aaf2, #a55eea);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  filter:drop-shadow(2px 3px 2px rgba(0,0,0,0.12));
+  letter-spacing:2px;
+  margin-bottom:10px;
+}
+
+#screenName .subtitle, #screenTeacher .subtitle {
+  font-size:1em;
+  color:var(--orange);
+  font-weight:600;
+}
+
+#screenName .form-group input,
+#screenTeacher .form-group select {
+  border-radius:20px;
+  border:3px solid var(--border);
+  padding:14px 20px;
+  background:rgba(255,255,255,0.85);
+  box-shadow:inset 0 2px 6px rgba(0,0,0,0.04);
+  transition:all 0.3s;
+  font-size:1.05em;
+}
+#screenName .form-group input:focus,
+#screenTeacher .form-group select:focus {
+  border-color:var(--red);
+  box-shadow:0 0 16px rgba(255,107,107,0.2), inset 0 2px 6px rgba(0,0,0,0.04);
+}
+
+#screenName .form-group label,
+#screenTeacher .form-group label {
+  font-size:0.95em;
+  color:var(--text);
+  font-weight:700;
+}
+
+#screenName .btn-primary, #screenTeacher .btn-primary {
+  border-radius:50px;
+  padding:14px 36px;
+  font-size:1.1em;
+  letter-spacing:1px;
+  background:linear-gradient(135deg, #ff7675, #fdcb6e);
+  box-shadow:0 6px 24px rgba(255,118,117,0.4);
+  transition:all 0.3s cubic-bezier(.34,1.56,.64,1);
+}
+#screenName .btn-primary:hover, #screenTeacher .btn-primary:hover {
+  transform:translateY(-4px) scale(1.04);
+  box-shadow:0 10px 32px rgba(255,118,117,0.5);
+}
+#screenName .btn-primary:active, #screenTeacher .btn-primary:active {
+  transform:translateY(0) scale(0.97);
+}
+
+.cartoon-decor {
+  position:absolute;
+  pointer-events:none;
+  font-size:1.6em;
+  opacity:0.55;
+  animation:decorFloat 3s ease-in-out infinite;
+}
+.cartoon-decor.d1{top:10px;left:18px;animation-delay:0s}
+.cartoon-decor.d2{top:14px;right:22px;animation-delay:0.5s}
+.cartoon-decor.d3{bottom:20px;left:26px;animation-delay:1s}
+.cartoon-decor.d4{bottom:16px;right:18px;animation-delay:1.5s}
+@keyframes decorFloat {
+  0%,100%{transform:translateY(0) rotate(0deg)}
+  50%{transform:translateY(-6px) rotate(4deg)}
+}
+
+#screenTeacher .back-link {
+  color:var(--orange);
+  font-weight:600;
+  transition:all 0.3s;
+}
+#screenTeacher .back-link:hover {
+  color:var(--red);
+  transform:scale(1.05);
+}
+
 /* Switch back button */
 .back-link{display:block;text-align:center;margin-top:20px;color:var(--text-muted);font-size:0.85em;cursor:pointer}
 .back-link:hover{color:var(--text-secondary)}
@@ -226,28 +326,36 @@ h1{
 <!-- Screen 1: Name -->
 <div class="screen active" id="screenName">
   <div class="panel">
-    <h1>周末检测</h1>
+    <span class="cartoon-decor d1">⭐</span>
+    <span class="cartoon-decor d2">☁️</span>
+    <span class="cartoon-decor d3">🌈</span>
+    <span class="cartoon-decor d4">⭐</span>
+    <h1>单词测测测</h1>
     <p class="subtitle">拼写 + 连连看</p>
     <div class="form-group">
       <label>请输入你的名字</label>
-      <input type="text" id="playerName" placeholder="输入名字" maxlength="20">
+      <input type="text" id="playerName" placeholder="请输入你的超酷名字" maxlength="20">
     </div>
-    <button class="btn btn-primary" onclick="goToTeacher()">下一步</button>
+    <button class="btn btn-primary" onclick="goToTeacher()">出发！</button>
   </div>
 </div>
 
 <!-- Screen 2: Teacher -->
 <div class="screen" id="screenTeacher">
   <div class="panel">
-    <h1>周末检测</h1>
+    <span class="cartoon-decor d1">⭐</span>
+    <span class="cartoon-decor d2">☁️</span>
+    <span class="cartoon-decor d3">🌈</span>
+    <span class="cartoon-decor d4">⭐</span>
+    <h1>单词测测测</h1>
     <p class="subtitle">选择老师</p>
     <div class="form-group">
       <label>选择老师</label>
       <select id="teacherSelect">
-        <option value="">-- 请选择 --</option>
+        <option value="">-- 请选择老师 --</option>
       </select>
     </div>
-    <button class="btn btn-primary" onclick="goToEdition()">下一步</button>
+    <button class="btn btn-primary" onclick="goToEdition()">开始挑战</button>
     <div class="back-link" onclick="showScreen('screenName')">返回修改名字</div>
   </div>
 </div>
