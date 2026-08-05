@@ -199,6 +199,25 @@ h1{
 /* Switch back button */
 .back-link{display:block;text-align:center;margin-top:20px;color:var(--text-muted);font-size:0.85em;cursor:pointer}
 .back-link:hover{color:var(--text-secondary)}
+
+/* ===== 打地鼠拼写模式 ===== */
+.mole-game-container{text-align:center}
+.mole-prompt{font-size:1em;color:var(--text-secondary);margin-bottom:20px;font-weight:600}
+.mole-cn-word{font-size:2.4em;font-weight:700;color:var(--text);margin-bottom:8px}
+.spell-progress-bar{display:flex;justify-content:center;gap:8px;margin-bottom:28px;flex-wrap:wrap}
+.spell-progress-letter{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:2px dashed var(--border);border-radius:8px;font-size:1.2em;font-weight:700;color:var(--text-muted);transition:all 0.3s}
+.spell-progress-letter.filled{background:var(--surface2);border-color:var(--orange);color:var(--text);border-style:solid;animation:spellPulse 0.5s ease}
+@keyframes spellPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,159,67,0)}50%{box-shadow:0 0 16px 4px rgba(255,159,67,0.35)}}
+.mole-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 24px;max-width:420px;margin:0 auto}
+.mole-hole{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:120px;cursor:pointer;overflow:hidden}
+.mole-hole-bg{position:absolute;bottom:0;width:82px;height:38px;background:radial-gradient(ellipse at center,#5c3d2e 0%,#3e2723 60%,#2c1a12 100%);border-radius:50%;z-index:1}
+.mole{position:absolute;bottom:10px;width:66px;height:66px;background:radial-gradient(circle at 40% 35%,#ff9f43,#e67e22);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6em;font-weight:800;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.3);z-index:2;transform:translateY(80px);transition:transform 0.25s cubic-bezier(.68,-.55,.27,1.55);box-shadow:0 4px 12px rgba(0,0,0,0.25);user-select:none}
+.mole.active{transform:translateY(0)}
+.mole.hit{animation:moleHit 0.45s ease forwards;background:radial-gradient(circle at 40% 35%,#26de81,#20a362)!important}
+.mole.wrong-hit{animation:moleShake 0.4s ease;background:radial-gradient(circle at 40% 35%,#fc5c65,#d63031)!important}
+@keyframes moleHit{0%{transform:translateY(0) scale(1)}30%{transform:translateY(-14px) scale(1.15)}100%{transform:translateY(80px) scale(0.25);opacity:0}}
+@keyframes moleShake{0%,100%{transform:translateY(0)}15%{transform:translateX(-6px)}30%{transform:translateX(6px)}45%{transform:translateX(-5px)}60%{transform:translateX(4px)}80%{transform:translateX(-2px)}}
+.mole-word-info{text-align:center;color:var(--text-muted);font-size:0.8em;margin-top:12px}
 </style>
 </head>
 <body>
@@ -524,7 +543,7 @@ async function startGame(mode) {
 
     if (playCount >= 3) {
       const notice = document.getElementById('limitNotice');
-      notice.textContent = `该版本「${mode === 'spell' ? '拼写' : '连连看'}」模式已检测 ${playCount} 次（上限3次）。本次将覆盖最差成绩。`;
+      notice.textContent = `该版本「${mode === 'spell' ? '单词打地鼠' : '消消乐'}」模式已检测 ${playCount} 次（上限3次）。本次将覆盖最差成绩。`;
       notice.style.display = 'block';
     } else {
       document.getElementById('limitNotice').style.display = 'none';
@@ -617,60 +636,163 @@ function renderRound() {
   }
 }
 
-// ==================== Spell Mode ====================
+// ==================== Spell Mode (打地鼠) ====================
 function renderSpellQuestion(area, words, idx) {
   if (idx >= words.length) {
     endRound();
     return;
   }
 
-  const word = words[idx];
-  area.innerHTML = `
-    <div class="cn-display">
-      <div class="cn-word">${word.cn}</div>
-      <div class="cn-hint">请输入对应的英文单词（${idx + 1}/${words.length}，${word.en.length}个字母）</div>
-    </div>
-    <div class="spell-input-wrap">
-      <input type="text" class="spell-input" id="spellInput" placeholder="输入英文单词" autocomplete="off">
-      <button class="btn btn-primary btn-small" onclick="checkSpellAnswer('${word.en.replace(/'/g, "\\'")}', ${idx})">提交</button>
-    </div>
-    <div class="spell-feedback" id="spellFeedback"></div>
-  `;
+  // Clear any existing mole timers
+  if (spellState && spellState.holeTimers) {
+    spellState.holeTimers.forEach(function(t) { clearTimeout(t); });
+  }
 
-  const input = document.getElementById('spellInput');
-  input.focus();
-  input.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') {
-      checkSpellAnswer(word.en, idx);
+  var word = words[idx];
+  var wordLower = word.en.toLowerCase();
+  var letters = wordLower.split('');
+
+  // Generate hole letters: word letters shuffled + distractors to fill 6
+  var holeLetters = shuffleArray(letters.slice());
+  if (holeLetters.length < 6) {
+    var distractors = 'abcdefghijklmnopqrstuvwxyz';
+    var used = {};
+    holeLetters.forEach(function(l) { used[l] = true; });
+    while (holeLetters.length < 6) {
+      var d = distractors[Math.floor(Math.random() * 26)];
+      if (!used[d]) { holeLetters.push(d); used[d] = true; }
     }
-  });
+  } else if (holeLetters.length > 6) {
+    holeLetters = holeLetters.slice(0, 6);
+  }
+  holeLetters = shuffleArray(holeLetters);
+
+  spellState = {
+    currentWordIdx: idx,
+    currentLetterIdx: 0,
+    word: wordLower,
+    cn: word.cn,
+    holeLetters: holeLetters,
+    holeTimers: [],
+    correctSoFar: []
+  };
+
+  // Build progress display
+  var progressHTML = letters.map(function(_, i) {
+    return '<div class="spell-progress-letter" id="spellProg' + i + '">_</div>';
+  }).join('');
+
+  area.innerHTML = '<div class="mole-game-container">' +
+    '<div class="cn-display"><div class="cn-word">' + word.cn + '</div></div>' +
+    '<div class="mole-prompt">点击字母地鼠，按顺序拼出单词！</div>' +
+    '<div class="spell-progress-bar" id="spellProgressBar">' + progressHTML + '</div>' +
+    '<div class="mole-grid" id="moleGrid">' +
+      [0,1,2,3,4,5].map(function(i) {
+        return '<div class="mole-hole" id="moleHole' + i + '" onclick="onMoleClick(' + i + ')">' +
+          '<div class="mole-hole-bg"></div>' +
+          '<div class="mole" id="mole' + i + '">' + holeLetters[i] + '</div>' +
+        '</div>';
+      }).join('') +
+    '</div>' +
+    '<div class="mole-word-info">' + (idx + 1) + '/' + words.length + ' · ' + letters.length + '个字母</div>' +
+    '<div class="spell-feedback" id="spellFeedback" style="margin-top:12px"></div>' +
+  '</div>';
+
+  // Start mole animations after short delay
+  setTimeout(function() {
+    for (var i = 0; i < 6; i++) {
+      scheduleMolePop(i);
+    }
+  }, 200);
 }
 
-function checkSpellAnswer(correctEn, idx) {
-  const input = document.getElementById('spellInput');
-  if (input.disabled) return;
+function scheduleMolePop(holeIndex) {
+  if (!spellState) return;
+  var mole = document.getElementById('mole' + holeIndex);
+  if (!mole) return;
 
-  const answer = input.value.trim();
-  const feedback = document.getElementById('spellFeedback');
-  const words = allQuestions[currentRound];
+  mole.classList.add('active');
 
-  if (answer.toLowerCase() === correctEn.toLowerCase()) {
-    input.classList.add('correct');
-    input.disabled = true;
-    roundCorrect++;
-    totalCorrect++;
+  var visibleTime = 2000 + Math.random() * 3000;
+  var timer1 = setTimeout(function() {
+    if (!spellState) return;
+    mole.classList.remove('active');
+
+    var hiddenTime = 600 + Math.random() * 1800;
+    var timer2 = setTimeout(function() {
+      if (!spellState) return;
+      scheduleMolePop(holeIndex);
+    }, hiddenTime);
+    spellState.holeTimers.push(timer2);
+  }, visibleTime);
+  spellState.holeTimers.push(timer1);
+}
+
+function onMoleClick(holeIndex) {
+  if (!spellState) return;
+
+  var mole = document.getElementById('mole' + holeIndex);
+  if (!mole || !mole.classList.contains('active')) return;
+
+  var clickedLetter = spellState.holeLetters[holeIndex];
+  var expectedLetter = spellState.word[spellState.currentLetterIdx];
+  var feedback = document.getElementById('spellFeedback');
+
+  if (clickedLetter === expectedLetter) {
+    // Correct!
+    spellState.correctSoFar.push(clickedLetter);
+
+    // Update progress display
+    var progEl = document.getElementById('spellProg' + spellState.currentLetterIdx);
+    if (progEl) {
+      progEl.textContent = clickedLetter;
+      progEl.classList.add('filled');
+    }
+
+    // Hit animation
+    mole.classList.remove('active');
+    mole.classList.add('hit');
     feedback.innerHTML = '<span class="correct-ans">正确!</span>';
-    updateGameStats();
-    setTimeout(() => renderSpellQuestion(document.getElementById('gameArea'), words, idx + 1), 600);
+
+    spellState.currentLetterIdx++;
+
+    // Remove hit class after animation; only reschedule if word not yet complete
+    var stillPlaying = spellState.currentLetterIdx < spellState.word.length;
+    setTimeout(function() {
+      mole.classList.remove('hit');
+      if (spellState && stillPlaying) {
+        scheduleMolePop(holeIndex);
+      }
+    }, 450);
+
+    // Check if word complete
+    if (spellState.currentLetterIdx >= spellState.word.length) {
+      roundCorrect++;
+      totalCorrect++;
+      updateGameStats();
+
+      // Clear all timers
+      spellState.holeTimers.forEach(function(t) { clearTimeout(t); });
+      spellState.holeTimers = [];
+
+      // Advance to next word
+      setTimeout(function() {
+        var w = allQuestions[currentRound];
+        renderSpellQuestion(document.getElementById('gameArea'), w, spellState.currentWordIdx + 1);
+      }, 800);
+    }
   } else {
-    input.classList.add('wrong');
-    input.disabled = true;
-    roundWrong++;
-    totalWrong++;
-    wrongWordsLog.push({ cn: words[idx].cn, correctEn: correctEn, userAnswer: answer });
-    feedback.innerHTML = `<span class="wrong-ans">错误</span> 正确答案：<span class="show-answer">${correctEn}</span>`;
-    updateGameStats();
-    setTimeout(() => renderSpellQuestion(document.getElementById('gameArea'), words, idx + 1), 1200);
+    // Wrong click — shake, no stat penalty
+    mole.classList.remove('active');
+    mole.classList.add('wrong-hit');
+    feedback.innerHTML = '<span class="wrong-ans">不对哦，再试试！</span>';
+
+    setTimeout(function() {
+      mole.classList.remove('wrong-hit');
+      if (spellState) {
+        scheduleMolePop(holeIndex);
+      }
+    }, 400);
   }
 }
 
