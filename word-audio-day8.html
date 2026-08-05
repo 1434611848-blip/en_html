@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>中考单词发音练习 - Day 8</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+    background: linear-gradient(135deg, #fff7e6 0%, #ffe8cc 30%, #ffd6a5 60%, #ffc8a2 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px 60px;
+  }
+  h1 {
+    font-size: 2.4em;
+    color: #e67e22;
+    text-shadow: 2px 2px 0 rgba(255,255,255,0.7);
+    margin-bottom: 12px;
+    text-align: center;
+    letter-spacing: 2px;
+  }
+  .subtitle {
+    font-size: 1.1em;
+    color: #f0932b;
+    margin-bottom: 36px;
+    font-weight: 500;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+    max-width: 780px;
+    width: 100%;
+  }
+  .card {
+    background: #fffef9;
+    border: 3px solid #ffe0b2;
+    border-radius: 20px;
+    padding: 28px 18px 22px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 14px rgba(255,160,80,0.15);
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: -20px; right: -20px;
+    width: 60px; height: 60px;
+    background: radial-gradient(circle, rgba(255,180,100,0.35) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(255,140,60,0.25);
+    border-color: #ffb74d;
+  }
+  .card:active {
+    transform: translateY(-2px);
+  }
+  .card.playing {
+    border-color: #ff7043;
+    background: #fff3e0;
+    box-shadow: 0 0 0 5px rgba(255,112,67,0.2), 0 8px 24px rgba(255,140,60,0.3);
+    animation: pulse 1s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 5px rgba(255,112,67,0.2), 0 8px 24px rgba(255,140,60,0.3); }
+    50% { box-shadow: 0 0 0 12px rgba(255,112,67,0.08), 0 8px 24px rgba(255,140,60,0.3); }
+  }
+  .card .emoji {
+    font-size: 2.6em;
+    margin-bottom: 8px;
+    display: block;
+  }
+  .card .label {
+    font-size: 1.05em;
+    font-weight: 700;
+    color: #d35400;
+  }
+  .card .tag {
+    font-size: 0.85em;
+    color: #e67e22;
+    font-weight: 500;
+    margin-top: 4px;
+  }
+  .footer {
+    margin-top: 40px;
+    color: #e0a870;
+    font-size: 0.85em;
+  }
+  @media (max-width: 640px) {
+    .grid { grid-template-columns: repeat(2, 1fr); }
+    h1 { font-size: 1.7em; }
+  }
+  @media (max-width: 420px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<h1>英语单词发音</h1>
+<p class="subtitle">点击卡片播放对应版本单词音频</p>
+
+<div class="grid">
+  <div class="card" onclick="playAudio(this, 0)" data-index="0">
+    <span class="emoji">📘</span>
+    <div class="label">人教版</div>
+    <div class="tag">Day 8</div>
+  </div>
+  <div class="card" onclick="playAudio(this, 1)" data-index="1">
+    <span class="emoji">📗</span>
+    <div class="label">沪教五四</div>
+    <div class="tag">Day 8</div>
+  </div>
+  <div class="card" onclick="playAudio(this, 2)" data-index="2">
+    <span class="emoji">📙</span>
+    <div class="label">仁爱版</div>
+    <div class="tag">Day 8</div>
+  </div>
+  <div class="card" onclick="playAudio(this, 3)" data-index="3">
+    <span class="emoji">📓</span>
+    <div class="label">外研版</div>
+    <div class="tag">Day 8</div>
+  </div>
+  <div class="card" onclick="playAudio(this, 4)" data-index="4">
+    <span class="emoji">📔</span>
+    <div class="label">译林版</div>
+    <div class="tag">Day 8</div>
+  </div>
+  <div class="card" onclick="playAudio(this, 5)" data-index="5">
+    <span class="emoji">📒</span>
+    <div class="label">沪教牛津</div>
+    <div class="tag">Day 8</div>
+  </div>
+  <div class="card" onclick="playAudio(this, 6)" data-index="6">
+    <span class="emoji">📕</span>
+    <div class="label">鲁教版</div>
+    <div class="tag">Day 8</div>
+  </div>
+  <div class="card" onclick="playAudio(this, 7)" data-index="7">
+    <span class="emoji">📖</span>
+    <div class="label">北师大</div>
+    <div class="tag">Day 8</div>
+  </div>
+  <div class="card" onclick="playAudio(this, 8)" data-index="8">
+    <span class="emoji">📚</span>
+    <div class="label">冀教版</div>
+    <div class="tag">Day 8</div>
+  </div>
+</div>
+
+<p class="footer">点击卡片即播 · 再次点击或点击其他卡片切换</p>
+
+<script>
+const audioPaths = [
+  'audio/%E4%BA%BA%E6%95%99day8.mp3',
+  'audio/%E6%B2%AA%E6%95%99day8.mp3',
+  'audio/%E4%BB%81%E7%88%B1%E7%89%88Day8.mp3',
+  'audio/%E5%A4%96%E7%A0%94%E7%89%88Day8.mp3',
+  'audio/%E8%AF%91%E6%9E%97%E7%89%88Day8.mp3',
+  'audio/%E6%B2%AA%E6%95%99%E7%89%9B%E6%B4%A5day8.mp3',
+  'audio/%E9%B2%81%E6%95%99%E7%89%88Day8.mp3',
+  'audio/%E5%8C%97%E5%B8%88%E5%A4%A7day8.mp3',
+  'audio/%E5%86%80%E6%95%99day8.mp3'
+];
+
+let currentAudio = null;
+let currentCard = null;
+
+function playAudio(card, index) {
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+  }
+  if (currentCard) {
+    currentCard.classList.remove('playing');
+  }
+  if (currentCard === card && currentAudio) {
+    currentAudio = null;
+    currentCard = null;
+    return;
+  }
+  const audio = new Audio(audioPaths[index]);
+  audio.onended = function() {
+    card.classList.remove('playing');
+    currentAudio = null;
+    currentCard = null;
+  };
+  audio.onerror = function() {
+    card.classList.remove('playing');
+    currentAudio = null;
+    currentCard = null;
+    alert('音频加载失败，请检查文件路径是否正确。');
+  };
+  card.classList.add('playing');
+  currentAudio = audio;
+  currentCard = card;
+  audio.play().catch(function(e) {
+    card.classList.remove('playing');
+    currentAudio = null;
+    currentCard = null;
+    alert('播放失败: ' + e.message);
+  });
+}
+</script>
+</body>
+</html>
