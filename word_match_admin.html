@@ -59,16 +59,6 @@ header h1{font-size:1.1em;font-weight:700;white-space:nowrap}
 header .header-nav{display:flex;align-items:center;gap:6px}
 header .btn-logout{padding:5px 12px;font-size:0.82em}
 
-/* Game type selector */
-.game-selector{display:flex;align-items:center;gap:8px;margin-left:16px}
-.game-selector label{font-size:0.82em;color:var(--text-secondary);font-weight:600;white-space:nowrap}
-.game-selector select{
-  padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius);
-  background:var(--surface);color:var(--text);font-size:0.82em;font-weight:600;
-  cursor:pointer;outline:none;transition:border 0.2s;
-}
-.game-selector select:focus{border-color:var(--primary)}
-
 /* Nav dropdown */
 .nav-dropdown{position:relative}
 .nav-btn{
@@ -273,13 +263,6 @@ tbody tr:hover{background:#f8fafc}
 <div id="mainApp" style="display:none">
   <header>
     <h1 id="headerTitle">📋 教师后台 - 单词消消乐</h1>
-    <div class="game-selector" id="gameSelector" style="display:none">
-      <label for="gameTypeSelect">游戏：</label>
-      <select id="gameTypeSelect" onchange="switchGame(this.value)">
-        <option value="weekend_check">周末检测</option>
-        <option value="cecece">单词测测测</option>
-      </select>
-    </div>
     <div class="header-nav">
       <div class="nav-dropdown" id="navTeacher" style="display:none">
         <button class="nav-btn" onclick="toggleNavDropdown('navTeacher')">教师管理 ▾</button>
@@ -312,6 +295,7 @@ tbody tr:hover{background:#f8fafc}
       <button id="tabEscape" onclick="switchTab('escape')">🔑 单词密室逃脱</button>
       <button id="tabShooting" onclick="switchTab('shooting')">🎯 单词射击</button>
       <button id="tabWeekend" onclick="switchTab('weekend')">📋 周末检测</button>
+      <button id="tabCecece" onclick="switchTab('cecece')">📝 单词测测测</button>
     </div>
 
     <!-- Stats -->
@@ -471,6 +455,54 @@ tbody tr:hover{background:#f8fafc}
     </div>
     <!-- End Weekend Check Sections -->
 
+    <!-- Cecece Sections -->
+    <div class="section" id="cececeStatsSection" style="display:none">
+      <h3><span class="dot" style="background:#06b6d4"></span> 单词测测测统计</h3>
+      <div class="stat-row" id="cececeStatRow"></div>
+    </div>
+
+    <div class="section" id="cececeLeaderboardSection" style="display:none">
+      <h3><span class="dot" style="background:#06b6d4"></span> 📝 单词测测测排行榜</h3>
+      <div id="cececeLB"><div class="empty-state">暂无记录</div></div>
+      <div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-small" onclick="downloadWeekendCSV()">📥 下载记录 (CSV)</button>
+        <button class="btn btn-outline btn-small" onclick="refreshWeekend()">🔄 刷新</button>
+      </div>
+    </div>
+
+    <div class="section" id="cececeUploadSection" style="display:none">
+      <h3><span class="dot" style="background:#06b6d4"></span> 📝 单词测测测单词上传</h3>
+      <div class="upload-area" id="cececeUploadArea" style="padding:16px 24px">
+        <div class="icon" style="font-size:1.4em;margin-bottom:4px">📂</div>
+        <div class="text" style="font-size:0.82em">点击上传或拖拽单词文件到此处</div>
+        <div class="hint" style="font-size:0.75em">支持 .txt / .json / .docx / .pdf 格式（至少 30 组）</div>
+        <div class="upload-info" id="cececeUploadInfo"></div>
+      </div>
+      <input type="file" id="cececeFileInput" accept=".txt,.json,.docx,.pdf" style="display:none">
+      <button class="manual-toggle" id="cececeManualToggle" onclick="toggleCececeManual()">
+        <span class="arrow">▶</span> 手动输入单词
+      </button>
+      <div class="manual-panel" id="cececeManualPanel">
+        <textarea id="cececeManualText" placeholder="abandon,放弃&#10;ability,能力&#10;..."></textarea>
+        <p class="hint">每行一组，英文和中文用逗号、空格或制表符分隔</p>
+        <button class="btn btn-primary btn-small" onclick="importCececeManual()">导入单词</button>
+      </div>
+      <p style="font-size:0.85em;color:var(--text-muted)">
+        当前词汇池：<strong id="cececeVocabCount">0</strong> 组单词
+      </p>
+    </div>
+
+    <div class="section" id="cececeEditionsSection" style="display:none">
+      <h3><span class="dot" style="background:#06b6d4"></span> 📝 单词测测测期次管理</h3>
+      <p style="font-size:0.85em;color:var(--text-muted);margin-bottom:12px">
+        上传单词自动生成新一期。同一时间只有一期处于「激活中」状态。
+      </p>
+      <div id="cececeEditionsContainer">
+        <div class="empty-state">暂无单词期次，上传单词后将自动生成</div>
+      </div>
+    </div>
+    <!-- End Cecece Sections -->
+
     <!-- Word Editions Management -->
     <div class="section">
       <h3><span class="dot" style="background:#8b5cf6"></span> 单词管理（期次）</h3>
@@ -597,24 +629,27 @@ function showToast(msg,type='info'){
 function formatTime(ms){const sec=Math.floor(ms/1000);return `${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`}
 
 // ==================== Tab Switching ====================
+// Panel prefix helper: returns 'weekend' for weekend_check, 'cecece' for cecece
+function getPanPrefix(){return currentGameType==='cecece'?'cecece':'weekend'}
+
 function switchTab(tab){
   currentTab=tab;
   document.getElementById('tabMatch').classList.toggle('active',tab==='match');
   document.getElementById('tabEscape').classList.toggle('active',tab==='escape');
   document.getElementById('tabShooting').classList.toggle('active',tab==='shooting');
   document.getElementById('tabWeekend').classList.toggle('active',tab==='weekend');
+  document.getElementById('tabCecece').classList.toggle('active',tab==='cecece');
 
-  // Game type selector: only show in weekend tab
-  document.getElementById('gameSelector').style.display=tab==='weekend'?'flex':'none';
-  if(tab==='weekend'){
-    document.getElementById('gameTypeSelect').value=currentGameType;
-  }
+  // Set currentGameType based on tab
+  if(tab==='weekend')currentGameType='weekend_check';
+  else if(tab==='cecece')currentGameType='cecece';
 
   var headerTitle='📋 教师后台 - ';
   if(tab==='match')headerTitle+='单词消消乐';
   else if(tab==='escape')headerTitle+='单词密室逃脱';
   else if(tab==='shooting')headerTitle+='单词射击';
-  else headerTitle+=(currentGameType==='cecece'?'单词测测测':'周末检测');
+  else if(tab==='weekend')headerTitle+='周末检测';
+  else headerTitle+='单词测测测';
   document.getElementById('headerTitle').textContent=headerTitle;
 
   if(tab==='shooting'){
@@ -635,24 +670,32 @@ function switchTab(tab){
   document.getElementById('shootingUploadSection').style.display=tab==='shooting'?'':'none';
   document.getElementById('shootingEditionsSection').style.display=tab==='shooting'?'':'none';
   // 周末检测专属区
-  document.getElementById('statRow').style.display=tab==='weekend'?'none':'';
-  document.getElementById('generalLeaderboardSection').style.display=tab==='weekend'?'none':'';
-  document.getElementById('weekendStatsSection').style.display=tab==='weekend'?'':'none';
-  document.getElementById('weekendUploadSection').style.display=tab==='weekend'?'':'none';
-  document.getElementById('weekendEditionsSection').style.display=tab==='weekend'?'':'none';
-  document.getElementById('weekendLeaderboardSection').style.display=tab==='weekend'?'':'none';
+  var isWeekend=tab==='weekend';
+  var isCecece=tab==='cecece';
+  document.getElementById('statRow').style.display=(isWeekend||isCecece)?'none':'';
+  document.getElementById('generalLeaderboardSection').style.display=(isWeekend||isCecece)?'none':'';
+  document.getElementById('weekendStatsSection').style.display=isWeekend?'':'none';
+  document.getElementById('weekendUploadSection').style.display=isWeekend?'':'none';
+  document.getElementById('weekendEditionsSection').style.display=isWeekend?'':'none';
+  document.getElementById('weekendLeaderboardSection').style.display=isWeekend?'':'none';
+  // 单词测测测专属区
+  document.getElementById('cececeStatsSection').style.display=isCecece?'':'none';
+  document.getElementById('cececeUploadSection').style.display=isCecece?'':'none';
+  document.getElementById('cececeEditionsSection').style.display=isCecece?'':'none';
+  document.getElementById('cececeLeaderboardSection').style.display=isCecece?'':'none';
 
   // 管理区显隐控制（消消乐标签显示消消乐专属，其他标签隐藏）
   var manageSections=document.querySelectorAll('.section');
   var specialIds=['escapeUploadSection','escapeEditionsSection','shootingUploadSection','shootingEditionsSection',
-    'weekendStatsSection','weekendUploadSection','weekendEditionsSection','weekendLeaderboardSection'];
+    'weekendStatsSection','weekendUploadSection','weekendEditionsSection','weekendLeaderboardSection',
+    'cececeStatsSection','cececeUploadSection','cececeEditionsSection','cececeLeaderboardSection'];
   for(var i=0;i<manageSections.length;i++){
     var el=manageSections[i];
     if(specialIds.includes(el.id)) continue;
     var h3=el.querySelector('h3');
     if(!h3)continue;
     var txt=h3.textContent||'';
-    if(tab==='escape'||tab==='shooting'||tab==='weekend'){
+    if(tab==='escape'||tab==='shooting'||isWeekend||isCecece){
       if(txt.includes('单词文件上传')||txt.includes('老师名单')||txt.includes('修改登录密码')||txt.includes('单词管理')||txt.includes('期次')||txt.includes('排行榜 TOP')){
         el.style.display='none';
       }
@@ -663,11 +706,11 @@ function switchTab(tab){
 
   clearInterval(lbTimer);
   if(tab==='escape'||tab==='shooting'){lbTimer=setInterval(renderLeaderboard,5000)}
-  if(tab!=='weekend')renderLeaderboard();
-  if(tab!=='weekend')renderStats();
+  if(tab!=='weekend'&&tab!=='cecece')renderLeaderboard();
+  if(tab!=='weekend'&&tab!=='cecece')renderStats();
   if(tab==='escape') renderEscapeEditions();
   else if(tab==='shooting') renderShootingEditions();
-  else if(tab==='weekend'){ renderWeekendStats(); renderWeekendEditions(); renderWeekendLeaderboard(); }
+  else if(isWeekend||isCecece){ renderWeekendStats(); renderWeekendEditions(); renderWeekendLeaderboard(); }
   else renderEditions();
 }
 
@@ -1545,17 +1588,21 @@ async function renderShootingEditions(){
 
 // ==================== Weekend Check: Upload & Edition ====================
 
-// --- Game Type Switching ---
-function switchGame(gameType){
-  currentGameType=gameType;
-  // Update header title
-  var headerTitle='📋 教师后台 - ';
-  headerTitle+=(gameType==='cecece'?'单词测测测':'周末检测');
-  document.getElementById('headerTitle').textContent=headerTitle;
-  // Refresh weekend data
-  renderWeekendStats();
-  renderWeekendEditions();
-  renderWeekendLeaderboard();
+// --- Cecece manual input helpers ---
+function toggleCececeManual(){
+  var panel=document.getElementById('cececeManualPanel');
+  var toggle=document.getElementById('cececeManualToggle');
+  var isOpen=panel.classList.toggle('open');
+  toggle.querySelector('.arrow').textContent=isOpen?'\u25BC':'\u25B6';
+}
+async function importCececeManual(){
+  var text=document.getElementById('cececeManualText').value.trim();
+  if(!text){showToast('请输入单词','error');return;}
+  var words=extractPairs(text);
+  if(words.length<30){showToast('至少需要 30 组单词，当前仅 '+words.length+' 组','error');return;}
+  await addWeekendEdition(words);
+  document.getElementById('cececeManualText').value='';
+  toggleCececeManual();
 }
 
 // --- Weekend file upload ---
@@ -1567,6 +1614,18 @@ document.getElementById('weekendUploadArea').addEventListener('drop',async funct
   var f=e.dataTransfer.files[0];if(f)await handleWeekendFile(f);
 });
 document.getElementById('weekendFileInput').addEventListener('change',async function(e){
+  var f=e.target.files[0];if(f)await handleWeekendFile(f);
+});
+
+// --- Cecece file upload ---
+document.getElementById('cececeUploadArea').addEventListener('click',function(){document.getElementById('cececeFileInput').click()});
+document.getElementById('cececeUploadArea').addEventListener('dragover',function(e){e.preventDefault();e.currentTarget.style.borderColor='var(--primary)'});
+document.getElementById('cececeUploadArea').addEventListener('dragleave',function(e){e.currentTarget.style.borderColor='var(--border)'});
+document.getElementById('cececeUploadArea').addEventListener('drop',async function(e){
+  e.preventDefault();e.currentTarget.style.borderColor='var(--border)';
+  var f=e.dataTransfer.files[0];if(f)await handleWeekendFile(f);
+});
+document.getElementById('cececeFileInput').addEventListener('change',async function(e){
   var f=e.target.files[0];if(f)await handleWeekendFile(f);
 });
 
@@ -1608,9 +1667,9 @@ async function addWeekendEdition(words){
   if(res.error){showToast('上传失败: '+res.error.message,'error');return}
   await renderWeekendEditions();
   var wkEds=await getWeekendEditions();
-  document.getElementById('weekendVocabCount').textContent=wkEds.reduce(function(s,e){return s+(e.words?e.words.length:0)},0);
+  document.getElementById(getPanPrefix()+'VocabCount').textContent=wkEds.reduce(function(s,e){return s+(e.words?e.words.length:0)},0);
   await renderWeekendStats();
-  showToast('周末检测期次「'+name+'」已上传（'+words.length+' 组单词）','success');
+  showToast((currentGameType==='cecece'?'单词测测测':'周末检测')+'期次「'+name+'」已上传（'+words.length+' 组单词）','success');
 }
 async function generateWeekendEditionName(){
   var today=new Date();
@@ -1629,26 +1688,27 @@ async function activateWeekendEdition(name){
   await supabaseAdmin.from('word_editions').update({note:currentGameType}).eq('name',name);
   await renderWeekendEditions();
   var wkEds=await getWeekendEditions();
-  document.getElementById('weekendVocabCount').textContent=wkEds.reduce(function(s,e){return s+(e.words?e.words.length:0)},0);
+  document.getElementById(getPanPrefix()+'VocabCount').textContent=wkEds.reduce(function(s,e){return s+(e.words?e.words.length:0)},0);
   await renderWeekendStats();
-  showToast('周末检测已上架：'+name,'success');
+  showToast((currentGameType==='cecece'?'单词测测测':'周末检测')+'已上架：'+name,'success');
 }
 async function deactivateWeekendEdition(name){
   if(!isSuperAdmin()){showToast('仅超级管理员可操作','error');return}
   await supabaseAdmin.from('word_editions').update({note:currentGameType+'_inactive'}).eq('name',name);
   await renderWeekendEditions();
   var wkEds=await getWeekendEditions();
-  document.getElementById('weekendVocabCount').textContent=wkEds.reduce(function(s,e){return s+(e.words?e.words.length:0)},0);
+  document.getElementById(getPanPrefix()+'VocabCount').textContent=wkEds.reduce(function(s,e){return s+(e.words?e.words.length:0)},0);
   await renderWeekendStats();
-  showToast('周末检测已下架：'+name,'info');
+  showToast((currentGameType==='cecece'?'单词测测测':'周末检测')+'已下架：'+name,'info');
 }
 
 async function renderWeekendEditions(){
-  var container=document.getElementById('weekendEditionsContainer');
+  var container=document.getElementById(getPanPrefix()+'EditionsContainer');
   var editions=await getWeekendEditions();
-  document.getElementById('weekendVocabCount').textContent=editions.reduce(function(s,e){return s+(e.words?e.words.length:0)},0);
+  document.getElementById(getPanPrefix()+'VocabCount').textContent=editions.reduce(function(s,e){return s+(e.words?e.words.length:0)},0);
+  var label=currentGameType==='cecece'?'单词测测测':'周末检测';
   if(editions.length===0){
-    container.innerHTML='<div class="empty-state">暂无周末检测期次，上传单词后将自动生成</div>';
+    container.innerHTML='<div class="empty-state">暂无'+label+'期次，上传单词后将自动生成</div>';
     return;
   }
   var isSA=isSuperAdmin();
@@ -1680,7 +1740,8 @@ async function confirmDeleteWeekendEdition(id){
   if(!edition)return;
   if(edition.note===currentGameType){showToast('无法删除上架中的期次，请先下架','error');return}
   pendingDeleteId=id;
-  document.getElementById('deleteConfirmText').textContent='确定删除周末检测期次「'+edition.name+'」（'+edition.words.length+' 组单词）吗？此操作不可恢复。';
+  var label=currentGameType==='cecece'?'单词测测测':'周末检测';
+  document.getElementById('deleteConfirmText').textContent='确定删除'+label+'期次「'+edition.name+'」（'+edition.words.length+' 组单词）吗？此操作不可恢复。';
   document.getElementById('deleteConfirm').classList.remove('hidden');
   document.getElementById('deleteConfirmBtn').onclick=async function(){
     await supabaseAdmin.from('word_editions').delete().eq('id',pendingDeleteId);
@@ -1689,7 +1750,7 @@ async function confirmDeleteWeekendEdition(id){
     await renderWeekendEditions();
     await renderWeekendStats();
     var wkEds=await getWeekendEditions();
-    document.getElementById('weekendVocabCount').textContent=wkEds.reduce(function(s,e){return s+(e.words?e.words.length:0)},0);
+    document.getElementById(getPanPrefix()+'VocabCount').textContent=wkEds.reduce(function(s,e){return s+(e.words?e.words.length:0)},0);
     showToast('期次已删除','info');
   };
 }
@@ -1708,14 +1769,14 @@ async function renderWeekendStats(){
       totalPlayers=seen.size;
     }
   }catch(e){totalPlayers='—';totalGames='—'}
-  document.getElementById('weekendStatRow').innerHTML=
+  document.getElementById(getPanPrefix()+'StatRow').innerHTML=
     '<div class="stat-item"><div class="val">'+totalPlayers+'</div><div class="lbl">参与人数</div></div>'+
     '<div class="stat-item"><div class="val">'+totalGames+'</div><div class="lbl">总检测次数</div></div>';
 }
 
 // --- Weekend: Leaderboard ---
 async function renderWeekendLeaderboard(){
-  var container=document.getElementById('weekendLB');
+  var container=document.getElementById(getPanPrefix()+'LB');
   try{
     var res=await supabaseAdmin.from('game_records').select('*')
       .eq('game_type',currentGameType)
