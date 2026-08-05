@@ -59,6 +59,16 @@ header h1{font-size:1.1em;font-weight:700;white-space:nowrap}
 header .header-nav{display:flex;align-items:center;gap:6px}
 header .btn-logout{padding:5px 12px;font-size:0.82em}
 
+/* Game type selector */
+.game-selector{display:flex;align-items:center;gap:8px;margin-left:16px}
+.game-selector label{font-size:0.82em;color:var(--text-secondary);font-weight:600;white-space:nowrap}
+.game-selector select{
+  padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius);
+  background:var(--surface);color:var(--text);font-size:0.82em;font-weight:600;
+  cursor:pointer;outline:none;transition:border 0.2s;
+}
+.game-selector select:focus{border-color:var(--primary)}
+
 /* Nav dropdown */
 .nav-dropdown{position:relative}
 .nav-btn{
@@ -263,6 +273,13 @@ tbody tr:hover{background:#f8fafc}
 <div id="mainApp" style="display:none">
   <header>
     <h1 id="headerTitle">📋 教师后台 - 单词消消乐</h1>
+    <div class="game-selector" id="gameSelector" style="display:none">
+      <label for="gameTypeSelect">游戏：</label>
+      <select id="gameTypeSelect" onchange="switchGame(this.value)">
+        <option value="weekend_check">周末检测</option>
+        <option value="cecece">单词测测测</option>
+      </select>
+    </div>
     <div class="header-nav">
       <div class="nav-dropdown" id="navTeacher" style="display:none">
         <button class="nav-btn" onclick="toggleNavDropdown('navTeacher')">教师管理 ▾</button>
@@ -489,7 +506,8 @@ const KEYS={password:'admin_password'}; // 仅保留安全相关配置
 const DEFAULT_TEACHERS=['亚楠老师','佳萌老师','亚飞老师'];
 const DEFAULT_PASSWORD='admin123';
 const SUPER_ADMIN='亚飞老师';
-let currentTab='match'; // 'match' 消消乐 | 'escape' 密室逃脱
+let currentTab='match'; // 'match' 消消乐 | 'escape' 密室逃脱 | 'shooting' 射击 | 'weekend' 周末检测
+let currentGameType='weekend_check'; // 'weekend_check' 周末检测 | 'cecece' 单词测测测
 let lbTimer=null;
 
 function getPassword(){try{const v=localStorage.getItem(KEYS.password);return v?JSON.parse(v):DEFAULT_PASSWORD}catch(e){return DEFAULT_PASSWORD}}
@@ -585,11 +603,18 @@ function switchTab(tab){
   document.getElementById('tabEscape').classList.toggle('active',tab==='escape');
   document.getElementById('tabShooting').classList.toggle('active',tab==='shooting');
   document.getElementById('tabWeekend').classList.toggle('active',tab==='weekend');
+
+  // Game type selector: only show in weekend tab
+  document.getElementById('gameSelector').style.display=tab==='weekend'?'flex':'none';
+  if(tab==='weekend'){
+    document.getElementById('gameTypeSelect').value=currentGameType;
+  }
+
   var headerTitle='📋 教师后台 - ';
   if(tab==='match')headerTitle+='单词消消乐';
   else if(tab==='escape')headerTitle+='单词密室逃脱';
   else if(tab==='shooting')headerTitle+='单词射击';
-  else headerTitle+='周末检测';
+  else headerTitle+=(currentGameType==='cecece'?'单词测测测':'周末检测');
   document.getElementById('headerTitle').textContent=headerTitle;
 
   if(tab==='shooting'){
@@ -1519,6 +1544,20 @@ async function renderShootingEditions(){
 // ==================== End Shooting ====================
 
 // ==================== Weekend Check: Upload & Edition ====================
+
+// --- Game Type Switching ---
+function switchGame(gameType){
+  currentGameType=gameType;
+  // Update header title
+  var headerTitle='📋 教师后台 - ';
+  headerTitle+=(gameType==='cecece'?'单词测测测':'周末检测');
+  document.getElementById('headerTitle').textContent=headerTitle;
+  // Refresh weekend data
+  renderWeekendStats();
+  renderWeekendEditions();
+  renderWeekendLeaderboard();
+}
+
 // --- Weekend file upload ---
 document.getElementById('weekendUploadArea').addEventListener('click',function(){document.getElementById('weekendFileInput').click()});
 document.getElementById('weekendUploadArea').addEventListener('dragover',function(e){e.preventDefault();e.currentTarget.style.borderColor='var(--primary)'});
@@ -1559,13 +1598,13 @@ async function importWeekendManual(){
 
 // --- Weekend: Edition CRUD ---
 async function getWeekendEditions(){
-  try{var res=await supabaseAdmin.from('word_editions').select('*').eq('note','weekend_check').order('created_at',{ascending:false});return res.data||[]}
+  try{var res=await supabaseAdmin.from('word_editions').select('*').eq('note',currentGameType).order('created_at',{ascending:false});return res.data||[]}
   catch(e){return[]}
 }
 
 async function addWeekendEdition(words){
   var name=await generateWeekendEditionName();
-  var res=await supabaseAdmin.from('word_editions').insert({name:name,words:words,note:'weekend_check',created_at:new Date().toISOString()}).select();
+  var res=await supabaseAdmin.from('word_editions').insert({name:name,words:words,note:currentGameType,created_at:new Date().toISOString()}).select();
   if(res.error){showToast('上传失败: '+res.error.message,'error');return}
   await renderWeekendEditions();
   var wkEds=await getWeekendEditions();
@@ -1587,7 +1626,7 @@ async function generateWeekendEditionName(){
 }
 
 async function activateWeekendEdition(name){
-  await supabaseAdmin.from('word_editions').update({note:'weekend_check'}).eq('name',name);
+  await supabaseAdmin.from('word_editions').update({note:currentGameType}).eq('name',name);
   await renderWeekendEditions();
   var wkEds=await getWeekendEditions();
   document.getElementById('weekendVocabCount').textContent=wkEds.reduce(function(s,e){return s+(e.words?e.words.length:0)},0);
@@ -1596,7 +1635,7 @@ async function activateWeekendEdition(name){
 }
 async function deactivateWeekendEdition(name){
   if(!isSuperAdmin()){showToast('仅超级管理员可操作','error');return}
-  await supabaseAdmin.from('word_editions').update({note:'weekend_check_inactive'}).eq('name',name);
+  await supabaseAdmin.from('word_editions').update({note:currentGameType+'_inactive'}).eq('name',name);
   await renderWeekendEditions();
   var wkEds=await getWeekendEditions();
   document.getElementById('weekendVocabCount').textContent=wkEds.reduce(function(s,e){return s+(e.words?e.words.length:0)},0);
@@ -1616,7 +1655,7 @@ async function renderWeekendEditions(){
   container.innerHTML=
     '<table class="edition-table"><thead><tr><th>期次名称</th><th>单词数</th><th>状态</th><th>创建时间</th><th>备注</th><th>操作</th></tr></thead>'+
     '<tbody>'+editions.map(function(e){
-      var isActive=e.note==='weekend_check';
+      var isActive=e.note===currentGameType;
       var date=new Date(e.created_at);
       var dateStr=date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0')+' '+String(date.getHours()).padStart(2,'0')+':'+String(date.getMinutes()).padStart(2,'0');
       var ops=isSA?(isActive?
@@ -1639,7 +1678,7 @@ async function confirmDeleteWeekendEdition(id){
   var editions=await getWeekendEditions();
   var edition=editions.find(function(e){return e.id===id});
   if(!edition)return;
-  if(edition.note==='weekend_check'){showToast('无法删除上架中的期次，请先下架','error');return}
+  if(edition.note===currentGameType){showToast('无法删除上架中的期次，请先下架','error');return}
   pendingDeleteId=id;
   document.getElementById('deleteConfirmText').textContent='确定删除周末检测期次「'+edition.name+'」（'+edition.words.length+' 组单词）吗？此操作不可恢复。';
   document.getElementById('deleteConfirm').classList.remove('hidden');
@@ -1659,10 +1698,10 @@ async function confirmDeleteWeekendEdition(id){
 async function renderWeekendStats(){
   var totalPlayers=0,totalGames=0;
   try{
-    var resP=await supabaseAdmin.from('game_records').select('name',{count:'exact',head:true}).eq('game_type','weekend_check');
+    var resP=await supabaseAdmin.from('game_records').select('name',{count:'exact',head:true}).eq('game_type',currentGameType);
     if(resP.count!=null)totalGames=resP.count;
     // Count distinct players
-    var resD=await supabaseAdmin.from('game_records').select('name').eq('game_type','weekend_check');
+    var resD=await supabaseAdmin.from('game_records').select('name').eq('game_type',currentGameType);
     if(resD.data){
       var seen=new Set();
       for(var i=0;i<resD.data.length;i++)seen.add(resD.data[i].name+'|||'+resD.data[i].teacher);
@@ -1679,7 +1718,7 @@ async function renderWeekendLeaderboard(){
   var container=document.getElementById('weekendLB');
   try{
     var res=await supabaseAdmin.from('game_records').select('*')
-      .eq('game_type','weekend_check')
+      .eq('game_type',currentGameType)
       .order('accuracy',{ascending:false}).order('time',{ascending:true})
       .limit(100);
     var records=res.data;
@@ -1721,10 +1760,10 @@ async function deleteWeekendRecord(id){
 async function downloadWeekendCSV(){
   try{
     var res=await supabaseAdmin.from('game_records').select('*')
-      .eq('game_type','weekend_check')
+      .eq('game_type',currentGameType)
       .order('accuracy',{ascending:false}).order('time',{ascending:true});
     var records=res.data;
-    if(!records||records.length===0){showToast('暂无周末检测记录','error');return}
+    if(!records||records.length===0){showToast('暂无'+ (currentGameType==='cecece'?'单词测测测':'周末检测') +'记录','error');return}
 
     // Dedupe
     var seen=new Set();
@@ -1742,7 +1781,7 @@ async function downloadWeekendCSV(){
     });
     var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
     var url=URL.createObjectURL(blob),a=document.createElement('a');
-    a.href=url;a.download='周末检测_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+    a.href=url;a.download=(currentGameType==='cecece'?'单词测测测':'周末检测')+'_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
     URL.revokeObjectURL(url);showToast('已导出 '+bestRecords.length+' 条记录','success');
   }catch(e){showToast('下载失败，请重试','error')}
 }
