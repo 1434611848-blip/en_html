@@ -308,7 +308,7 @@ h1{
 .spell-progress-letter{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:2px dashed var(--border);border-radius:8px;font-size:1.2em;font-weight:700;color:var(--text-muted);transition:all 0.3s}
 .spell-progress-letter.filled{background:var(--surface2);border-color:var(--orange);color:var(--text);border-style:solid;animation:spellPulse 0.5s ease}
 @keyframes spellPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,159,67,0)}50%{box-shadow:0 0 16px 4px rgba(255,159,67,0.35)}}
-.mole-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 24px;max-width:420px;margin:0 auto}
+.mole-grid{display:grid;gap:16px 24px;max-width:420px;margin:0 auto}
 .mole-hole{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:120px;cursor:pointer;overflow:hidden}
 .mole-hole-bg{position:absolute;bottom:0;width:82px;height:38px;background:radial-gradient(ellipse at center,#5c3d2e 0%,#3e2723 60%,#2c1a12 100%);border-radius:50%;z-index:1}
 .mole{position:absolute;bottom:10px;width:66px;height:66px;background:radial-gradient(circle at 40% 35%,#ff9f43,#e67e22);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6em;font-weight:800;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.3);z-index:2;transform:translateY(0);box-shadow:0 4px 12px rgba(0,0,0,0.25);user-select:none}
@@ -764,18 +764,30 @@ function renderSpellQuestion(area, words, idx) {
   var wordLower = word.en.toLowerCase();
   var letters = wordLower.split('');
 
-  // Generate hole letters: word letters shuffled + distractors to fill 6
-  var holeLetters = shuffleArray(letters.slice());
-  if (holeLetters.length < 6) {
+  // Calculate unique letters
+  var uniqueLetters = [];
+  var seenLetters = {};
+  letters.forEach(function(l) {
+    if (!seenLetters[l]) { seenLetters[l] = true; uniqueLetters.push(l); }
+  });
+  var uniqueCount = uniqueLetters.length;
+
+  // Determine hole count and columns
+  var totalHoles, cols;
+  if (uniqueCount <= 6) { totalHoles = 6; cols = 2; }
+  else if (uniqueCount <= 9) { totalHoles = 9; cols = 3; }
+  else { totalHoles = 12; cols = 3; }
+
+  // Put all unique letters into holes, fill rest with random distractors
+  var holeLetters = uniqueLetters.slice();
+  if (holeLetters.length < totalHoles) {
     var distractors = 'abcdefghijklmnopqrstuvwxyz';
     var used = {};
     holeLetters.forEach(function(l) { used[l] = true; });
-    while (holeLetters.length < 6) {
+    while (holeLetters.length < totalHoles) {
       var d = distractors[Math.floor(Math.random() * 26)];
       if (!used[d]) { holeLetters.push(d); used[d] = true; }
     }
-  } else if (holeLetters.length > 6) {
-    holeLetters = holeLetters.slice(0, 6);
   }
   holeLetters = shuffleArray(holeLetters);
 
@@ -789,22 +801,26 @@ function renderSpellQuestion(area, words, idx) {
     correctSoFar: []
   };
 
-  // Build progress display
+  // Build progress display (always show all letter slots)
   var progressHTML = letters.map(function(_, i) {
     return '<div class="spell-progress-letter" id="spellProg' + i + '">_</div>';
   }).join('');
+
+  // Generate hole HTML dynamically
+  var holesHTML = '';
+  for (var i = 0; i < totalHoles; i++) {
+    holesHTML += '<div class="mole-hole" id="moleHole' + i + '" onclick="onMoleClick(' + i + ')">' +
+      '<div class="mole-hole-bg"></div>' +
+      '<div class="mole" id="mole' + i + '">' + holeLetters[i] + '</div>' +
+    '</div>';
+  }
 
   area.innerHTML = '<div class="mole-game-container">' +
     '<div class="cn-display"><div class="cn-word">' + word.cn + '</div></div>' +
     '<div class="mole-prompt">点击字母地鼠，按顺序拼出单词！</div>' +
     '<div class="spell-progress-bar" id="spellProgressBar">' + progressHTML + '</div>' +
-    '<div class="mole-grid" id="moleGrid">' +
-      [0,1,2,3,4,5].map(function(i) {
-        return '<div class="mole-hole" id="moleHole' + i + '" onclick="onMoleClick(' + i + ')">' +
-          '<div class="mole-hole-bg"></div>' +
-          '<div class="mole" id="mole' + i + '">' + holeLetters[i] + '</div>' +
-        '</div>';
-      }).join('') +
+    '<div class="mole-grid" id="moleGrid" style="grid-template-columns:repeat(' + cols + ',1fr)">' +
+      holesHTML +
     '</div>' +
     '<div class="mole-word-info">' + (idx + 1) + '/' + words.length + ' · ' + letters.length + '个字母</div>' +
     '<div class="spell-feedback" id="spellFeedback" style="margin-top:12px"></div>' +
