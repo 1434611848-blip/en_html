@@ -200,24 +200,6 @@ h1{
 .back-link{display:block;text-align:center;margin-top:20px;color:var(--text-muted);font-size:0.85em;cursor:pointer}
 .back-link:hover{color:var(--text-secondary)}
 
-/* ===== 打地鼠拼写模式 ===== */
-.mole-game-container{text-align:center}
-.mole-prompt{font-size:1em;color:var(--text-secondary);margin-bottom:20px;font-weight:600}
-.mole-cn-word{font-size:2.4em;font-weight:700;color:var(--text);margin-bottom:8px}
-.spell-progress-bar{display:flex;justify-content:center;gap:8px;margin-bottom:28px;flex-wrap:wrap}
-.spell-progress-letter{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:2px dashed var(--border);border-radius:8px;font-size:1.2em;font-weight:700;color:var(--text-muted);transition:all 0.3s}
-.spell-progress-letter.filled{background:var(--surface2);border-color:var(--orange);color:var(--text);border-style:solid;animation:spellPulse 0.5s ease}
-@keyframes spellPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,159,67,0)}50%{box-shadow:0 0 16px 4px rgba(255,159,67,0.35)}}
-.mole-grid{display:grid;gap:16px 24px;max-width:420px;margin:0 auto}
-.mole-hole{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:120px;cursor:pointer;overflow:hidden}
-.mole-hole-bg{position:absolute;bottom:0;width:82px;height:38px;background:radial-gradient(ellipse at center,#5c3d2e 0%,#3e2723 60%,#2c1a12 100%);border-radius:50%;z-index:1}
-.mole{position:absolute;bottom:10px;width:66px;height:66px;background:radial-gradient(circle at 40% 35%,#ff9f43,#e67e22);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6em;font-weight:800;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.3);z-index:2;transform:translateY(0);box-shadow:0 4px 12px rgba(0,0,0,0.25);user-select:none}
-.mole.hit{animation:moleHit 0.45s ease forwards;background:radial-gradient(circle at 40% 35%,#26de81,#20a362)!important}
-.mole.wrong-hit{animation:moleShake 0.4s ease;background:radial-gradient(circle at 40% 35%,#fc5c65,#d63031)!important}
-@keyframes moleHit{0%{transform:scale(1)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
-@keyframes thumbsUpFly{0%{transform:translateX(-50%) translateY(0) scale(1);opacity:1}100%{transform:translateX(-50%) translateY(-70px) scale(1.6);opacity:0}}
-@keyframes moleShake{0%,100%{transform:translateY(0)}15%{transform:translateX(-6px)}30%{transform:translateX(6px)}45%{transform:translateX(-5px)}60%{transform:translateX(4px)}80%{transform:translateX(-2px)}}
-.mole-word-info{text-align:center;color:var(--text-muted);font-size:0.8em;margin-top:12px}
 </style>
 </head>
 <body>
@@ -548,7 +530,7 @@ async function startGame(mode) {
 
     if (playCount >= 3) {
       const notice = document.getElementById('limitNotice');
-      notice.textContent = `该版本「${mode === 'spell' ? '单词打地鼠' : '消消乐'}」模式已检测 ${playCount} 次（上限3次）。本次将覆盖最差成绩。`;
+      notice.textContent = `该版本「${mode === 'spell' ? '拼写' : '消消乐'}」模式已检测 ${playCount} 次（上限3次）。本次将覆盖最差成绩。`;
       notice.style.display = 'block';
     } else {
       document.getElementById('limitNotice').style.display = 'none';
@@ -641,7 +623,7 @@ function renderRound() {
   }
 }
 
-// ==================== Spell Mode (打地鼠) ====================
+// ==================== Spell Mode (手动输入) ====================
 function renderSpellQuestion(area, words, idx) {
   if (idx >= words.length) {
     endRound();
@@ -649,132 +631,63 @@ function renderSpellQuestion(area, words, idx) {
   }
 
   var word = words[idx];
-  var wordLower = word.en.toLowerCase();
-  var letters = wordLower.split('');
 
-  // Calculate unique letters
-  var uniqueLetters = [];
-  var seenLetters = {};
-  letters.forEach(function(l) {
-    if (!seenLetters[l]) { seenLetters[l] = true; uniqueLetters.push(l); }
-  });
-  var uniqueCount = uniqueLetters.length;
+  spellState = { currentWordIdx: idx, words: words };
 
-  // Determine hole count and columns
-  var totalHoles, cols;
-  if (uniqueCount <= 6) { totalHoles = 6; cols = 2; }
-  else if (uniqueCount <= 9) { totalHoles = 9; cols = 3; }
-  else { totalHoles = 12; cols = 3; }
-
-  // Put all unique letters into holes, fill rest with random distractors
-  var holeLetters = uniqueLetters.slice();
-  if (holeLetters.length < totalHoles) {
-    var distractors = 'abcdefghijklmnopqrstuvwxyz';
-    var used = {};
-    holeLetters.forEach(function(l) { used[l] = true; });
-    while (holeLetters.length < totalHoles) {
-      var d = distractors[Math.floor(Math.random() * 26)];
-      if (!used[d]) { holeLetters.push(d); used[d] = true; }
-    }
-  }
-  holeLetters = shuffleArray(holeLetters);
-
-  spellState = {
-    currentWordIdx: idx,
-    currentLetterIdx: 0,
-    word: wordLower,
-    cn: word.cn,
-    holeLetters: holeLetters,
-    correctSoFar: []
-  };
-
-  // Build progress display (always show all letter slots)
-  var progressHTML = letters.map(function(_, i) {
-    return '<div class="spell-progress-letter" id="spellProg' + i + '">_</div>';
-  }).join('');
-
-  // Generate hole HTML dynamically
-  var holesHTML = '';
-  for (var i = 0; i < totalHoles; i++) {
-    holesHTML += '<div class="mole-hole" id="moleHole' + i + '" onclick="onMoleClick(' + i + ')">' +
-      '<div class="mole-hole-bg"></div>' +
-      '<div class="mole" id="mole' + i + '">' + holeLetters[i] + '</div>' +
-    '</div>';
-  }
-
-  area.innerHTML = '<div class="mole-game-container">' +
-    '<div class="cn-display"><div class="cn-word">' + word.cn + '</div></div>' +
-    '<div class="mole-prompt">点击字母地鼠，按顺序拼出单词！</div>' +
-    '<div class="spell-progress-bar" id="spellProgressBar">' + progressHTML + '</div>' +
-    '<div class="mole-grid" id="moleGrid" style="grid-template-columns:repeat(' + cols + ',1fr)">' +
-      holesHTML +
+  area.innerHTML = '<div class="cn-display">' +
+    '<div class="cn-word">' + word.cn + '</div>' +
+    '<div class="cn-hint">请输入对应的英文单词</div>' +
     '</div>' +
-    '<div class="mole-word-info">' + (idx + 1) + '/' + words.length + ' · ' + letters.length + '个字母</div>' +
-    '<div class="spell-feedback" id="spellFeedback" style="margin-top:12px"></div>' +
-  '</div>';
+    '<div class="spell-input-wrap">' +
+    '<input type="text" class="spell-input" id="spellInput" placeholder="输入英文..." autocomplete="off" autocapitalize="off" onkeydown="if(event.key==='Enter')checkSpellAnswer()">' +
+    '<button class="btn btn-primary" style="width:auto;padding:12px 24px" onclick="checkSpellAnswer()">确认</button>' +
+    '</div>' +
+    '<div class="spell-feedback" id="spellFeedback"></div>' +
+    '<div style="text-align:center;color:var(--text-muted);font-size:0.8em;margin-top:12px">' + (idx + 1) + '/' + words.length + ' · ' + word.en.length + '个字母</div>';
 
+  // Focus input
+  setTimeout(function() {
+    var inp = document.getElementById('spellInput');
+    if (inp) inp.focus();
+  }, 100);
 }
 
-function onMoleClick(holeIndex) {
+function checkSpellAnswer() {
   if (!spellState) return;
+  var input = document.getElementById('spellInput');
+  var btn = document.querySelector('#gameArea .btn-primary');
+  if (!input || input.disabled) return;
 
-  var mole = document.getElementById('mole' + holeIndex);
-  if (!mole) return;
+  var userAnswer = input.value.trim();
+  if (!userAnswer) return;
 
-  var clickedLetter = spellState.holeLetters[holeIndex];
-  var expectedLetter = spellState.word[spellState.currentLetterIdx];
+  var words = spellState.words;
+  var idx = spellState.currentWordIdx;
+  var word = words[idx];
+  var correctEn = word.en;
   var feedback = document.getElementById('spellFeedback');
 
-  if (clickedLetter === expectedLetter) {
-    // Correct!
-    spellState.correctSoFar.push(clickedLetter);
+  input.disabled = true;
+  if (btn) btn.disabled = true;
 
-    // Update progress display
-    var progEl = document.getElementById('spellProg' + spellState.currentLetterIdx);
-    if (progEl) {
-      progEl.textContent = clickedLetter;
-      progEl.classList.add('filled');
-    }
-
-    // Hit animation
-    mole.classList.add('hit');
-    feedback.innerHTML = '<span class="correct-ans">正确!</span>';
-
-    // Thumbs up fly animation
-    var thumb = document.createElement('div');
-    thumb.textContent = '👍';
-    thumb.style.cssText = 'position:absolute;top:0;left:50%;font-size:2em;z-index:10;pointer-events:none;animation:thumbsUpFly 0.8s ease-out forwards';
-    mole.appendChild(thumb);
-    setTimeout(function() { thumb.remove(); }, 800);
-
-    spellState.currentLetterIdx++;
-
-    // Remove hit class after animation
-    setTimeout(function() {
-      mole.classList.remove('hit');
-    }, 450);
-
-    // Check if word complete
-    if (spellState.currentLetterIdx >= spellState.word.length) {
-      roundCorrect++;
-      totalCorrect++;
-      updateGameStats();
-
-      // Advance to next word
-      setTimeout(function() {
-        var w = allQuestions[currentRound];
-        renderSpellQuestion(document.getElementById('gameArea'), w, spellState.currentWordIdx + 1);
-      }, 800);
-    }
+  if (userAnswer.toLowerCase() === correctEn.toLowerCase()) {
+    roundCorrect++;
+    totalCorrect++;
+    feedback.innerHTML = '<span class="correct-ans">✓ 正确! ' + correctEn + '</span>';
+    input.classList.add('correct');
   } else {
-    // Wrong click — shake, no stat penalty
-    mole.classList.add('wrong-hit');
-    feedback.innerHTML = '<span class="wrong-ans">不对哦，再试试！</span>';
-
-    setTimeout(function() {
-      mole.classList.remove('wrong-hit');
-    }, 400);
+    roundWrong++;
+    totalWrong++;
+    wrongWordsLog.push({ cn: word.cn, correctEn: correctEn, userAnswer: userAnswer });
+    feedback.innerHTML = '<span class="wrong-ans">✗ 错误 </span><span class="show-answer">正确答案: ' + correctEn + '</span>';
+    input.classList.add('wrong');
   }
+  updateGameStats();
+
+  var nextIdx = idx + 1;
+  setTimeout(function() {
+    renderSpellQuestion(document.getElementById('gameArea'), words, nextIdx);
+  }, 1200);
 }
 
 // ==================== Match Mode (连连看) ====================
