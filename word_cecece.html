@@ -363,7 +363,7 @@ h1{
 <!-- Screen 3: Edition -->
 <div class="screen" id="screenEdition">
   <div class="panel">
-    <h1>周末检测</h1>
+    <h1>单词测测测</h1>
     <p class="subtitle">选择教材版本</p>
     <div class="form-group">
       <label>选择教材版本</label>
@@ -380,7 +380,7 @@ h1{
 <!-- Screen 4: Mode -->
 <div class="screen" id="screenMode">
   <div class="panel">
-    <h1>周末检测</h1>
+    <h1>单词测测测</h1>
     <p class="subtitle">选择模式</p>
     <div class="mode-cards">
       <div class="mode-card" onclick="startGame('spell')">
@@ -584,10 +584,10 @@ async function goToEdition() {
   showScreen('screenEdition');
 
   try {
-    // Query all editions with note='weekend_check'
+    // Query all cecece editions
     const { data: editions } = await SB.from('word_editions')
       .select('id,name,words')
-      .eq('note', 'weekend_check')
+      .like('name', 'cecece-%')
       .order('created_at', { ascending: false });
 
     if (!editions || editions.length === 0) {
@@ -602,7 +602,7 @@ async function goToEdition() {
 
     sel.innerHTML = '<option value="">-- 请选择版本 --</option>' +
       editions.map(ed => 
-        `<option value="${ed.id}">${ed.name}（${ed.words.length}词）</option>`
+        `<option value="${ed.id}">${ed.name.replace('cecece-','')}（${ed.words.length}词）</option>`
       ).join('');
     document.getElementById('btnStart').disabled = false;
 
@@ -1048,7 +1048,7 @@ async function showFinalResult() {
   document.getElementById('finalDetail').innerHTML = `
     正确：${totalCorrect} | 错误：${totalWrong}<br>
     总用时：${formatTime(timeSec)}<br>
-    版本：${selectedEdition.name} | 模式：${gameMode === 'spell' ? '拼写' : '连连看'}
+    版本：${selectedEdition.name.replace('cecece-','')} | 模式：${gameMode === 'spell' ? '拼写' : '连连看'}
   `;
 
   // 鼓励话语
@@ -1188,7 +1188,7 @@ function downloadWrongWords() {
   }
   csv += `\n名字,${playerName}\n`;
   csv += `老师,${selectedTeacher}\n`;
-  csv += `版本,${selectedEdition.name}\n`;
+  csv += `版本,${selectedEdition.name.replace('cecece-','')}\n`;
   csv += `模式,${gameMode === 'spell' ? '单词打地鼠' : '消消乐'}\n`;
   csv += `用时,${formatTime(timeSec)}\n`;
   csv += `错误数,${totalWrong}/${totalRounds * questionsPerRound}\n`;
