@@ -342,10 +342,15 @@ h1{
 <script src="supabase.min.js"></script>
 <script>
 // ==================== Supabase ====================
-const SB = window.supabase.createClient(
-  'https://xwnvsydndaclamzcfrpl.supabase.co',
-  'sb_publishable_PATbkfSdIrjUug0C7qqnsg__fGlTOLZ'
-);
+let SB = null;
+try {
+  SB = window.supabase.createClient(
+    'https://xwnvsydndaclamzcfrpl.supabase.co',
+    'sb_publishable_PATbkfSdIrjUug0C7qqnsg__fGlTOLZ'
+  );
+} catch (e) {
+  console.error('Supabase 初始化失败:', e);
+}
 
 const DEFAULT_TEACHERS = ['亚飞老师','亚楠老师','佳萌老师'];
 
