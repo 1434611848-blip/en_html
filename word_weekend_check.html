@@ -211,11 +211,11 @@ h1{
 .mole-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 24px;max-width:420px;margin:0 auto}
 .mole-hole{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:120px;cursor:pointer;overflow:hidden}
 .mole-hole-bg{position:absolute;bottom:0;width:82px;height:38px;background:radial-gradient(ellipse at center,#5c3d2e 0%,#3e2723 60%,#2c1a12 100%);border-radius:50%;z-index:1}
-.mole{position:absolute;bottom:10px;width:66px;height:66px;background:radial-gradient(circle at 40% 35%,#ff9f43,#e67e22);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6em;font-weight:800;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.3);z-index:2;transform:translateY(80px);transition:transform 0.25s cubic-bezier(.68,-.55,.27,1.55);box-shadow:0 4px 12px rgba(0,0,0,0.25);user-select:none}
-.mole.active{transform:translateY(0)}
+.mole{position:absolute;bottom:10px;width:66px;height:66px;background:radial-gradient(circle at 40% 35%,#ff9f43,#e67e22);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6em;font-weight:800;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.3);z-index:2;transform:translateY(0);box-shadow:0 4px 12px rgba(0,0,0,0.25);user-select:none}
 .mole.hit{animation:moleHit 0.45s ease forwards;background:radial-gradient(circle at 40% 35%,#26de81,#20a362)!important}
 .mole.wrong-hit{animation:moleShake 0.4s ease;background:radial-gradient(circle at 40% 35%,#fc5c65,#d63031)!important}
-@keyframes moleHit{0%{transform:translateY(0) scale(1)}30%{transform:translateY(-14px) scale(1.15)}100%{transform:translateY(80px) scale(0.25);opacity:0}}
+@keyframes moleHit{0%{transform:scale(1)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
+@keyframes thumbsUpFly{0%{transform:translateX(-50%) translateY(0) scale(1);opacity:1}100%{transform:translateX(-50%) translateY(-70px) scale(1.6);opacity:0}}
 @keyframes moleShake{0%,100%{transform:translateY(0)}15%{transform:translateX(-6px)}30%{transform:translateX(6px)}45%{transform:translateX(-5px)}60%{transform:translateX(4px)}80%{transform:translateX(-2px)}}
 .mole-word-info{text-align:center;color:var(--text-muted);font-size:0.8em;margin-top:12px}
 </style>
@@ -643,9 +643,6 @@ function renderSpellQuestion(area, words, idx) {
     return;
   }
 
-  // Clear any existing mole timers
-  if (spellState && spellState.holeTimers) {
-    spellState.holeTimers.forEach(function(t) { clearTimeout(t); });
   }
 
   var word = words[idx];
@@ -673,7 +670,6 @@ function renderSpellQuestion(area, words, idx) {
     word: wordLower,
     cn: word.cn,
     holeLetters: holeLetters,
-    holeTimers: [],
     correctSoFar: []
   };
 
@@ -698,41 +694,13 @@ function renderSpellQuestion(area, words, idx) {
     '<div class="spell-feedback" id="spellFeedback" style="margin-top:12px"></div>' +
   '</div>';
 
-  // Start mole animations after short delay
-  setTimeout(function() {
-    for (var i = 0; i < 6; i++) {
-      scheduleMolePop(i);
-    }
-  }, 200);
-}
-
-function scheduleMolePop(holeIndex) {
-  if (!spellState) return;
-  var mole = document.getElementById('mole' + holeIndex);
-  if (!mole) return;
-
-  mole.classList.add('active');
-
-  var visibleTime = 2000 + Math.random() * 3000;
-  var timer1 = setTimeout(function() {
-    if (!spellState) return;
-    mole.classList.remove('active');
-
-    var hiddenTime = 600 + Math.random() * 1800;
-    var timer2 = setTimeout(function() {
-      if (!spellState) return;
-      scheduleMolePop(holeIndex);
-    }, hiddenTime);
-    spellState.holeTimers.push(timer2);
-  }, visibleTime);
-  spellState.holeTimers.push(timer1);
 }
 
 function onMoleClick(holeIndex) {
   if (!spellState) return;
 
   var mole = document.getElementById('mole' + holeIndex);
-  if (!mole || !mole.classList.contains('active')) return;
+  if (!mole) return;
 
   var clickedLetter = spellState.holeLetters[holeIndex];
   var expectedLetter = spellState.word[spellState.currentLetterIdx];
@@ -750,19 +718,21 @@ function onMoleClick(holeIndex) {
     }
 
     // Hit animation
-    mole.classList.remove('active');
     mole.classList.add('hit');
     feedback.innerHTML = '<span class="correct-ans">正确!</span>';
 
+    // Thumbs up fly animation
+    var thumb = document.createElement('div');
+    thumb.textContent = '👍';
+    thumb.style.cssText = 'position:absolute;top:0;left:50%;font-size:2em;z-index:10;pointer-events:none;animation:thumbsUpFly 0.8s ease-out forwards';
+    mole.appendChild(thumb);
+    setTimeout(function() { thumb.remove(); }, 800);
+
     spellState.currentLetterIdx++;
 
-    // Remove hit class after animation; only reschedule if word not yet complete
-    var stillPlaying = spellState.currentLetterIdx < spellState.word.length;
+    // Remove hit class after animation
     setTimeout(function() {
       mole.classList.remove('hit');
-      if (spellState && stillPlaying) {
-        scheduleMolePop(holeIndex);
-      }
     }, 450);
 
     // Check if word complete
@@ -770,10 +740,6 @@ function onMoleClick(holeIndex) {
       roundCorrect++;
       totalCorrect++;
       updateGameStats();
-
-      // Clear all timers
-      spellState.holeTimers.forEach(function(t) { clearTimeout(t); });
-      spellState.holeTimers = [];
 
       // Advance to next word
       setTimeout(function() {
@@ -783,15 +749,11 @@ function onMoleClick(holeIndex) {
     }
   } else {
     // Wrong click — shake, no stat penalty
-    mole.classList.remove('active');
     mole.classList.add('wrong-hit');
     feedback.innerHTML = '<span class="wrong-ans">不对哦，再试试！</span>';
 
     setTimeout(function() {
       mole.classList.remove('wrong-hit');
-      if (spellState) {
-        scheduleMolePop(holeIndex);
-      }
     }, 400);
   }
 }
