@@ -650,7 +650,7 @@ async function startGame(mode) {
       .eq('name', playerName)
       .eq('teacher', selectedTeacher)
       .eq('edition_id', selectedEdition.name)
-      .eq('game_type', 'weekend_check');
+      .eq('game_type', 'cecece');
     playCount = count || 0;
 
     if (playCount >= 3) {
@@ -1086,7 +1086,7 @@ async function saveRecord(accuracy, timeSec) {
     rounds: totalRounds,
     accuracy: accuracy,
     edition_id: selectedEdition.name,
-    game_type: 'weekend_check',
+    game_type: 'cecece',
     created_at: new Date().toISOString()
   };
 
@@ -1097,7 +1097,7 @@ async function saveRecord(accuracy, timeSec) {
         .eq('name', playerName)
         .eq('teacher', selectedTeacher)
         .eq('edition_id', selectedEdition.name)
-        .eq('game_type', 'weekend_check')
+        .eq('game_type', 'cecece')
         .order('accuracy', { ascending: true })
         .order('time', { ascending: false })
         .limit(3);
@@ -1123,7 +1123,7 @@ async function loadLeaderboard() {
   const area = document.getElementById('leaderboardArea');
   try {
     const { data } = await SB.from('game_records').select('*')
-      .eq('game_type', 'weekend_check')
+      .eq('game_type', 'cecece')
       .order('accuracy', { ascending: false })
       .order('time', { ascending: true })
       .limit(100);
