@@ -196,8 +196,10 @@ h1{
   color:var(--orange);font-size:0.88em;text-align:center;line-height:1.6;
 }
 
-/* ===== 卡通风格 - 名字 & 老师页 ===== */
-#screenName .panel, #screenTeacher .panel {
+/* ===== 卡通风格 - 全部页面 ===== */
+#screenName .panel, #screenTeacher .panel,
+#screenMode .panel, #screenEdition .panel,
+#screenGame .panel, #screenRound .panel, #screenFinal .panel {
   border:3px dashed var(--border);
   border-radius:24px;
   background:linear-gradient(180deg, #fffef9 0%, #fff5e6 40%, #fff0d6 100%);
@@ -212,7 +214,9 @@ h1{
   100%{opacity:1;transform:scale(1) translateY(0)}
 }
 
-#screenName h1, #screenTeacher h1 {
+#screenName h1, #screenTeacher h1,
+#screenMode h1, #screenEdition h1,
+#screenGame h1, #screenRound h1, #screenFinal h1 {
   font-size:2.4em;
   font-weight:900;
   background:linear-gradient(135deg, #ff6b6b, #ff9f43, #feca57, #26de81, #45aaf2, #a55eea);
@@ -224,7 +228,9 @@ h1{
   margin-bottom:10px;
 }
 
-#screenName .subtitle, #screenTeacher .subtitle {
+#screenName .subtitle, #screenTeacher .subtitle,
+#screenMode .subtitle, #screenEdition .subtitle,
+#screenGame .subtitle, #screenRound .subtitle, #screenFinal .subtitle {
   font-size:1em;
   color:var(--orange);
   font-weight:600;
@@ -253,7 +259,9 @@ h1{
   font-weight:700;
 }
 
-#screenName .btn-primary, #screenTeacher .btn-primary {
+#screenName .btn-primary, #screenTeacher .btn-primary,
+#screenMode .btn-primary, #screenEdition .btn-primary,
+#screenGame .btn-primary, #screenRound .btn-primary, #screenFinal .btn-primary {
   border-radius:50px;
   padding:14px 36px;
   font-size:1.1em;
@@ -262,13 +270,23 @@ h1{
   box-shadow:0 6px 24px rgba(255,118,117,0.4);
   transition:all 0.3s cubic-bezier(.34,1.56,.64,1);
 }
-#screenName .btn-primary:hover, #screenTeacher .btn-primary:hover {
+#screenName .btn-primary:hover, #screenTeacher .btn-primary:hover,
+#screenMode .btn-primary:hover, #screenEdition .btn-primary:hover,
+#screenGame .btn-primary:hover, #screenRound .btn-primary:hover, #screenFinal .btn-primary:hover {
   transform:translateY(-4px) scale(1.04);
   box-shadow:0 10px 32px rgba(255,118,117,0.5);
 }
-#screenName .btn-primary:active, #screenTeacher .btn-primary:active {
+#screenName .btn-primary:active, #screenTeacher .btn-primary:active,
+#screenMode .btn-primary:active, #screenEdition .btn-primary:active,
+#screenGame .btn-primary:active, #screenRound .btn-primary:active, #screenFinal .btn-primary:active {
   transform:translateY(0) scale(0.97);
 }
+
+/* Mode card cartoon */
+.mode-card-spell { border-color: var(--red); }
+.mode-card-spell:hover { border-color: var(--red); box-shadow: 0 0 28px rgba(255,107,107,0.2); }
+.mode-card-match:hover { box-shadow: 0 0 28px rgba(255,159,67,0.2); }
+.mode-card .mode-icon { filter: drop-shadow(0 3px 4px rgba(0,0,0,0.15)); }
 
 .cartoon-decor {
   position:absolute;
@@ -384,13 +402,13 @@ h1{
     <h1>单词测测测</h1>
     <p class="subtitle">选择模式</p>
     <div class="mode-cards">
-      <div class="mode-card" onclick="startGame('spell')">
-        <div class="mode-icon">A</div>
-        <div class="mode-title">拼写模式</div>
-        <div class="mode-desc">看中文写英文<br>考验拼写能力</div>
+      <div class="mode-card mode-card-spell" onclick="startGame('spell')">
+        <div class="mode-icon">🔨</div>
+        <div class="mode-title">打地鼠拼写</div>
+        <div class="mode-desc">点击字母地鼠拼单词<br>考验反应和拼写</div>
       </div>
-      <div class="mode-card" onclick="startGame('match')">
-        <div class="mode-icon">A—B</div>
+      <div class="mode-card mode-card-match" onclick="startGame('match')">
+        <div class="mode-icon">🧩</div>
         <div class="mode-title">连连看模式</div>
         <div class="mode-desc">中英文连线配对<br>考验识别能力</div>
       </div>
@@ -1036,7 +1054,7 @@ async function showFinalResult() {
   document.getElementById('finalDetail').innerHTML = `
     正确：${totalCorrect} | 错误：${totalWrong}<br>
     总用时：${formatTime(timeSec)}<br>
-    版本：${selectedEdition.name.replace('cecece-','')} | 模式：${gameMode === 'spell' ? '拼写' : '连连看'}
+    版本：${selectedEdition.name.replace('cecece-','')} | 模式：${gameMode === 'spell' ? '打地鼠拼写' : '连连看'}
   `;
 
   // 鼓励话语
@@ -1177,7 +1195,7 @@ function downloadWrongWords() {
   csv += `\n名字,${playerName}\n`;
   csv += `老师,${selectedTeacher}\n`;
   csv += `版本,${selectedEdition.name.replace('cecece-','')}\n`;
-  csv += `模式,${gameMode === 'spell' ? '单词打地鼠' : '消消乐'}\n`;
+  csv += `模式,${gameMode === 'spell' ? '打地鼠拼写' : '消消乐'}\n`;
   csv += `用时,${formatTime(timeSec)}\n`;
   csv += `错误数,${totalWrong}/${totalRounds * questionsPerRound}\n`;
 
