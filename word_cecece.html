@@ -779,8 +779,11 @@ function renderSpellQuestion(area, words, idx) {
   }
 
   var word = words[idx];
-  var wordLower = word.en.toLowerCase();
-  var letters = wordLower.split('');
+  // Split variants: "gym / gymnasium" → ["gym", "gymnasium"], pick first for game
+  var rawEn = word.en;
+  var variants = rawEn.split('/').map(function(s) { return s.trim().toLowerCase(); });
+  var chosenEn = variants[0];
+  var letters = chosenEn.split('');
 
   // Calculate unique letters
   var uniqueLetters = [];
@@ -812,7 +815,7 @@ function renderSpellQuestion(area, words, idx) {
   spellState = {
     currentWordIdx: idx,
     currentLetterIdx: 0,
-    word: wordLower,
+    word: chosenEn,
     cn: word.cn,
     holeLetters: holeLetters,
     holeTimers: [],
@@ -915,7 +918,7 @@ function onMoleClick(holeIndex) {
 
 // ==================== Match Mode (连连看) ====================
 function renderMatchGame(area, words) {
-  const enWords = words.map(w => w.en);
+  const enWords = words.map(w => { var v = w.en.split('/').map(function(s){ return s.trim(); }); return v[0]; });
   const cnWords = shuffleArray(words).map(w => w.cn);
 
   area.innerHTML = `
@@ -969,8 +972,11 @@ function checkMatchPair() {
   const words = allQuestions[currentRound];
   const feedback = document.getElementById('matchFeedback');
 
-  // Find the correct cn for this en
-  const wordPair = words.find(w => w.en === enWord);
+  // Find the correct cn for this en (accept any variant)
+  const wordPair = words.find(function(w) {
+    var v = w.en.split('/').map(function(s) { return s.trim(); });
+    return v.indexOf(enWord) !== -1;
+  });
   if (!wordPair) return;
 
   if (wordPair.cn === cnWord) {
