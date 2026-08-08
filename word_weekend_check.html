@@ -664,22 +664,26 @@ function checkSpellAnswer() {
   var words = spellState.words;
   var idx = spellState.currentWordIdx;
   var word = words[idx];
-  var correctEn = word.en;
+  var rawEn = word.en;
+  // Accept any "/" variant
+  var variants = rawEn.split('/').map(function(s) { return s.trim().toLowerCase(); });
+  var correctEn = variants[0];
+  var isCorrect = variants.indexOf(userAnswer.toLowerCase()) !== -1;
   var feedback = document.getElementById('spellFeedback');
 
   input.disabled = true;
   if (btn) btn.disabled = true;
 
-  if (userAnswer.toLowerCase() === correctEn.toLowerCase()) {
+  if (isCorrect) {
     roundCorrect++;
     totalCorrect++;
-    feedback.innerHTML = '<span class="correct-ans">✓ 正确! ' + correctEn + '</span>';
+    feedback.innerHTML = '<span class="correct-ans">正确! ' + correctEn + '</span>';
     input.classList.add('correct');
   } else {
     roundWrong++;
     totalWrong++;
     wrongWordsLog.push({ cn: word.cn, correctEn: correctEn, userAnswer: userAnswer });
-    feedback.innerHTML = '<span class="wrong-ans">✗ 错误 </span><span class="show-answer">正确答案: ' + correctEn + '</span>';
+    feedback.innerHTML = '<span class="wrong-ans">错误 </span><span class="show-answer">正确答案: ' + correctEn + '</span>';
     input.classList.add('wrong');
   }
   updateGameStats();
@@ -692,7 +696,7 @@ function checkSpellAnswer() {
 
 // ==================== Match Mode (连连看) ====================
 function renderMatchGame(area, words) {
-  const enWords = words.map(w => w.en);
+  const enWords = words.map(w => { var v = w.en.split('/').map(function(s){ return s.trim(); }); return v[0]; });
   const cnWords = shuffleArray(words).map(w => w.cn);
 
   area.innerHTML = `
@@ -746,8 +750,11 @@ function checkMatchPair() {
   const words = allQuestions[currentRound];
   const feedback = document.getElementById('matchFeedback');
 
-  // Find the correct cn for this en
-  const wordPair = words.find(w => w.en === enWord);
+  // Find the correct cn for this en (accept any variant)
+  const wordPair = words.find(function(w) {
+    var v = w.en.split('/').map(function(s) { return s.trim(); });
+    return v.indexOf(enWord) !== -1;
+  });
   if (!wordPair) return;
 
   if (wordPair.cn === cnWord) {
