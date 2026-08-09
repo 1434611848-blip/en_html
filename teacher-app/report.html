@@ -61,12 +61,13 @@
       <div style="height:16px;"></div>
       <div class="row" style="gap:10px;">
         <button class="btn-secondary" style="flex:1;" onclick="location.href='index.html'">回到首页</button>
-        <button class="btn-primary" style="flex:1;" id="saveImgBtn">💾 保存为图片</button>
+        <button class="btn-primary" style="flex:1;" id="saveImgBtn">📄 保存为PDF</button>
       </div>
     </main>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="js/common.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/data.js"></script>
@@ -170,11 +171,11 @@
       Common.toast('已复制到剪贴板', 'success');
     });
 
-    // 保存为图片
+    // 保存为PDF
     document.getElementById('saveImgBtn').addEventListener('click', () => {
       const btn = document.getElementById('saveImgBtn');
       const originalText = btn.textContent;
-      btn.textContent = '正在生成图片...';
+      btn.textContent = '正在生成PDF...';
       btn.disabled = true;
       const target = document.querySelector('.mp-content');
       html2canvas(target, {
@@ -182,14 +183,33 @@
         backgroundColor: '#f5f6f8',
         useCORS: true
       }).then(canvas => {
-        const dataUrl = canvas.toDataURL('image/png');
-        const a = document.createElement('a');
-        a.href = dataUrl;
-        a.download = `专属报告_${rec.name}_${new Date().toISOString().slice(0, 10)}.png`;
-        a.click();
-        Common.toast('图片已保存，可转发至微信', 'success');
+        const { jsPDF } = window.jspdf;
+        const imgData = canvas.toDataURL('image/png');
+        const imgW = canvas.width;
+        const imgH = canvas.height;
+        // A4 纸尺寸（mm），纵向
+        const pdfW = 210;
+        const pdfH = 297;
+        // 按宽度适配，计算等比高度
+        const ratio = imgH / imgW;
+        const renderW = pdfW - 20; // 左右各留 10mm 边距
+        const renderH = renderW * ratio;
+        let heightLeft = renderH;
+        let position = 10; // 顶部边距 10mm
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        pdf.addImage(imgData, 'PNG', 10, position, renderW, renderH);
+        heightLeft -= (pdfH - 20);
+        // 自动分页
+        while (heightLeft > 0) {
+          position = heightLeft - renderH + 10;
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', 10, position, renderW, renderH);
+          heightLeft -= (pdfH - 20);
+        }
+        pdf.save(`专属报告_${rec.name}_${new Date().toISOString().slice(0, 10)}.pdf`);
+        Common.toast('PDF已保存，可转发至微信', 'success');
       }).catch(err => {
-        console.error('html2canvas error:', err);
+        console.error('PDF generate error:', err);
         Common.toast('保存失败，请截图保存', 'error');
       }).finally(() => {
         btn.textContent = originalText;
