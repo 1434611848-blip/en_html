@@ -209,13 +209,9 @@
         const fileName = `专属报告_${rec.name}_${new Date().toISOString().slice(0, 10)}.pdf`;
         const blob = pdf.output('blob');
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        // 在新标签页打开PDF，浏览器内置阅读器可直接查看/保存/打印
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 30000);
         Common.toast('PDF已保存，可转发至微信', 'success');
       }).catch(err => {
         console.error('PDF generate error:', err);
