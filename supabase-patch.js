@@ -73,6 +73,11 @@
       name: rec.name || '',
       teacher: rec.teacher || '',
       date: rec.submittedAt || new Date().toISOString().split('T')[0],
+      time: 0,
+      accuracy: safe(rec, 'analysis.totals.rate', 0),
+      correct: safe(rec, 'analysis.stats.right', 0),
+      wrong: safe(rec, 'analysis.stats.wrong', 0),
+      rounds: safe(rec, 'analysis.stats.total', 0),
       game_type: 'exam',
       pair_log: {
         student_name: rec.name || '',
