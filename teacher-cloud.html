@@ -176,6 +176,24 @@ function initSupabase() {
   }
 }
 
+// ---------- 数据规范化（从 game_records.pair_log 提取 exam 数据） ----------
+function normalizeRecord(r) {
+  if (!r || !r.pair_log) return r;
+  var exam = typeof r.pair_log === 'string' ? JSON.parse(r.pair_log) : r.pair_log;
+  return {
+    id: r.id,
+    student_name: r.name || exam.student_name || '',
+    teacher: r.teacher || '',
+    created_at: r.created_at,
+    total_score: exam.total_score != null ? exam.total_score : 0,
+    total_questions: exam.total_questions || 0,
+    correct_count: exam.right_count || 0,
+    answers: exam.answers || {},
+    wrong_details: exam.wrong_list || [],
+    type_stats: (exam.analysis && exam.analysis.typeStats) || {}
+  };
+}
+
 // ---------- 数据加载 ----------
 const teacherSelect = document.getElementById('teacherSelect');
 let currentTeacher = '亚飞老师';
@@ -204,9 +222,10 @@ async function loadData() {
 
   try {
     const { data, error } = await supabase
-      .from('exam_records')
+      .from('game_records')
       .select('*')
       .eq('teacher', currentTeacher)
+      .eq('game_type', 'exam')
       .order('created_at', { ascending: false });
 
     if (error) throw error;

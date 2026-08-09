@@ -70,21 +70,25 @@
   // ===========================
   function buildRecord(rec) {
     return {
-      id: rec.id,
-      student_name: rec.name || '',
+      name: rec.name || '',
       teacher: rec.teacher || '',
-      submitted_at: rec.submittedAt || '',
-      mode: rec.mode || '',
-      total_score: safe(rec, 'analysis.totals.score', 0),
-      full_score: safe(rec, 'analysis.totals.full', 0),
-      correct_rate: safe(rec, 'analysis.totals.rate', 0),
-      right_count: safe(rec, 'analysis.stats.right', 0),
-      wrong_count: safe(rec, 'analysis.stats.wrong', 0),
-      blank_count: safe(rec, 'analysis.stats.blank', 0),
-      total_questions: safe(rec, 'analysis.stats.total', 0),
-      answers: JSON.stringify(rec.answers || {}),
-      analysis: JSON.stringify(rec.analysis || {}),
-      wrong_list: JSON.stringify(safe(rec, 'analysis.wrongList', []))
+      date: rec.submittedAt || new Date().toISOString().split('T')[0],
+      game_type: 'exam',
+      pair_log: {
+        student_name: rec.name || '',
+        submitted_at: rec.submittedAt || '',
+        mode: rec.mode || '',
+        total_score: safe(rec, 'analysis.totals.score', 0),
+        full_score: safe(rec, 'analysis.totals.full', 0),
+        correct_rate: safe(rec, 'analysis.totals.rate', 0),
+        right_count: safe(rec, 'analysis.stats.right', 0),
+        wrong_count: safe(rec, 'analysis.stats.wrong', 0),
+        blank_count: safe(rec, 'analysis.stats.blank', 0),
+        total_questions: safe(rec, 'analysis.stats.total', 0),
+        answers: rec.answers || {},
+        analysis: rec.analysis || {},
+        wrong_list: safe(rec, 'analysis.wrongList', [])
+      }
     };
   }
 
