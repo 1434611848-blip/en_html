@@ -54,7 +54,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC'
 
 /* Report Section */
 .report-wrapper { margin-top: 16px; padding: 20px; background: #f0faf4; border-radius: 12px; }
-.save-btn-row { text-align: right; margin-bottom: 12px; }
+.save-btn-row { text-align: right; margin-bottom: 12px; display: flex; justify-content: flex-end; gap: 10px; }
 .btn-save { padding: 8px 20px; border: none; border-radius: 8px; background: #07c160; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
 .btn-save:hover { background: #06ad56; }
 .btn-save:disabled { background: #a0d9b8; cursor: not-allowed; }
@@ -413,7 +413,8 @@ function buildReportHTML(record) {
   return `
   <div class="report-wrapper">
     <div class="save-btn-row">
-      <button class="btn-save" id="btnSaveImg" onclick="saveReportAsImage()">保存方案书为图片</button>
+      <button class="btn-save" id="btnCopyImg" onclick="copyReportImage()">复制方案书图片</button>
+      <button class="btn-save" id="btnSaveImg" onclick="saveReportAsImage()" style="background:#576b95;">下载方案书图片</button>
     </div>
     <div id="report-content">
       <div class="report-title">个性化反馈方案书</div>
@@ -427,6 +428,62 @@ function buildReportHTML(record) {
       ${planHTML}
     </div>
   </div>`;
+}
+
+// ---------- 复制图片到剪贴板 ----------
+async function copyReportImage() {
+  const btn = document.getElementById('btnCopyImg');
+  const reportEl = document.getElementById('report-content');
+  if (!reportEl) return;
+
+  btn.disabled = true;
+  btn.textContent = '生成中...';
+
+  try {
+    if (typeof html2canvas === 'undefined') {
+      alert('组件未加载，请检查网络后刷新');
+      btn.disabled = false;
+      btn.textContent = '复制方案书图片';
+      return;
+    }
+
+    const canvas = await html2canvas(reportEl, {
+      scale: 2,
+      backgroundColor: '#ffffff',
+      logging: false
+    });
+
+    // 尝试 Clipboard API 复制图片
+    canvas.toBlob(async (blob) => {
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': blob })
+        ]);
+        btn.textContent = '已复制到剪贴板';
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.textContent = '复制方案书图片';
+        }, 1500);
+      } catch (clipErr) {
+        // 降级：触发下载
+        console.warn('剪贴板复制失败，自动下载:', clipErr);
+        const link = document.createElement('a');
+        link.download = '个性化反馈方案书_' + (allRecords.find(r => r.id === expandedStudentId)?.student_name || '学生') + '.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        btn.textContent = '已下载（剪贴板不可用）';
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.textContent = '复制方案书图片';
+        }, 2000);
+      }
+    }, 'image/png');
+  } catch (e) {
+    console.error('copyReportImage error:', e);
+    alert('操作失败，请重试');
+    btn.disabled = false;
+    btn.textContent = '复制方案书图片';
+  }
 }
 
 // ---------- 保存为图片 ----------
