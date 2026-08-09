@@ -182,12 +182,6 @@
       }
       btn.textContent = '正在生成图片...';
       btn.disabled = true;
-      // 手机端直接下载，电脑端新标签页打开
-      const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-      const newWin = isMobile ? null : window.open('', '_blank');
-      if (newWin) {
-        newWin.document.write('<html><head><title>生成中...</title></head><body style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;font-size:18px;color:#666;"><p>正在生成图片，请稍候...</p></body></html>');
-      }
       const target = document.querySelector('.mp-content');
       html2canvas(target, {
         scale: 2,
@@ -195,24 +189,26 @@
         useCORS: true
       }).then(canvas => {
         const dataUrl = canvas.toDataURL('image/png');
-        const fileName = `专属报告_${rec.name}_${new Date().toISOString().slice(0, 10)}.png`;
-        if (newWin) {
-          // 电脑端：新标签页打开图片，右键保存
-          newWin.location.href = dataUrl;
-          Common.toast('图片已打开，右键可保存', 'success');
-        } else {
-          // 手机端/弹窗被拦截：直接下载
-          const a = document.createElement('a');
-          a.href = dataUrl;
-          a.download = fileName;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          Common.toast('图片已下载，可在相册/文件管理器中查看', 'success');
-        }
+        // 弹层显示图片，长按/右键保存
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;';
+        const tip = document.createElement('p');
+        tip.textContent = '长按图片保存到手机 / 右键图片另存为';
+        tip.style.cssText = 'color:#fff;font-size:14px;margin-bottom:12px;text-align:center;';
+        const img = document.createElement('img');
+        img.src = dataUrl;
+        img.style.cssText = 'max-width:100%;max-height:80vh;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.5);';
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = '✕ 关闭';
+        closeBtn.style.cssText = 'margin-top:16px;padding:8px 24px;border:none;border-radius:20px;background:rgba(255,255,255,0.2);color:#fff;font-size:15px;cursor:pointer;';
+        closeBtn.onclick = () => overlay.remove();
+        overlay.appendChild(tip);
+        overlay.appendChild(img);
+        overlay.appendChild(closeBtn);
+        document.body.appendChild(overlay);
+        Common.toast('长按图片可保存', 'success');
       }).catch(err => {
         console.error('image generate error:', err);
-        if (newWin) newWin.close();
         Common.toast('保存失败：' + (err.message || err), 'error');
       }).finally(() => {
         btn.textContent = originalText;
