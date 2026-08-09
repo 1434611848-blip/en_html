@@ -61,11 +61,12 @@
       <div style="height:16px;"></div>
       <div class="row" style="gap:10px;">
         <button class="btn-secondary" style="flex:1;" onclick="location.href='index.html'">回到首页</button>
-        <button class="btn-primary" style="flex:1;" onclick="window.print()">保存/打印报告</button>
+        <button class="btn-primary" style="flex:1;" id="saveImgBtn">💾 保存为图片</button>
       </div>
     </main>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="js/common.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/data.js"></script>
@@ -167,6 +168,33 @@
       const txt = `【${rec.name}同学 · ${rec.teacher}】暑假综合检测试卷得分：${rec.analysis.totals.score}/${rec.analysis.totals.full}（${rec.analysis.totals.rate}%）`;
       navigator.clipboard && navigator.clipboard.writeText(txt + '\n' + location.href);
       Common.toast('已复制到剪贴板', 'success');
+    });
+
+    // 保存为图片
+    document.getElementById('saveImgBtn').addEventListener('click', () => {
+      const btn = document.getElementById('saveImgBtn');
+      const originalText = btn.textContent;
+      btn.textContent = '正在生成图片...';
+      btn.disabled = true;
+      const target = document.querySelector('.mp-content');
+      html2canvas(target, {
+        scale: 2,
+        backgroundColor: '#f5f6f8',
+        useCORS: true
+      }).then(canvas => {
+        const dataUrl = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = `专属报告_${rec.name}_${new Date().toISOString().slice(0, 10)}.png`;
+        a.click();
+        Common.toast('图片已保存，可转发至微信', 'success');
+      }).catch(err => {
+        console.error('html2canvas error:', err);
+        Common.toast('保存失败，请截图保存', 'error');
+      }).finally(() => {
+        btn.textContent = originalText;
+        btn.disabled = false;
+      });
     });
   </script>
 </body>
