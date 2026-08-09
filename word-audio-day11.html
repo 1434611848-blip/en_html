@@ -39,10 +39,19 @@
   }
   .card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(255,140,60,0.25); border-color: #ffb74d; }
   .card:active { transform: translateY(-2px); }
+  .card.loading {
+    border-color: #3498db; background: #eaf2fd;
+    box-shadow: 0 0 0 5px rgba(52,152,219,0.2), 0 8px 24px rgba(52,152,219,0.2);
+    animation: loadingPulse 0.8s ease-in-out infinite;
+  }
   .card.playing {
     border-color: #ff7043; background: #fff3e0;
     box-shadow: 0 0 0 5px rgba(255,112,67,0.2), 0 8px 24px rgba(255,140,60,0.3);
     animation: pulse 1s ease-in-out infinite;
+  }
+  @keyframes loadingPulse {
+    0%, 100% { box-shadow: 0 0 0 5px rgba(52,152,219,0.2), 0 8px 24px rgba(52,152,219,0.2); }
+    50% { box-shadow: 0 0 0 12px rgba(52,152,219,0.06), 0 8px 24px rgba(52,152,219,0.2); }
   }
   @keyframes pulse {
     0%, 100% { box-shadow: 0 0 0 5px rgba(255,112,67,0.2), 0 8px 24px rgba(255,140,60,0.3); }
@@ -88,19 +97,47 @@ const audioPaths = [
   'audio/%E5%86%80%E6%95%99day11.mp3',
 ];
 
+const audios = [];
+const preloaded = [];
 let currentAudio = null;
 let currentCard = null;
 
+// 页面加载时预加载所有音频
+audioPaths.forEach(function(path, i) {
+  var a = new Audio();
+  a.preload = 'auto';
+  a.src = path;
+  a.oncanplaythrough = function() { preloaded[i] = true; };
+  a.onerror = function() { preloaded[i] = false; };
+  audios[i] = a;
+});
+
 function playAudio(card, index) {
   if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; }
-  if (currentCard) { currentCard.classList.remove('playing'); }
+  if (currentCard) { currentCard.classList.remove('playing', 'loading'); }
   if (currentCard === card && currentAudio) { currentAudio = null; currentCard = null; return; }
-  const audio = new Audio(audioPaths[index]);
-  audio.onended = function() { card.classList.remove('playing'); currentAudio = null; currentCard = null; };
-  audio.onerror = function() { card.classList.remove('playing'); currentAudio = null; currentCard = null; alert('音频加载失败'); };
-  card.classList.add('playing');
-  currentAudio = audio; currentCard = card;
-  audio.play().catch(function(e) { card.classList.remove('playing'); currentAudio = null; currentCard = null; });
+
+  var audio = audios[index];
+  audio.currentTime = 0;
+  currentAudio = audio;
+  currentCard = card;
+
+  if (preloaded[index]) {
+    card.classList.add('playing');
+    audio.play().catch(function(e) { card.classList.remove('playing'); currentAudio = null; currentCard = null; });
+  } else {
+    card.classList.add('loading');
+    audio.load();
+    audio.oncanplaythrough = function() {
+      preloaded[index] = true;
+      card.classList.remove('loading');
+      card.classList.add('playing');
+      audio.play().catch(function(e) { card.classList.remove('playing'); currentAudio = null; currentCard = null; });
+    };
+  }
+
+  audio.onended = function() { card.classList.remove('playing', 'loading'); currentAudio = null; currentCard = null; };
+  audio.onerror = function() { card.classList.remove('playing', 'loading'); currentAudio = null; currentCard = null; alert('音频加载失败'); };
 }
 </script>
 </body>
