@@ -17,7 +17,7 @@
   // ===========================
   var SUPABASE_URL = 'https://xwnvsydndaclamzcfrpl.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_PATbkfSdIrjUug0C7qqnsg__fGlTOLZ';
-  var TABLE_NAME = 'exam_records';
+  var TABLE_NAME = 'game_records';
 
   // ===========================
   // 已提交 ID 缓存（防重）
