@@ -62,11 +62,13 @@
       <div class="row" style="gap:10px;">
         <button class="btn-secondary" style="flex:1;" onclick="location.href='index.html'">回到首页</button>
         <button class="btn-primary" style="flex:1;" id="saveImgBtn">💾 保存为图片</button>
+        <button class="btn-primary" style="flex:1;" id="savePdfBtn">📄 保存为PDF</button>
       </div>
     </main>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="js/common.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/data.js"></script>
@@ -196,6 +198,66 @@
         Common.toast('图片已保存，可转发至微信', 'success');
       }).catch(err => {
         console.error('image generate error:', err);
+        Common.toast('保存失败：' + (err.message || err), 'error');
+      }).finally(() => {
+        btn.textContent = originalText;
+        btn.disabled = false;
+      });
+    });
+
+    // 保存为PDF
+    document.getElementById('savePdfBtn').addEventListener('click', () => {
+      const btn = document.getElementById('savePdfBtn');
+      const originalText = btn.textContent;
+      if (typeof html2canvas === 'undefined') {
+        Common.toast('html2canvas未加载，请检查网络', 'error');
+        return;
+      }
+      if (!window.jspdf) {
+        Common.toast('jsPDF未加载，请检查网络', 'error');
+        return;
+      }
+      btn.textContent = '正在生成PDF...';
+      btn.disabled = true;
+      const target = document.querySelector('.mp-content');
+      html2canvas(target, {
+        scale: 2,
+        backgroundColor: '#f5f6f8',
+        useCORS: true
+      }).then(canvas => {
+        const { jsPDF } = window.jspdf;
+        const imgData = canvas.toDataURL('image/png');
+        const imgW = canvas.width;
+        const imgH = canvas.height;
+        const pdfW = 210;
+        const pdfH = 297;
+        const ratio = imgH / imgW;
+        const renderW = pdfW - 20;
+        const renderH = renderW * ratio;
+        let heightLeft = renderH;
+        let position = 10;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        pdf.addImage(imgData, 'PNG', 10, position, renderW, renderH);
+        heightLeft -= (pdfH - 20);
+        while (heightLeft > 0) {
+          position = heightLeft - renderH + 10;
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', 10, position, renderW, renderH);
+          heightLeft -= (pdfH - 20);
+        }
+        const fileName = `专属报告_${rec.name}_${new Date().toISOString().slice(0, 10)}.pdf`;
+        const blob = pdf.output('blob');
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 30000);
+        Common.toast('PDF已下载', 'success');
+      }).catch(err => {
+        console.error('PDF generate error:', err);
         Common.toast('保存失败：' + (err.message || err), 'error');
       }).finally(() => {
         btn.textContent = originalText;
