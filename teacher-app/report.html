@@ -186,8 +186,9 @@
       }
       btn.textContent = '正在生成PDF...';
       btn.disabled = true;
-      // 同步打开新窗口（避免异步回调被浏览器拦截弹窗）
-      const newWin = window.open('', '_blank');
+      // 手机端不支持blob URL打开PDF，只下载；电脑端新标签页打开
+      const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+      const newWin = isMobile ? null : window.open('', '_blank');
       if (newWin) {
         newWin.document.write('<html><head><title>生成中...</title></head><body style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;font-size:18px;color:#666;"><p>正在生成PDF，请稍候...</p></body></html>');
       }
@@ -217,24 +218,25 @@
           pdf.addImage(imgData, 'PNG', 10, position, renderW, renderH);
           heightLeft -= (pdfH - 20);
         }
+        const fileName = `专属报告_${rec.name}_${new Date().toISOString().slice(0, 10)}.pdf`;
         const blob = pdf.output('blob');
         const url = URL.createObjectURL(blob);
         if (newWin) {
+          // 电脑端：新标签页打开PDF
           newWin.location.href = url;
           setTimeout(() => URL.revokeObjectURL(url), 60000);
+          Common.toast('PDF已在新标签页打开', 'success');
         } else {
-          // 弹窗被拦截，回退到直接下载
+          // 手机端：直接下载文件
           const a = document.createElement('a');
           a.href = url;
-          a.download = `专属报告_${rec.name}_${new Date().toISOString().slice(0, 10)}.pdf`;
+          a.download = fileName;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
-          Common.toast('弹窗被拦截，已直接下载文件', 'warning');
-          return;
+          setTimeout(() => URL.revokeObjectURL(url), 30000);
+          Common.toast('PDF已下载，请在文件管理器中查看', 'success');
         }
-        Common.toast('PDF已在新标签页打开', 'success');
       }).catch(err => {
         console.error('PDF generate error:', err);
         if (newWin) newWin.close();
