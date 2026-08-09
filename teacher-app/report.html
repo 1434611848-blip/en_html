@@ -175,6 +175,15 @@
     document.getElementById('saveImgBtn').addEventListener('click', () => {
       const btn = document.getElementById('saveImgBtn');
       const originalText = btn.textContent;
+      // 检查依赖库是否加载成功
+      if (typeof html2canvas === 'undefined') {
+        Common.toast('html2canvas未加载，请检查网络', 'error');
+        return;
+      }
+      if (!window.jspdf) {
+        Common.toast('jsPDF未加载，请检查网络', 'error');
+        return;
+      }
       btn.textContent = '正在生成PDF...';
       btn.disabled = true;
       // 同步打开新窗口（避免异步回调被浏览器拦截弹窗）
@@ -228,7 +237,8 @@
         Common.toast('PDF已在新标签页打开', 'success');
       }).catch(err => {
         console.error('PDF generate error:', err);
-        Common.toast('保存失败，请截图保存', 'error');
+        if (newWin) newWin.close();
+        Common.toast('生成失败：' + (err.message || err), 'error');
       }).finally(() => {
         btn.textContent = originalText;
         btn.disabled = false;
