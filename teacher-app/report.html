@@ -206,7 +206,16 @@
           pdf.addImage(imgData, 'PNG', 10, position, renderW, renderH);
           heightLeft -= (pdfH - 20);
         }
-        pdf.save(`专属报告_${rec.name}_${new Date().toISOString().slice(0, 10)}.pdf`);
+        const fileName = `专属报告_${rec.name}_${new Date().toISOString().slice(0, 10)}.pdf`;
+        const blob = pdf.output('blob');
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
         Common.toast('PDF已保存，可转发至微信', 'success');
       }).catch(err => {
         console.error('PDF generate error:', err);
