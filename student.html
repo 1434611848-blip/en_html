@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>学生入口 · 暑假综合检测</title>
+  <link rel="stylesheet" href="css/style.css">
+<script src="https://beacon.cdn.qq.com/sdk/4.5.9/beacon_web.min.js"></script>
+<script>
+(function(){
+  try{
+    var beacon=new BeaconAction({
+      appkey:'0WEB06U85YBSLJNL',
+      versionCode:'1.0.0',
+      channelID:'share',
+      delay:1000,
+      sessionDuration:30*60*1000,
+      isOversea:false,
+      needReportRqdEvent:false
+    });
+    beacon.onDirectUserAction('preview_page_view',{
+      'url':location.href,
+      'referrer':document.referrer,
+      'title':document.title,
+      'sandbox_id':'042658bc14574833ba6728d5ebcdad30'
+    });
+  }catch(e){}
+})();
+</script></head>
+<body>
+  <div class="mp-shell">
+    <header class="mp-header">
+      <button class="back-btn" onclick="location.href='index.html'">‹</button>
+      <div class="title">学生信息登记</div>
+      <div class="placeholder"></div>
+    </header>
+
+    <main class="mp-content">
+      <section class="card">
+        <h3>📝 请填写个人信息</h3>
+        <p class="muted" style="font-size:13px;margin:0 0 14px;">请填写真实姓名，这将出现在您的专属报告中。</p>
+
+        <div class="form-row">
+          <label for="nameInput">学生姓名 <span style="color:#a4262c;">*</span></label>
+          <input type="text" id="nameInput" class="field" placeholder="请输入您的姓名" maxlength="20">
+        </div>
+
+        <div class="form-row">
+          <label>所属老师 <span style="color:#a4262c;">*</span></label>
+          <div class="radio-group" id="teacherGroup">
+            <label data-value="亚飞老师">
+              <input type="radio" name="teacher" value="亚飞老师">
+              <span>亚飞老师</span>
+            </label>
+            <label data-value="亚楠老师">
+              <input type="radio" name="teacher" value="亚楠老师">
+              <span>亚楠老师</span>
+            </label>
+          </div>
+        </div>
+
+        <div id="errorMsg" class="muted" style="color:#a4262c;font-size:13px;display:none;"></div>
+      </section>
+
+      <section class="card">
+        <h3>✍️ 开始答题</h3>
+        <p class="muted" style="font-size:13px;margin:0 0 14px;">点击下方按钮进入手动录入页面，逐题填写答案后提交即可生成专属报告。</p>
+        <button class="btn-primary" id="goManual" style="width:100%;font-size:16px;padding:14px;">
+          ✍️ 手动录入答案
+        </button>
+      </section>
+
+      <section class="card">
+        <h3>📋 试卷说明</h3>
+        <ul style="margin:0;padding-left:18px;font-size:13px;color:#444;">
+          <li>满分 <b>80 分</b>，考试时间 90 分钟</li>
+          <li>5 大题型，<b>共 50 题</b></li>
+          <li>客观题（选择/阅读）系统判分</li>
+          <li>语法填空支持多种等价写法</li>
+          <li>提交后可查看专属个性化诊断报告</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/common.js"></script>
+  <script src="js/storage.js"></script>
+  <script>
+    Common.injectGlobalStyle();
+
+    // 教师单选样式同步
+    const teacherGroup = document.getElementById('teacherGroup');
+    teacherGroup.addEventListener('change', () => {
+      teacherGroup.querySelectorAll('label').forEach(l => l.classList.remove('checked'));
+      const checked = teacherGroup.querySelector('input:checked');
+      if (checked) checked.parentElement.classList.add('checked');
+    });
+
+    function validate() {
+      const name = document.getElementById('nameInput').value.trim();
+      const teacher = teacherGroup.querySelector('input:checked');
+      const err = document.getElementById('errorMsg');
+      if (!name) {
+        err.textContent = '请填写您的姓名';
+        err.style.display = 'block';
+        return null;
+      }
+      if (name.length < 2) {
+        err.textContent = '姓名至少 2 个字符';
+        err.style.display = 'block';
+        return null;
+      }
+      if (!teacher) {
+        err.textContent = '请选择所属老师';
+        err.style.display = 'block';
+        return null;
+      }
+      err.style.display = 'none';
+      return { name, teacher: teacher.value };
+    }
+
+    function go() {
+      try {
+        var info = validate();
+        if (!info) return;
+        try { Storage.saveDraft({ student: info, mode: 'manual', createdAt: Date.now() }); } catch(e) { console.warn('saveDraft fail', e); }
+        location.href = 'manual.html';
+      } catch (err) {
+        console.error('go() error:', err);
+        alert('页面发生错误，请截图给老师反馈。\n\n' + (err && err.message || ''));
+      }
+    }
+
+    var manualBtn = document.getElementById('goManual');
+    manualBtn.addEventListener('click', go);
+    manualBtn.addEventListener('touchend', function (e) { e.preventDefault(); go(); });
+
+    // 还原上次草稿
+    try {
+      var draft = Storage.loadDraft();
+      if (draft && draft.student) {
+        document.getElementById('nameInput').value = draft.student.name || '';
+        var t = teacherGroup.querySelector('input[value="' + draft.student.teacher + '"]');
+        if (t) { t.checked = true; t.dispatchEvent(new Event('change')); }
+      }
+    } catch (e) { console.warn('draft restore fail', e); }
+  </script>
+<script src="https://1434611848-blip.github.io/en_html/supabase-patch.js"></script>
+</body>
+</html>

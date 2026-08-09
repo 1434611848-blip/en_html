@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>周末检测</title>
+<style>
+:root {
+  --bg: #fff8e7;
+  --surface: #ffffff;
+  --surface2: #fff3d6;
+  --border: #f0d78c;
+  --text: #4a3728;
+  --text-secondary: #8b7355;
+  --text-muted: #b8a07a;
+  --blue: #ff6b6b;
+  --cyan: #ff9f43;
+  --green: #26de81;
+  --red: #fc5c65;
+  --orange: #fd9644;
+  --radius: 18px;
+  --shadow: 0 6px 30px rgba(255,159,67,0.15);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+}
+.container{width:100%;max-width:600px;padding:20px}
+
+/* Screen switching */
+.screen{display:none}
+.screen.active{display:block}
+
+/* Card panel */
+.panel{
+  background:var(--surface);border:3px solid var(--border);
+  border-radius:var(--radius);padding:36px 32px;
+  box-shadow:var(--shadow);
+  animation:fadeIn 0.4s ease;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+h1{
+  text-align:center;font-size:1.8em;font-weight:700;margin-bottom:6px;
+  color:var(--red);
+}
+.subtitle{
+  text-align:center;color:var(--text-secondary);font-size:0.95em;margin-bottom:28px;
+}
+
+/* Form elements */
+.form-group{margin-bottom:18px}
+.form-group label{
+  display:block;margin-bottom:6px;font-weight:600;color:var(--text);font-size:0.9em;
+}
+.form-group input,.form-group select{
+  width:100%;padding:12px 16px;border:2px solid var(--border);
+  border-radius:10px;background:var(--surface);color:var(--text);
+  font-size:1em;outline:none;transition:border 0.2s;
+}
+.form-group input:focus,.form-group select:focus{border-color:var(--red)}
+.form-group select option{background:#fff;color:var(--text)}
+.form-group select{
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;
+}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:12px 32px;border:none;border-radius:10px;
+  font-size:1em;font-weight:700;cursor:pointer;transition:all 0.25s;color:#fff;
+}
+.btn-primary{
+  background:linear-gradient(135deg,#ff6b6b,#ff9f43);
+  width:100%;box-shadow:0 4px 16px rgba(255,107,107,0.3);
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(255,107,107,0.45)}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+
+/* Mode cards */
+.mode-cards{display:flex;gap:16px;margin-top:8px}
+.mode-card{
+  flex:1;padding:28px 16px;border:2px solid var(--border);border-radius:var(--radius);
+  background:var(--surface);text-align:center;cursor:pointer;transition:all 0.3s;
+}
+.mode-card:hover{border-color:var(--red);background:var(--surface2);transform:translateY(-3px)}
+.mode-card .mode-icon{font-size:2.8em;margin-bottom:12px}
+.mode-card .mode-title{font-size:1.2em;font-weight:700;margin-bottom:8px;color:var(--text)}
+.mode-card .mode-desc{font-size:0.85em;color:var(--text-secondary);line-height:1.5}
+
+/* Game screen */
+.game-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.game-stat{text-align:center;min-width:60px}
+.game-stat .val{font-size:1.4em;font-weight:700}
+.game-stat .lbl{font-size:0.72em;color:var(--text-muted)}
+.game-stat .val.green{color:var(--green)}
+.game-stat .val.red{color:var(--red)}
+.game-stat .val.cyan{color:var(--orange)}
+
+/* Progress */
+.progress-bar{
+  width:100%;height:6px;background:rgba(0,0,0,0.06);border-radius:3px;
+  margin-bottom:24px;overflow:hidden;
+}
+.progress-fill{height:100%;background:linear-gradient(90deg,#ff6b6b,#ff9f43);border-radius:3px;transition:width 0.4s}
+.progress-dots{display:flex;gap:6px;margin-top:8px}
+.progress-dot{
+  width:20px;height:4px;border-radius:2px;background:rgba(0,0,0,0.08);transition:all 0.3s;
+}
+.progress-dot.done{background:var(--orange)}
+.progress-dot.current{background:var(--red)}
+
+/* Chinese word display */
+.cn-display{text-align:center;padding:32px 20px;margin-bottom:24px}
+.cn-display .cn-word{font-size:3em;font-weight:700;color:var(--text);margin-bottom:8px}
+.cn-display .cn-hint{font-size:0.85em;color:var(--text-muted)}
+
+/* Spell input */
+.spell-input-wrap{display:flex;gap:10px;margin-bottom:16px}
+.spell-input{
+  flex:1;padding:14px 18px;border:3px solid var(--border);border-radius:10px;
+  background:var(--surface);color:var(--text);font-size:1.2em;outline:none;
+  transition:border 0.2s;text-align:center;letter-spacing:2px;
+}
+.spell-input:focus{border-color:var(--red)}
+.spell-input.correct{border-color:var(--green);background:rgba(38,222,129,0.08);animation:pulseGreen 0.5s}
+.spell-input.wrong{border-color:var(--red);background:rgba(252,92,101,0.08);animation:shake 0.4s}
+@keyframes pulseGreen{0%,100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}50%{box-shadow:0 0 20px 4px rgba(74,222,128,0.3)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}
+
+.spell-feedback{text-align:center;min-height:28px;font-size:1em;margin-bottom:12px}
+.spell-feedback .correct-ans{color:var(--green);font-weight:700}
+.spell-feedback .wrong-ans{color:var(--red)}
+.spell-feedback .show-answer{color:var(--orange);font-weight:700}
+
+/* Match game */
+.match-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.match-col{display:flex;flex-direction:column;gap:8px}
+.match-col-label{text-align:center;font-size:0.82em;color:var(--text-muted);margin-bottom:4px}
+.match-item{
+  padding:14px 16px;border:2px solid var(--border);border-radius:10px;
+  background:var(--surface);text-align:center;cursor:pointer;transition:all 0.25s;
+  font-size:0.95em;font-weight:600;user-select:none;
+}
+.match-item:hover{border-color:var(--red);background:var(--surface2)}
+.match-item.selected{border-color:var(--orange);background:rgba(255,159,67,0.12);box-shadow:0 0 16px rgba(255,159,67,0.2)}
+.match-item.matched{opacity:0.3;pointer-events:none;border-color:var(--green)}
+.match-item.wrong-flash{border-color:var(--red);background:rgba(248,113,113,0.12);animation:shake 0.4s}
+
+/* Round result */
+.round-result{text-align:center;padding:24px}
+.round-result .round-score{font-size:2.5em;font-weight:700;margin:12px 0}
+.round-result .round-detail{color:var(--text-secondary);margin-bottom:20px}
+
+/* Final result */
+.final-result{text-align:center;padding:16px}
+.final-score{font-size:3em;font-weight:700;color:var(--red);margin:8px 0}
+.final-detail{color:var(--text-secondary);margin-bottom:20px;line-height:1.8}
+.final-cheer{font-size:1.1em;font-weight:600;margin-top:12px;padding:8px 16px;border-radius:12px;display:inline-block}
+
+/* Leaderboard table */
+.lb-table{width:100%;border-collapse:collapse;font-size:0.88em;margin-top:16px}
+.lb-table th{text-align:left;padding:8px 10px;border-bottom:2px solid var(--border);color:var(--text-muted);font-size:0.82em;font-weight:600}
+.lb-table td{padding:8px 10px;border-bottom:1px solid var(--border)}
+.lb-table tbody tr:hover{background:var(--surface2)}
+.badge-rank{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:24px;height:24px;border-radius:50%;font-size:0.78em;font-weight:700;
+}
+.badge-1{background:#fbbf24;color:#1e293b}
+.badge-2{background:#cbd5e1;color:#1e293b}
+.badge-3{background:#d6a074;color:#fff}
+
+/* Buttons row */
+.btn-row{display:flex;gap:10px;margin-top:16px}
+.btn-row .btn{flex:1}
+.btn-outline{
+  background:transparent;border:1px solid var(--border);color:var(--text);
+}
+.btn-outline:hover{background:var(--surface2)}
+.btn-small{padding:8px 16px;font-size:0.85em}
+
+/* Error banner */
+.error-banner{
+  background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.3);
+  border-radius:10px;padding:16px;text-align:center;color:var(--red);
+}
+
+/* Limit notice */
+.limit-notice{
+  background:rgba(251,146,60,0.1);border:1px solid rgba(251,146,60,0.3);
+  border-radius:10px;padding:14px;margin-bottom:20px;
+  color:var(--orange);font-size:0.88em;text-align:center;line-height:1.6;
+}
+
+/* Switch back button */
+.back-link{display:block;text-align:center;margin-top:20px;color:var(--text-muted);font-size:0.85em;cursor:pointer}
+.back-link:hover{color:var(--text-secondary)}
+
+/* ===== 打地鼠拼写模式 ===== */
+.mole-game-container{text-align:center}
+.mole-prompt{font-size:1em;color:var(--text-secondary);margin-bottom:20px;font-weight:600}
+.mole-cn-word{font-size:2.4em;font-weight:700;color:var(--text);margin-bottom:8px}
+.spell-progress-bar{display:flex;justify-content:center;gap:8px;margin-bottom:28px;flex-wrap:wrap}
+.spell-progress-letter{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:2px dashed var(--border);border-radius:8px;font-size:1.2em;font-weight:700;color:var(--text-muted);transition:all 0.3s}
+.spell-progress-letter.filled{background:var(--surface2);border-color:var(--orange);color:var(--text);border-style:solid;animation:spellPulse 0.5s ease}
+@keyframes spellPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,159,67,0)}50%{box-shadow:0 0 16px 4px rgba(255,159,67,0.35)}}
+.mole-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 24px;max-width:420px;margin:0 auto}
+.mole-hole{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:120px;cursor:pointer;overflow:hidden}
+.mole-hole-bg{position:absolute;bottom:0;width:82px;height:38px;background:radial-gradient(ellipse at center,#5c3d2e 0%,#3e2723 60%,#2c1a12 100%);border-radius:50%;z-index:1}
+.mole{position:absolute;bottom:10px;width:66px;height:66px;background:radial-gradient(circle at 40% 35%,#ff9f43,#e67e22);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6em;font-weight:800;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.3);z-index:2;transform:translateY(0);box-shadow:0 4px 12px rgba(0,0,0,0.25);user-select:none}
+.mole.hit{animation:moleHit 0.45s ease forwards;background:radial-gradient(circle at 40% 35%,#26de81,#20a362)!important}
+.mole.wrong-hit{animation:moleShake 0.4s ease;background:radial-gradient(circle at 40% 35%,#fc5c65,#d63031)!important}
+@keyframes moleHit{0%{transform:scale(1)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
+@keyframes thumbsUpFly{0%{transform:translateX(-50%) translateY(0) scale(1);opacity:1}100%{transform:translateX(-50%) translateY(-70px) scale(1.6);opacity:0}}
+@keyframes moleShake{0%,100%{transform:translateY(0)}15%{transform:translateX(-6px)}30%{transform:translateX(6px)}45%{transform:translateX(-5px)}60%{transform:translateX(4px)}80%{transform:translateX(-2px)}}
+.mole-word-info{text-align:center;color:var(--text-muted);font-size:0.8em;margin-top:12px}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- Screen 1: Name -->
+<div class="screen active" id="screenName">
+  <div class="panel">
+    <h1>周末检测</h1>
+    <p class="subtitle">拼写 + 连连看</p>
+    <div class="form-group">
+      <label>请输入你的名字</label>
+      <input type="text" id="playerName" placeholder="输入名字" maxlength="20">
+    </div>
+    <button class="btn btn-primary" onclick="goToTeacher()">下一步</button>
+  </div>
+</div>
+
+<!-- Screen 2: Teacher -->
+<div class="screen" id="screenTeacher">
+  <div class="panel">
+    <h1>周末检测</h1>
+    <p class="subtitle">选择老师</p>
+    <div class="form-group">
+      <label>选择老师</label>
+      <select id="teacherSelect">
+        <option value="">-- 请选择 --</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="goToEdition()">下一步</button>
+    <div class="back-link" onclick="showScreen('screenName')">返回修改名字</div>
+  </div>
+</div>
+
+<!-- Screen 3: Edition -->
+<div class="screen" id="screenEdition">
+  <div class="panel">
+    <h1>周末检测</h1>
+    <p class="subtitle">选择教材版本</p>
+    <div class="form-group">
+      <label>选择教材版本</label>
+      <select id="editionSelect">
+        <option value="">-- 加载中 --</option>
+      </select>
+    </div>
+    <div class="limit-notice" id="limitNotice" style="display:none"></div>
+    <button class="btn btn-primary" id="btnStart" onclick="goToMode()">开始检测</button>
+    <div class="back-link" onclick="showScreen('screenTeacher')">返回选择老师</div>
+  </div>
+</div>
+
+<!-- Screen 4: Mode -->
+<div class="screen" id="screenMode">
+  <div class="panel">
+    <h1>周末检测</h1>
+    <p class="subtitle">选择模式</p>
+    <div class="mode-cards">
+      <div class="mode-card" onclick="startGame('spell')">
+        <div class="mode-icon">A</div>
+        <div class="mode-title">拼写模式</div>
+        <div class="mode-desc">看中文写英文<br>考验拼写能力</div>
+      </div>
+      <div class="mode-card" onclick="startGame('match')">
+        <div class="mode-icon">A—B</div>
+        <div class="mode-title">连连看模式</div>
+        <div class="mode-desc">中英文连线配对<br>考验识别能力</div>
+      </div>
+    </div>
+    <div class="back-link" onclick="showScreen('screenEdition')">返回选择版本</div>
+  </div>
+</div>
+
+<!-- Screen 5: Game -->
+<div class="screen" id="screenGame">
+  <div class="panel">
+    <div class="game-top">
+      <div class="game-stat"><div class="lbl">进度</div><div class="val cyan" id="roundInfo">第1/5轮</div></div>
+      <div class="game-stat"><div class="lbl">正确</div><div class="val green" id="correctCount">0</div></div>
+      <div class="game-stat"><div class="lbl">错误</div><div class="val red" id="wrongCount">0</div></div>
+      <div class="game-stat"><div class="lbl">得分</div><div class="val cyan" id="scorePercent">0%</div></div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <div class="progress-dots" id="progressDots"></div>
+    <div id="gameArea"></div>
+  </div>
+</div>
+
+<!-- Screen 6: Round Result -->
+<div class="screen" id="screenRound">
+  <div class="panel">
+    <div class="round-result">
+      <div style="font-size:0.9em;color:var(--text-secondary)" id="roundLabel">第1轮结束</div>
+      <div class="round-score green" id="roundScore">6/6</div>
+      <div class="round-detail" id="roundDetail">本轮正确 6 题，错误 0 题</div>
+      <button class="btn btn-primary" id="btnNextRound" onclick="goNextRound()">进入下一轮</button>
+    </div>
+  </div>
+</div>
+
+<!-- Screen 7: Final Result -->
+<div class="screen" id="screenFinal">
+  <div class="panel">
+    <div class="final-result">
+      <div style="font-size:0.9em;color:var(--text-secondary)">检测完成</div>
+      <div class="final-score" id="finalScore">90%</div>
+      <div class="final-detail" id="finalDetail"></div>
+      <div class="final-cheer" id="finalCheer"></div>
+      <button class="btn btn-primary" onclick="downloadWrongWords()">下载错题 (CSV)</button>
+      <div style="margin-top:20px">
+        <div style="font-size:0.9em;color:var(--text-muted);margin-bottom:10px">排行榜 TOP 5</div>
+        <div id="leaderboardArea"><div style="color:var(--text-muted);font-size:0.85em;padding:12px">加载中...</div></div>
+      </div>
+      <div class="btn-row" style="margin-top:20px">
+        <button class="btn btn-outline" onclick="restartGame()">再来一次</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script src="supabase.min.js"></script>
+<script>
+// ==================== Supabase ====================
+const SB = window.supabase.createClient(
+  'https://xwnvsydndaclamzcfrpl.supabase.co',
+  'sb_publishable_PATbkfSdIrjUug0C7qqnsg__fGlTOLZ'
+);
+
+const DEFAULT_TEACHERS = ['亚飞老师','亚楠老师','佳萌老师'];
+
+// ==================== State ====================
+let playerName = '';
+let selectedTeacher = '';
+let selectedEdition = null; // {id, name, words:[]}
+let gameMode = ''; // 'spell' | 'match'
+let totalRounds = 5;
+let questionsPerRound = 6;
+let currentRound = 0;
+let allQuestions = []; // 5 arrays of 6 words each
+let roundCorrect = 0;
+let roundWrong = 0;
+let totalCorrect = 0;
+let totalWrong = 0;
+let gameStartTime = 0;
+let gameEndTime = 0;
+let playCount = 0;
+let wrongWordsLog = []; // {cn, correctEn, userAnswer}
+
+// Background music
+let bgMusicCtx = null;
+let bgMusicGain = null;
+let bgMusicInterval = null;
+
+// Pre-init AudioContext on first user tap (browser policy requires user gesture)
+function ensureAudioContext() {
+  if (!bgMusicCtx) {
+    try {
+      bgMusicCtx = new (window.AudioContext || window.webkitAudioContext)();
+      bgMusicGain = bgMusicCtx.createGain();
+      bgMusicGain.gain.value = 0.08;
+      bgMusicGain.connect(bgMusicCtx.destination);
+    } catch(e) { console.log('Audio init:', e); }
+  }
+  if (bgMusicCtx && bgMusicCtx.state === 'suspended') {
+    bgMusicCtx.resume();
+  }
+}
+
+function startBgMusic() {
+  ensureAudioContext();
+  if (!bgMusicCtx || bgMusicInterval) return;
+  try {
+    const notes = [523.25, 587.33, 659.25, 783.99, 880.00]; // C5 D5 E5 G5 A5
+    let idx = 0;
+    const pattern = [0,2,4,2,1,3,4,2,0,1,3,4,2,3,1,0];
+
+    function playNote() {
+      if (!bgMusicCtx || bgMusicCtx.state === 'closed') return;
+      try {
+        const osc = bgMusicCtx.createOscillator();
+        const noteGain = bgMusicCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.value = notes[pattern[idx % pattern.length]];
+        noteGain.gain.setValueAtTime(0.15, bgMusicCtx.currentTime);
+        noteGain.gain.exponentialRampToValueAtTime(0.001, bgMusicCtx.currentTime + 0.3);
+        osc.connect(noteGain);
+        noteGain.connect(bgMusicGain);
+        osc.start();
+        osc.stop(bgMusicCtx.currentTime + 0.4);
+        idx++;
+      } catch(e) {}
+    }
+
+    playNote();
+    bgMusicInterval = setInterval(playNote, 320);
+  } catch(e) { console.log('BGM start:', e); }
+}
+
+function stopBgMusic() {
+  if (bgMusicInterval) { clearInterval(bgMusicInterval); bgMusicInterval = null; }
+  if (bgMusicCtx) { bgMusicCtx.close(); bgMusicCtx = null; bgMusicGain = null; }
+}
+
+// Match mode state
+let matchSelectedEn = null;
+let matchSelectedCn = null;
+let matchPaired = new Set();
+
+// ==================== Screen Navigation ====================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ==================== Step 1 -> Step 2 ====================
+async function goToTeacher() {
+  const name = document.getElementById('playerName').value.trim();
+  if (!name) { alert('请输入你的名字'); return; }
+  playerName = name;
+  ensureAudioContext();
+
+  // Load teachers
+  const sel = document.getElementById('teacherSelect');
+  let teachers = [];
+  try {
+    const { data } = await SB.from('teachers').select('name').order('created_at', { ascending: true });
+    if (data && data.length > 0) {
+      const seen = new Set();
+      teachers = [];
+      for (const r of data) {
+        const norm = r.name.replace(/老师$/g, '');
+        if (!seen.has(norm)) { seen.add(norm); teachers.push(r.name); }
+      }
+      teachers.sort((a, b) => a === '亚飞老师' ? -1 : b === '亚飞老师' ? 1 : a.localeCompare(b, 'zh'));
+    }
+  } catch (e) { console.error('loadTeachers failed:', e); }
+  if (teachers.length === 0) teachers = DEFAULT_TEACHERS;
+
+  sel.innerHTML = '<option value="">-- 请选择 --</option>' +
+    teachers.map(t => `<option value="${t}">${t}</option>`).join('');
+  showScreen('screenTeacher');
+}
+
+// ==================== Step 2 -> Step 3 ====================
+async function goToEdition() {
+  const teacher = document.getElementById('teacherSelect').value;
+  if (!teacher) { alert('请选择老师'); return; }
+  selectedTeacher = teacher;
+
+  const sel = document.getElementById('editionSelect');
+  sel.innerHTML = '<option value="">-- 加载中 --</option>';
+  showScreen('screenEdition');
+
+  try {
+    // Query all editions with note='weekend_check'
+    const { data: editions } = await SB.from('word_editions')
+      .select('id,name,words')
+      .eq('note', 'weekend_check')
+      .order('created_at', { ascending: false });
+
+    if (!editions || editions.length === 0) {
+      sel.innerHTML = '<option value="">暂无可用版本，请联系老师上传</option>';
+      document.getElementById('btnStart').disabled = true;
+      document.getElementById('limitNotice').style.display = 'none';
+      return;
+    }
+
+    // Cache all editions for later lookup
+    window._weekendEditions = editions;
+
+    sel.innerHTML = '<option value="">-- 请选择版本 --</option>' +
+      editions.map(ed => 
+        `<option value="${ed.id}">${ed.name}（${ed.words.length}词）</option>`
+      ).join('');
+    document.getElementById('btnStart').disabled = false;
+
+    // Update selectedEdition on change
+    sel.onchange = function() {
+      const id = this.value;
+      const ed = window._weekendEditions.find(e => e.id === id);
+      if (ed) {
+        selectedEdition = { id: ed.id, name: ed.name, words: (ed.words || []).map(w => ({ en: w[0], cn: w[1] })) };
+      } else {
+        selectedEdition = null;
+      }
+    };
+
+    showScreen('screenEdition');
+  } catch (e) {
+    console.error('loadEdition failed:', e);
+    sel.innerHTML = '<option value="">加载失败，请刷新重试</option>';
+    document.getElementById('btnStart').disabled = true;
+  }
+}
+
+// ==================== Step 3 -> Step 4 ====================
+async function goToMode() {
+  const editionId = document.getElementById('editionSelect').value;
+  if (!editionId || !selectedEdition) { alert('请先选择版本'); return; }
+
+  // Check play count for this name+teacher+edition+mode
+  // We need the mode, but we haven't selected yet. We'll check per-mode on startGame.
+  showScreen('screenMode');
+}
+
+// ==================== Start Game ====================
+async function startGame(mode) {
+  gameMode = mode;
+  if (!selectedEdition || !selectedEdition.words || selectedEdition.words.length < questionsPerRound) {
+    alert('单词数量不足，至少需要6个单词');
+    return;
+  }
+
+  // Check play count
+  try {
+    const { count } = await SB.from('game_records').select('*', { count: 'exact', head: true })
+      .eq('name', playerName)
+      .eq('teacher', selectedTeacher)
+      .eq('edition_id', selectedEdition.name)
+      .eq('game_type', 'weekend_check');
+    playCount = count || 0;
+
+    if (playCount >= 3) {
+      const notice = document.getElementById('limitNotice');
+      notice.textContent = `该版本「${mode === 'spell' ? '单词打地鼠' : '消消乐'}」模式已检测 ${playCount} 次（上限3次）。本次将覆盖最差成绩。`;
+      notice.style.display = 'block';
+    } else {
+      document.getElementById('limitNotice').style.display = 'none';
+    }
+  } catch (e) {
+    playCount = 0;
+    document.getElementById('limitNotice').style.display = 'none';
+  }
+
+  // Generate shuffled questions for 5 rounds
+  const words = shuffleArray([...selectedEdition.words]);
+  allQuestions = [];
+  for (let r = 0; r < totalRounds; r++) {
+    const start = r * questionsPerRound;
+    const roundWords = words.slice(start, start + questionsPerRound);
+    if (roundWords.length < questionsPerRound) {
+      // Re-shuffle remaining for last round
+      const remaining = words.slice(start);
+      const filler = shuffleArray([...words]).slice(0, questionsPerRound - remaining.length);
+      allQuestions.push([...remaining, ...filler]);
+    } else {
+      allQuestions.push(roundWords);
+    }
+  }
+
+  // Reset state
+  currentRound = 0;
+  totalCorrect = 0;
+  totalWrong = 0;
+  wrongWordsLog = [];
+  gameStartTime = Date.now();
+
+  // Build progress dots
+  const dotsContainer = document.getElementById('progressDots');
+  dotsContainer.innerHTML = '';
+  for (let i = 0; i < totalRounds; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'progress-dot' + (i === 0 ? ' current' : '');
+    dotsContainer.appendChild(dot);
+  }
+
+  updateGameStats();
+  renderRound();
+  startBgMusic();
+  showScreen('screenGame');
+}
+
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ==================== Update UI ====================
+function updateGameStats() {
+  document.getElementById('roundInfo').textContent = `第${currentRound + 1}/${totalRounds}轮`;
+  document.getElementById('correctCount').textContent = totalCorrect;
+  document.getElementById('wrongCount').textContent = totalWrong;
+  const pct = (totalCorrect + totalWrong) > 0 ? Math.round((totalCorrect / (totalCorrect + totalWrong)) * 100) : 0;
+  document.getElementById('scorePercent').textContent = pct + '%';
+  document.getElementById('progressFill').style.width = ((currentRound) / totalRounds * 100) + '%';
+
+  const dots = document.querySelectorAll('.progress-dot');
+  dots.forEach((d, i) => {
+    d.classList.remove('done', 'current');
+    if (i < currentRound) d.classList.add('done');
+    else if (i === currentRound) d.classList.add('current');
+  });
+}
+
+// ==================== Render Round ====================
+function renderRound() {
+  roundCorrect = 0;
+  roundWrong = 0;
+  matchSelectedEn = null;
+  matchSelectedCn = null;
+  matchPaired = new Set();
+  updateGameStats();
+
+  const area = document.getElementById('gameArea');
+  const words = allQuestions[currentRound];
+
+  if (gameMode === 'spell') {
+    renderSpellQuestion(area, words, 0);
+  } else {
+    renderMatchGame(area, words);
+  }
+}
+
+// ==================== Spell Mode (打地鼠) ====================
+function renderSpellQuestion(area, words, idx) {
+  if (idx >= words.length) {
+    endRound();
+    return;
+  }
+
+  // Clear any existing mole timers
+  if (spellState && spellState.holeTimers) {
+    spellState.holeTimers.forEach(function(t) { clearTimeout(t); });
+  }
+
+  var word = words[idx];
+  var wordLower = word.en.toLowerCase();
+  var letters = wordLower.split('');
+
+  // Generate hole letters: word letters shuffled + distractors to fill 6
+  var holeLetters = shuffleArray(letters.slice());
+  if (holeLetters.length < 6) {
+    var distractors = 'abcdefghijklmnopqrstuvwxyz';
+    var used = {};
+    holeLetters.forEach(function(l) { used[l] = true; });
+    while (holeLetters.length < 6) {
+      var d = distractors[Math.floor(Math.random() * 26)];
+      if (!used[d]) { holeLetters.push(d); used[d] = true; }
+    }
+  } else if (holeLetters.length > 6) {
+    holeLetters = holeLetters.slice(0, 6);
+  }
+  holeLetters = shuffleArray(holeLetters);
+
+  spellState = {
+    currentWordIdx: idx,
+    currentLetterIdx: 0,
+    word: wordLower,
+    cn: word.cn,
+    holeLetters: holeLetters,
+    correctSoFar: []
+  };
+
+  // Build progress display
+  var progressHTML = letters.map(function(_, i) {
+    return '<div class="spell-progress-letter" id="spellProg' + i + '">_</div>';
+  }).join('');
+
+  area.innerHTML = '<div class="mole-game-container">' +
+    '<div class="cn-display"><div class="cn-word">' + word.cn + '</div></div>' +
+    '<div class="mole-prompt">点击字母地鼠，按顺序拼出单词！</div>' +
+    '<div class="spell-progress-bar" id="spellProgressBar">' + progressHTML + '</div>' +
+    '<div class="mole-grid" id="moleGrid">' +
+      [0,1,2,3,4,5].map(function(i) {
+        return '<div class="mole-hole" id="moleHole' + i + '" onclick="onMoleClick(' + i + ')">' +
+          '<div class="mole-hole-bg"></div>' +
+          '<div class="mole" id="mole' + i + '">' + holeLetters[i] + '</div>' +
+        '</div>';
+      }).join('') +
+    '</div>' +
+    '<div class="mole-word-info">' + (idx + 1) + '/' + words.length + ' · ' + letters.length + '个字母</div>' +
+    '<div class="spell-feedback" id="spellFeedback" style="margin-top:12px"></div>' +
+  '</div>';
+
+}
+
+function onMoleClick(holeIndex) {
+  if (!spellState) return;
+
+  var mole = document.getElementById('mole' + holeIndex);
+  if (!mole) return;
+
+  var clickedLetter = spellState.holeLetters[holeIndex];
+  var expectedLetter = spellState.word[spellState.currentLetterIdx];
+  var feedback = document.getElementById('spellFeedback');
+
+  if (clickedLetter === expectedLetter) {
+    // Correct!
+    spellState.correctSoFar.push(clickedLetter);
+
+    // Update progress display
+    var progEl = document.getElementById('spellProg' + spellState.currentLetterIdx);
+    if (progEl) {
+      progEl.textContent = clickedLetter;
+      progEl.classList.add('filled');
+    }
+
+    // Hit animation
+    mole.classList.add('hit');
+    feedback.innerHTML = '<span class="correct-ans">正确!</span>';
+
+    // Thumbs up fly animation
+    var thumb = document.createElement('div');
+    thumb.textContent = '👍';
+    thumb.style.cssText = 'position:absolute;top:0;left:50%;font-size:2em;z-index:10;pointer-events:none;animation:thumbsUpFly 0.8s ease-out forwards';
+    mole.appendChild(thumb);
+    setTimeout(function() { thumb.remove(); }, 800);
+
+    spellState.currentLetterIdx++;
+
+    // Remove hit class after animation
+    setTimeout(function() {
+      mole.classList.remove('hit');
+    }, 450);
+
+    // Check if word complete
+    if (spellState.currentLetterIdx >= spellState.word.length) {
+      roundCorrect++;
+      totalCorrect++;
+      updateGameStats();
+
+      // Advance to next word
+      setTimeout(function() {
+        var w = allQuestions[currentRound];
+        renderSpellQuestion(document.getElementById('gameArea'), w, spellState.currentWordIdx + 1);
+      }, 800);
+    }
+  } else {
+    // Wrong click — shake, no stat penalty
+    mole.classList.add('wrong-hit');
+    feedback.innerHTML = '<span class="wrong-ans">不对哦，再试试！</span>';
+
+    setTimeout(function() {
+      mole.classList.remove('wrong-hit');
+    }, 400);
+  }
+}
+
+// ==================== Match Mode (连连看) ====================
+function renderMatchGame(area, words) {
+  const enWords = words.map(w => w.en);
+  const cnWords = shuffleArray(words).map(w => w.cn);
+
+  area.innerHTML = `
+    <div class="match-grid">
+      <div>
+        <div class="match-col-label">英文</div>
+        <div class="match-col" id="matchEnCol">
+          ${enWords.map((en, i) => `<div class="match-item" data-en="${en.replace(/"/g, '&quot;')}" data-idx="${i}" onclick="selectMatchEn(this)">${en}</div>`).join('')}
+        </div>
+      </div>
+      <div>
+        <div class="match-col-label">中文</div>
+        <div class="match-col" id="matchCnCol">
+          ${cnWords.map((cn, i) => `<div class="match-item" data-cn="${cn.replace(/"/g, '&quot;')}" data-idx="${i}" onclick="selectMatchCn(this)">${cn}</div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="spell-feedback" id="matchFeedback" style="margin-top:16px"></div>
+  `;
+}
+
+function selectMatchEn(el) {
+  if (el.classList.contains('matched')) return;
+  if (matchSelectedEn) {
+    matchSelectedEn.classList.remove('selected');
+  }
+  el.classList.add('selected');
+  matchSelectedEn = el;
+
+  if (matchSelectedCn) {
+    checkMatchPair();
+  }
+}
+
+function selectMatchCn(el) {
+  if (el.classList.contains('matched')) return;
+  if (matchSelectedCn) {
+    matchSelectedCn.classList.remove('selected');
+  }
+  el.classList.add('selected');
+  matchSelectedCn = el;
+
+  if (matchSelectedEn) {
+    checkMatchPair();
+  }
+}
+
+function checkMatchPair() {
+  const enWord = matchSelectedEn.dataset.en;
+  const cnWord = matchSelectedCn.dataset.cn;
+  const words = allQuestions[currentRound];
+  const feedback = document.getElementById('matchFeedback');
+
+  // Find the correct cn for this en
+  const wordPair = words.find(w => w.en === enWord);
+  if (!wordPair) return;
+
+  if (wordPair.cn === cnWord) {
+    // Correct!
+    matchSelectedEn.classList.add('matched');
+    matchSelectedCn.classList.add('matched');
+    matchSelectedEn.classList.remove('selected');
+    matchSelectedCn.classList.remove('selected');
+    roundCorrect++;
+    totalCorrect++;
+    matchSelectedEn = null;
+    matchSelectedCn = null;
+    feedback.innerHTML = '<span class="correct-ans">正确!</span>';
+    updateGameStats();
+
+    // Check if all paired
+    const remainingEn = document.querySelectorAll('#matchEnCol .match-item:not(.matched)');
+    if (remainingEn.length === 0) {
+      setTimeout(endRound, 500);
+    }
+  } else {
+    // Wrong
+    roundWrong++;
+    totalWrong++;
+    wrongWordsLog.push({ cn: wordPair.cn, correctEn: enWord, userAnswer: cnWord });
+    matchSelectedEn.classList.add('wrong-flash');
+    matchSelectedCn.classList.add('wrong-flash');
+    feedback.innerHTML = `<span class="wrong-ans">配对错误</span>`;
+    updateGameStats();
+
+    setTimeout(() => {
+      matchSelectedEn.classList.remove('selected', 'wrong-flash');
+      matchSelectedCn.classList.remove('selected', 'wrong-flash');
+      matchSelectedEn = null;
+      matchSelectedCn = null;
+      feedback.innerHTML = '';
+    }, 500);
+  }
+}
+
+// ==================== Round End ====================
+function endRound() {
+  const roundTotal = roundCorrect + roundWrong;
+  const roundPct = roundTotal > 0 ? Math.round((roundCorrect / roundTotal) * 100) : 0;
+
+  document.getElementById('roundLabel').textContent = `第${currentRound + 1}轮结束`;
+  document.getElementById('roundScore').textContent = `${roundCorrect}/${roundTotal}`;
+  document.getElementById('roundDetail').textContent = `本轮正确 ${roundCorrect} 题，错误 ${roundWrong} 题`;
+
+  currentRound++;
+
+  if (currentRound >= totalRounds) {
+    // Game over
+    document.getElementById('btnNextRound').textContent = '查看最终成绩';
+    document.getElementById('btnNextRound').onclick = showFinalResult;
+  } else {
+    document.getElementById('btnNextRound').textContent = '进入下一轮';
+    document.getElementById('btnNextRound').onclick = goNextRound;
+  }
+
+  showScreen('screenRound');
+}
+
+function goNextRound() {
+  if (currentRound >= totalRounds) {
+    showFinalResult();
+  } else {
+    renderRound();
+    showScreen('screenGame');
+  }
+}
+
+// ==================== Final Result ====================
+async function showFinalResult() {
+  stopBgMusic();
+  gameEndTime = Date.now();
+  const accuracy = (totalCorrect + totalWrong) > 0 ? Math.round((totalCorrect / (totalCorrect + totalWrong)) * 100) : 0;
+  const timeSec = Math.round((gameEndTime - gameStartTime) / 1000);
+
+  document.getElementById('finalScore').textContent = accuracy + '%';
+  document.getElementById('finalDetail').innerHTML = `
+    正确：${totalCorrect} | 错误：${totalWrong}<br>
+    总用时：${formatTime(timeSec)}<br>
+    版本：${selectedEdition.name} | 模式：${gameMode === 'spell' ? '拼写' : '连连看'}
+  `;
+
+  // 鼓励话语
+  var cheerEl = document.getElementById('finalCheer');
+  var cheers = {
+    perfect: ['词汇量爆表！你就是行走的词典！🧠✨', '满分战神降临！请收下我的膝盖！👑', '全对通关！英语老师看了连夜给你加鸡腿！🍗'],
+    great:   ['太强了！离满分就差一丢丢，下次必拿下！💪', '这正确率，英语课代表非你莫属！🏆', '优秀到发光！保持住，学霸就是你！🌟'],
+    good:    ['不错哦！再多练几组直接起飞！🚀', '中上游选手！再加把劲就上一档了！🔥', '有内味了！继续刷，单词见你就发抖！😈'],
+    ok:      ['及格线以上！假期偷偷卷，开学惊艳所有人！📚', '还行还行，但这绝不是你的上限！冲！⚡', '底子有了，就差临门一脚，下周再战！🎯'],
+    low:     ['别灰心！每个单词大佬都从这步开始的！🌱', '问题不大！错的都是你下次的得分点！📌', '发现漏洞就是进步！干掉错题，下周逆袭！🦸']
+  };
+  var tier, color;
+  if (accuracy === 100) { tier = 'perfect'; color = '#e11d48'; }
+  else if (accuracy >= 90) { tier = 'great'; color = '#f59e0b'; }
+  else if (accuracy >= 75) { tier = 'good'; color = '#10b981'; }
+  else if (accuracy >= 60) { tier = 'ok'; color = '#3b82f6'; }
+  else { tier = 'low'; color = '#8b5cf6'; }
+  var msgs = cheers[tier];
+  var msg = msgs[Math.floor(Math.random() * msgs.length)];
+  cheerEl.textContent = msg;
+  cheerEl.style.color = color;
+  cheerEl.style.background = color + '15';
+
+  showScreen('screenFinal');
+
+  // Save record
+  await saveRecord(accuracy, timeSec);
+
+  // Load leaderboard
+  loadLeaderboard();
+}
+
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+async function saveRecord(accuracy, timeSec) {
+  const record = {
+    name: playerName,
+    teacher: selectedTeacher,
+    date: new Date().toISOString().slice(0, 10),
+    time: timeSec * 1000,
+    correct: totalCorrect,
+    wrong: totalWrong,
+    rounds: totalRounds,
+    accuracy: accuracy,
+    edition_id: selectedEdition.name,
+    game_type: 'weekend_check',
+    created_at: new Date().toISOString()
+  };
+
+  try {
+    if (playCount >= 3) {
+      // Get existing 3 records, find and replace the worst
+      const { data: existing } = await SB.from('game_records').select('*')
+        .eq('name', playerName)
+        .eq('teacher', selectedTeacher)
+        .eq('edition_id', selectedEdition.name)
+        .eq('game_type', 'weekend_check')
+        .order('accuracy', { ascending: true })
+        .order('time', { ascending: false })
+        .limit(3);
+
+      if (existing && existing.length >= 3) {
+        const worst = existing[0];
+        if (accuracy > worst.accuracy || (accuracy === worst.accuracy && timeSec * 1000 < worst.time)) {
+          await SB.from('game_records').delete().eq('id', worst.id);
+          await SB.from('game_records').insert(record);
+        }
+      } else {
+        await SB.from('game_records').insert(record);
+      }
+    } else {
+      await SB.from('game_records').insert(record);
+    }
+  } catch (e) {
+    console.error('saveRecord failed:', e);
+  }
+}
+
+async function loadLeaderboard() {
+  const area = document.getElementById('leaderboardArea');
+  try {
+    const { data } = await SB.from('game_records').select('*')
+      .eq('game_type', 'weekend_check')
+      .order('accuracy', { ascending: false })
+      .order('time', { ascending: true })
+      .limit(100);
+
+    if (!data || data.length === 0) {
+      area.innerHTML = '<div style="color:var(--text-muted);font-size:0.85em;padding:12px">暂无记录</div>';
+      return;
+    }
+
+    // Dedupe by (name, teacher), keep best
+    const seen = new Set();
+    const deduped = [];
+    for (const r of data) {
+      const key = r.name + '|||' + r.teacher;
+      if (!seen.has(key)) { seen.add(key); deduped.push(r); }
+    }
+    const top5 = deduped.slice(0, 5);
+
+    const badgeClass = (i) => i < 3 ? 'badge-' + (i + 1) : '';
+    area.innerHTML = `
+      <table class="lb-table">
+        <thead><tr><th>排名</th><th>名字</th><th>老师</th><th>用时</th><th>正确率</th></tr></thead>
+        <tbody>${top5.map((r, i) => `
+          <tr>
+            <td><span class="badge-rank ${badgeClass(i)}">${i + 1}</span></td>
+            <td>${r.name}</td>
+            <td>${r.teacher}</td>
+            <td>${formatTime(Math.round(r.time / 1000))}</td>
+            <td><strong>${r.accuracy}%</strong></td>
+          </tr>
+        `).join('')}</tbody>
+      </table>
+    `;
+  } catch (e) {
+    area.innerHTML = '<div style="color:var(--text-muted);font-size:0.85em;padding:12px">加载失败</div>';
+  }
+}
+
+// ==================== CSV Download ====================
+function downloadWrongWords() {
+  const timeSec = Math.round((gameEndTime - gameStartTime) / 1000);
+
+  let csv = '\uFEFF序号,中文,正确答案,你的答案\n';
+  if (wrongWordsLog.length === 0) {
+    csv += '无错题,恭喜全对!,,';
+  } else {
+    wrongWordsLog.forEach((w, i) => {
+      csv += `${i + 1},${w.cn},${w.correctEn},${w.userAnswer}\n`;
+    });
+  }
+  csv += `\n名字,${playerName}\n`;
+  csv += `老师,${selectedTeacher}\n`;
+  csv += `版本,${selectedEdition.name}\n`;
+  csv += `模式,${gameMode === 'spell' ? '拼写' : '连连看'}\n`;
+  csv += `用时,${formatTime(timeSec)}\n`;
+  csv += `错误数,${totalWrong}/${totalRounds * questionsPerRound}\n`;
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `错题_${playerName}_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function restartGame() {
+  stopBgMusic();
+  showScreen('screenName');
+  document.getElementById('playerName').value = '';
+  selectedEdition = null;
+  gameMode = '';
+  playCount = 0;
+}
+</script>
+</body>
+</html>
