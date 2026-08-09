@@ -177,6 +177,11 @@
       const originalText = btn.textContent;
       btn.textContent = '正在生成PDF...';
       btn.disabled = true;
+      // 同步打开新窗口（避免异步回调被浏览器拦截弹窗）
+      const newWin = window.open('', '_blank');
+      if (newWin) {
+        newWin.document.write('<html><head><title>生成中...</title></head><body style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;font-size:18px;color:#666;"><p>正在生成PDF，请稍候...</p></body></html>');
+      }
       const target = document.querySelector('.mp-content');
       html2canvas(target, {
         scale: 2,
@@ -187,32 +192,40 @@
         const imgData = canvas.toDataURL('image/png');
         const imgW = canvas.width;
         const imgH = canvas.height;
-        // A4 纸尺寸（mm），纵向
         const pdfW = 210;
         const pdfH = 297;
-        // 按宽度适配，计算等比高度
         const ratio = imgH / imgW;
-        const renderW = pdfW - 20; // 左右各留 10mm 边距
+        const renderW = pdfW - 20;
         const renderH = renderW * ratio;
         let heightLeft = renderH;
-        let position = 10; // 顶部边距 10mm
+        let position = 10;
         const pdf = new jsPDF('p', 'mm', 'a4');
         pdf.addImage(imgData, 'PNG', 10, position, renderW, renderH);
         heightLeft -= (pdfH - 20);
-        // 自动分页
         while (heightLeft > 0) {
           position = heightLeft - renderH + 10;
           pdf.addPage();
           pdf.addImage(imgData, 'PNG', 10, position, renderW, renderH);
           heightLeft -= (pdfH - 20);
         }
-        const fileName = `专属报告_${rec.name}_${new Date().toISOString().slice(0, 10)}.pdf`;
         const blob = pdf.output('blob');
         const url = URL.createObjectURL(blob);
-        // 在新标签页打开PDF，浏览器内置阅读器可直接查看/保存/打印
-        window.open(url, '_blank');
-        setTimeout(() => URL.revokeObjectURL(url), 30000);
-        Common.toast('PDF已保存，可转发至微信', 'success');
+        if (newWin) {
+          newWin.location.href = url;
+          setTimeout(() => URL.revokeObjectURL(url), 60000);
+        } else {
+          // 弹窗被拦截，回退到直接下载
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `专属报告_${rec.name}_${new Date().toISOString().slice(0, 10)}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          Common.toast('弹窗被拦截，已直接下载文件', 'warning');
+          return;
+        }
+        Common.toast('PDF已在新标签页打开', 'success');
       }).catch(err => {
         console.error('PDF generate error:', err);
         Common.toast('保存失败，请截图保存', 'error');
