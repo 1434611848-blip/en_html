@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>暑假综合检测试卷 · 智能批改</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="mp-shell">
+    <header class="mp-header">
+      <div class="placeholder"></div>
+      <div class="title">智能试卷批改</div>
+      <button class="back-btn" id="qrBtn" title="显示二维码">⌨</button>
+    </header>
+
+    <main class="mp-content">
+      <section class="hero">
+        <div class="logo">📘</div>
+        <h1>七年级英语暑假综合检测</h1>
+        <p>智能批改 · 个性化诊断 · 薄弱点分析</p>
+        <p class="muted" style="color:rgba(255,255,255,.85);">满分 80 分 · 共 50 题 · 5 大题型</p>
+      </section>
+
+      <section class="card">
+        <h3>试卷结构</h3>
+        <ul style="margin:6px 0 0 0;padding-left:18px;font-size:13.5px;color:#444;">
+          <li>一、单项选择 · 20 题 × 1 分 = 20 分</li>
+          <li>二、完形填空 · 10 题 × 2 分 = 20 分</li>
+          <li>三、阅读理解 · 5 题 × 3 分 = 15 分</li>
+          <li>四、任务型阅读 · 5 空 × 1 分 = 5 分</li>
+          <li>五、语法填空 · 10 题 × 2 分 = 20 分</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h3>学生入口</h3>
+        <a class="entry-btn student" href="student.html" style="display:block;text-decoration:none;">
+          <div class="icon">🎓</div>
+          <h4>开始答题</h4>
+          <p>填写姓名 · 手动录入 · 生成专属报告</p>
+        </a>
+      </section>
+
+      <section class="card">
+        <h3>使用说明</h3>
+        <ol style="margin:0;padding-left:18px;font-size:13px;color:#555;line-height:1.85;">
+          <li>填写姓名和所属老师（亚飞老师 / 亚楠老师）。</li>
+          <li>手动逐题录入答案，提交后即时生成专属报告。</li>
+          <li>报告含错题诊断、薄弱点总结和个性化提升建议。</li>
+          <li>本页面为学生答题入口，请按页面提示完成答题。</li>
+        </ol>
+      </section>
+    </main>
+  </div>
+
+  <!-- 二维码模态 -->
+  <div id="qrModal" class="modal-mask" style="display:none;">
+    <div class="modal qr-modal">
+      <h3 class="text-center">📱 扫码访问</h3>
+      <p class="muted text-center" style="font-size:13px;">手机微信扫一扫即可访问 · 也可在电脑浏览器扫码调试</p>
+      <img class="qr-img" id="qrImg" alt="二维码">
+      <p class="muted text-center" id="qrUrl" style="font-size:12px;word-break:break-all;"></p>
+      <div class="actions">
+        <button class="btn-secondary" onclick="document.getElementById('qrModal').style.display='none'">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/lib/qrcode.min.js"></script>
+  <script src="js/common.js"></script>
+  <script>
+    Common.injectGlobalStyle();
+    // 显示二维码（指向当前页面）— 本地生成，零网络依赖
+    document.getElementById('qrBtn').addEventListener('click', () => {
+      const url = location.href.split('#')[0];
+      document.getElementById('qrUrl').textContent = url;
+      const img = document.getElementById('qrImg');
+      // 本地生成二维码
+      var qr = qrcode(0, 'M');
+      qr.addData(url);
+      qr.make();
+      img.src = qr.createDataURL(6, 2);
+      document.getElementById('qrModal').style.display = 'flex';
+    });
+    // 点击遮罩关闭
+    document.getElementById('qrModal').addEventListener('click', e => {
+      if (e.target.id === 'qrModal') e.target.style.display = 'none';
+    });
+  </script>
+</body>
+</html>
