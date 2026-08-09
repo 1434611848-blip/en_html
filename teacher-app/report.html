@@ -182,6 +182,11 @@
       }
       btn.textContent = '正在生成图片...';
       btn.disabled = true;
+      // 同步打开新窗口，避免异步回调被拦截
+      const newWin = window.open('', '_blank');
+      if (newWin) {
+        newWin.document.write('<html><head><title>生成中...</title></head><body style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;font-size:18px;color:#666;"><p>正在生成图片，请稍候...</p></body></html>');
+      }
       const target = document.querySelector('.mp-content');
       html2canvas(target, {
         scale: 2,
@@ -189,15 +194,24 @@
         useCORS: true
       }).then(canvas => {
         const dataUrl = canvas.toDataURL('image/png');
-        const a = document.createElement('a');
-        a.href = dataUrl;
-        a.download = `专属报告_${rec.name}_${new Date().toISOString().slice(0, 10)}.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        Common.toast('图片已保存，可转发至微信', 'success');
+        const fileName = `专属报告_${rec.name}_${new Date().toISOString().slice(0, 10)}.png`;
+        if (newWin) {
+          // 新标签页打开图片，长按可保存
+          newWin.location.href = dataUrl;
+          Common.toast('图片已打开，长按可保存', 'success');
+        } else {
+          // 弹窗被拦截，直接下载
+          const a = document.createElement('a');
+          a.href = dataUrl;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          Common.toast('图片已下载', 'success');
+        }
       }).catch(err => {
         console.error('image generate error:', err);
+        if (newWin) newWin.close();
         Common.toast('保存失败：' + (err.message || err), 'error');
       }).finally(() => {
         btn.textContent = originalText;
