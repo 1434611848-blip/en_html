@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>教师工作台 - 个性化反馈方案书</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; background: #f5f5f5; color: #333; min-height: 100vh; }
+
+/* Header */
+.header { background: #07c160; color: #fff; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(7,193,96,0.3); }
+.header h1 { font-size: 20px; font-weight: 600; }
+.header-right { display: flex; align-items: center; gap: 10px; }
+.teacher-select { padding: 6px 12px; border: 1px solid rgba(255,255,255,0.4); border-radius: 6px; background: rgba(255,255,255,0.15); color: #fff; font-size: 14px; cursor: pointer; outline: none; }
+.teacher-select option { color: #333; background: #fff; }
+.btn-refresh { padding: 6px 14px; border: 1px solid rgba(255,255,255,0.4); border-radius: 6px; background: rgba(255,255,255,0.15); color: #fff; font-size: 13px; cursor: pointer; transition: background 0.2s; }
+.btn-refresh:hover { background: rgba(255,255,255,0.25); }
+
+/* Container */
+.container { max-width: 900px; margin: 0 auto; padding: 20px; }
+
+/* Overview Cards */
+.overview { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.overview-card { background: #fff; border-radius: 12px; padding: 18px 14px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.overview-card .label { font-size: 13px; color: #999; margin-bottom: 6px; }
+.overview-card .value { font-size: 28px; font-weight: 700; color: #07c160; }
+.overview-card .sub { font-size: 12px; color: #aaa; margin-top: 2px; }
+
+/* Student List */
+.section-title { font-size: 17px; font-weight: 600; margin-bottom: 12px; color: #333; }
+.student-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.student-card { background: #fff; border-radius: 12px; padding: 14px 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); cursor: pointer; transition: box-shadow 0.2s; }
+.student-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+.student-card.active { border: 2px solid #07c160; }
+.student-header { display: flex; align-items: center; justify-content: space-between; }
+.student-name { font-size: 16px; font-weight: 600; color: #333; }
+.student-meta { display: flex; gap: 16px; font-size: 13px; color: #666; }
+.student-meta span { display: flex; align-items: center; gap: 4px; }
+.score-highlight { color: #07c160; font-weight: 700; font-size: 15px; }
+.rate-highlight { color: #07c160; font-weight: 600; }
+.expand-hint { font-size: 12px; color: #aaa; margin-top: 4px; text-align: right; }
+
+/* Empty state */
+.empty-state { text-align: center; padding: 40px 20px; color: #999; }
+.empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; line-height: 1.6; }
+
+/* Error state */
+.error-state { text-align: center; padding: 40px 20px; color: #e74c3c; }
+.error-state p { font-size: 14px; }
+
+/* Report Section */
+.report-wrapper { margin-top: 16px; padding: 20px; background: #f0faf4; border-radius: 12px; }
+.save-btn-row { text-align: right; margin-bottom: 12px; }
+.btn-save { padding: 8px 20px; border: none; border-radius: 8px; background: #07c160; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+.btn-save:hover { background: #06ad56; }
+.btn-save:disabled { background: #a0d9b8; cursor: not-allowed; }
+
+#report-content { background: #fff; color: #000; padding: 32px 28px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); font-size: 14px; line-height: 1.8; max-width: 800px; margin: 0 auto; }
+#report-content .report-title { text-align: center; font-size: 22px; font-weight: 700; color: #07c160; margin-bottom: 6px; }
+#report-content .report-meta { text-align: center; font-size: 13px; color: #666; margin-bottom: 20px; border-bottom: 1px dashed #ddd; padding-bottom: 14px; }
+#report-content .section { margin-bottom: 18px; }
+#report-content .section h3 { font-size: 16px; font-weight: 700; color: #07c160; border-left: 4px solid #07c160; padding-left: 10px; margin-bottom: 10px; }
+#report-content .overview-row { display: flex; gap: 16px; flex-wrap: wrap; }
+#report-content .overview-item { background: #f9fdf9; border: 1px solid #e0f0e4; border-radius: 8px; padding: 10px 16px; text-align: center; min-width: 90px; }
+#report-content .overview-item .val { font-size: 22px; font-weight: 700; color: #07c160; }
+#report-content .overview-item .lbl { font-size: 12px; color: #999; }
+#report-content table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+#report-content table th, #report-content table td { border: 1px solid #e0e0e0; padding: 8px 10px; text-align: center; }
+#report-content table th { background: #f0faf4; color: #07c160; font-weight: 600; }
+#report-content .wrong-item { background: #fff9f0; border: 1px solid #f0e6d0; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+#report-content .wrong-item .q-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-weight: 600; color: #e67e22; }
+#report-content .wrong-item .q-detail { font-size: 13px; color: #555; line-height: 1.7; }
+#report-content .wrong-item .q-detail span { display: inline-block; margin-right: 16px; }
+#report-content .knowledge-group { margin-bottom: 12px; }
+#report-content .knowledge-group .kp-title { font-weight: 700; color: #07c160; margin-bottom: 4px; }
+#report-content .knowledge-group .kp-suggest { font-size: 13px; color: #555; background: #f9fdf9; border-left: 3px solid #07c160; padding: 8px 10px; border-radius: 0 6px 6px 0; }
+#report-content .divider { border: none; border-top: 1px dashed #ddd; margin: 16px 0; }
+
+/* Loading */
+.loading { text-align: center; padding: 30px; color: #999; font-size: 14px; }
+
+/* Responsive */
+@media (max-width: 600px) {
+  .overview { grid-template-columns: repeat(2, 1fr); }
+  .header h1 { font-size: 17px; }
+  .student-meta { flex-wrap: wrap; gap: 8px; }
+  #report-content { padding: 20px 16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>教师工作台</h1>
+  <div class="header-right">
+    <select class="teacher-select" id="teacherSelect">
+      <option value="亚飞老师">亚飞老师</option>
+      <option value="亚楠老师">亚楠老师</option>
+    </select>
+    <button class="btn-refresh" onclick="loadData()">刷新</button>
+  </div>
+</div>
+
+<div class="container">
+  <!-- 数据概览 -->
+  <div class="overview" id="overview">
+    <div class="overview-card"><div class="label">已提交学生</div><div class="value" id="ov-count">0</div><div class="sub">人</div></div>
+    <div class="overview-card"><div class="label">平均分</div><div class="value" id="ov-avg">0</div><div class="sub">分</div></div>
+    <div class="overview-card"><div class="label">最高分</div><div class="value" id="ov-max">0</div><div class="sub">分</div></div>
+    <div class="overview-card"><div class="label">及格率</div><div class="value" id="ov-pass">0%</div><div class="sub">≥60分</div></div>
+  </div>
+
+  <!-- 学生列表 -->
+  <div class="section-title">学生提交记录</div>
+  <div id="studentList" class="student-list"></div>
+
+  <!-- 反馈方案书 -->
+  <div id="reportArea"></div>
+</div>
+
+<script>
+// ---------- 知识点映射 ----------
+const KNOWLEDGE_MAP = {
+  '名词复数规则变化': '第2讲/第3讲',
+  '不规则名词复数': '第3讲',
+  '不可数名词': '第3讲',
+  '量词': '第3讲',
+  '名词所有格': '第5讲',
+  '人称代词': '第4讲',
+  '物主代词': '第4讲',
+  '一般现在时': '第9讲',
+  '冠词': '第7讲',
+  '方位介词': '第6讲',
+  '时间介词': '第6讲',
+  '五大基本句型': '第1讲',
+  '句子结构': '第1讲',
+  '固定搭配': '第9讲',
+  '疑问词+to do': '第3讲',
+  '阅读理解技巧': '第1/4/8讲',
+  '完形填空技巧': '第2/6/9讲',
+  '写作技能': '第8/10讲',
+  '名词词义辨析': '第5讲',
+  '主谓一致': '第5讲'
+};
+const DEFAULT_LECTURE = '第1讲';
+
+function getLecture(knowledge) {
+  if (!knowledge) return DEFAULT_LECTURE;
+  for (const [key, val] of Object.entries(KNOWLEDGE_MAP)) {
+    if (knowledge.includes(key)) return val;
+  }
+  return DEFAULT_LECTURE;
+}
+
+// ---------- Supabase ----------
+const SUPABASE_URL = 'https://xwnvsydndaclamzcfrpl.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_PATbkfSdIrjUug0C7qqnsg__fGlTOLZ';
+
+let supabase = null;
+let supabaseAvailable = false;
+
+function initSupabase() {
+  try {
+    if (typeof supabasejs === 'undefined') {
+      supabaseAvailable = false;
+      return;
+    }
+    supabase = supabasejs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    supabaseAvailable = true;
+  } catch (e) {
+    supabaseAvailable = false;
+  }
+}
+
+// ---------- 数据加载 ----------
+const teacherSelect = document.getElementById('teacherSelect');
+let currentTeacher = '亚飞老师';
+let allRecords = [];
+let expandedStudentId = null;
+
+teacherSelect.addEventListener('change', function() {
+  currentTeacher = this.value;
+  expandedStudentId = null;
+  loadData();
+});
+
+async function loadData() {
+  if (!supabaseAvailable) {
+    initSupabase();
+    if (!supabaseAvailable) {
+      showError('网络异常，无法连接云端数据库，请检查网络后刷新');
+      return;
+    }
+  }
+
+  const studentList = document.getElementById('studentList');
+  const reportArea = document.getElementById('reportArea');
+  studentList.innerHTML = '<div class="loading">加载中...</div>';
+  reportArea.innerHTML = '';
+
+  try {
+    const { data, error } = await supabase
+      .from('exam_records')
+      .select('*')
+      .eq('teacher', currentTeacher)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    allRecords = data || [];
+    renderOverview(allRecords);
+    renderStudentList(allRecords);
+    expandedStudentId = null;
+  } catch (e) {
+    console.error('Supabase error:', e);
+    showError('网络异常，无法连接云端数据库，请检查网络后刷新');
+  }
+}
+
+function showError(msg) {
+  document.getElementById('studentList').innerHTML = '<div class="error-state"><p>' + msg + '</p></div>';
+  document.getElementById('reportArea').innerHTML = '';
+  document.getElementById('ov-count').textContent = '0';
+  document.getElementById('ov-avg').textContent = '0';
+  document.getElementById('ov-max').textContent = '0';
+  document.getElementById('ov-pass').textContent = '0%';
+}
+
+// ---------- 概览 ----------
+function renderOverview(records) {
+  const count = records.length;
+  document.getElementById('ov-count').textContent = count;
+
+  if (count === 0) {
+    document.getElementById('ov-avg').textContent = '0';
+    document.getElementById('ov-max').textContent = '0';
+    document.getElementById('ov-pass').textContent = '0%';
+    return;
+  }
+
+  const scores = records.map(r => r.total_score || 0);
+  const avg = (scores.reduce((a, b) => a + b, 0) / count).toFixed(1);
+  const max = Math.max(...scores);
+  const passCount = scores.filter(s => s >= 60).length;
+  const passRate = ((passCount / count) * 100).toFixed(0);
+
+  document.getElementById('ov-avg').textContent = avg;
+  document.getElementById('ov-max').textContent = max;
+  document.getElementById('ov-pass').textContent = passRate + '%';
+}
+
+// ---------- 学生列表 ----------
+function renderStudentList(records) {
+  const container = document.getElementById('studentList');
+  if (records.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>暂无学生提交记录<br>等待学生扫码提交后刷新</p></div>';
+    return;
+  }
+
+  container.innerHTML = records.map((r, idx) => {
+    const id = r.id || idx;
+    const name = r.student_name || '未知学生';
+    const score = r.total_score != null ? r.total_score : 0;
+    const total = r.total_questions || 0;
+    const correct = r.correct_count != null ? r.correct_count : 0;
+    const rate = total > 0 ? ((correct / total) * 100).toFixed(0) : 0;
+    const time = r.created_at ? new Date(r.created_at).toLocaleString('zh-CN') : '未知';
+    const activeClass = (expandedStudentId === id) ? ' active' : '';
+
+    return `
+      <div class="student-card${activeClass}" data-id="${id}" onclick="toggleReport(${id}, this)" id="card-${id}">
+        <div class="student-header">
+          <span class="student-name">${escapeHtml(name)}</span>
+          <div class="student-meta">
+            <span>得分：<span class="score-highlight">${score}</span></span>
+            <span>正确率：<span class="rate-highlight">${rate}%</span></span>
+            <span>${time}</span>
+          </div>
+        </div>
+        <div class="expand-hint">点击展开反馈方案书</div>
+      </div>`;
+  }).join('');
+}
+
+// ---------- 切换反馈方案书 ----------
+function toggleReport(id, el) {
+  const reportArea = document.getElementById('reportArea');
+
+  if (expandedStudentId === id) {
+    // 折叠
+    expandedStudentId = null;
+    reportArea.innerHTML = '';
+    document.querySelectorAll('.student-card').forEach(c => c.classList.remove('active'));
+    return;
+  }
+
+  expandedStudentId = id;
+  document.querySelectorAll('.student-card').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+
+  const record = allRecords.find(r => (r.id || allRecords.indexOf(r)) === id);
+  if (!record) return;
+
+  reportArea.innerHTML = buildReportHTML(record);
+}
+
+function buildReportHTML(record) {
+  const id = record.id;
+  const name = escapeHtml(record.student_name || '未知学生');
+  const teacher = escapeHtml(record.teacher || currentTeacher);
+  const now = new Date().toLocaleString('zh-CN');
+  const score = record.total_score != null ? record.total_score : 0;
+  const totalQ = record.total_questions || 0;
+  const correct = record.correct_count != null ? record.correct_count : 0;
+  const wrong = totalQ - correct;
+  const rate = totalQ > 0 ? ((correct / totalQ) * 100).toFixed(1) : '0.0';
+  const answers = record.answers || {};
+  const wrongDetails = record.wrong_details || [];
+
+  // 成绩总览
+  const overviewHTML = `
+    <div class="section">
+      <h3>成绩总览</h3>
+      <div class="overview-row">
+        <div class="overview-item"><div class="val">${score}</div><div class="lbl">总分</div></div>
+        <div class="overview-item"><div class="val">${correct}</div><div class="lbl">正确题数</div></div>
+        <div class="overview-item"><div class="val">${wrong}</div><div class="lbl">错误题数</div></div>
+        <div class="overview-item"><div class="val">${rate}%</div><div class="lbl">正确率</div></div>
+      </div>
+    </div>`;
+
+  // 各题型得分明细
+  let typeBreakdownHTML = '';
+  const typeStats = record.type_stats || {};
+  const typeKeys = Object.keys(typeStats);
+  if (typeKeys.length > 0) {
+    typeBreakdownHTML = `
+    <div class="section">
+      <h3>各题型得分明细</h3>
+      <table>
+        <thead><tr><th>题型</th><th>正确</th><th>错误</th><th>正确率</th></tr></thead>
+        <tbody>
+          ${typeKeys.map(t => {
+            const s = typeStats[t] || {};
+            const tCorrect = s.correct || 0;
+            const tWrong = s.wrong || 0;
+            const tTotal = tCorrect + tWrong;
+            const tRate = tTotal > 0 ? ((tCorrect / tTotal) * 100).toFixed(0) : '0';
+            return `<tr><td>${escapeHtml(t)}</td><td>${tCorrect}</td><td>${tWrong}</td><td>${tRate}%</td></tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  }
+
+  // 错题剖析
+  let wrongItemsHTML = '';
+  if (wrongDetails.length > 0) {
+    wrongItemsHTML = `
+    <div class="section">
+      <h3>错题知识点剖析归类</h3>
+      ${wrongDetails.map((w, i) => `
+        <div class="wrong-item">
+          <div class="q-header"><span>第${w.question_no || (i+1)}题 · ${escapeHtml(w.type || '未知题型')}</span></div>
+          <div class="q-detail">
+            <span><strong>原题：</strong>${escapeHtml(w.question || '无')}</span><br>
+            <span><strong>学生答案：</strong>${escapeHtml(w.student_answer != null ? w.student_answer : '未作答')}</span>
+            <span><strong>正确答案：</strong>${escapeHtml(w.correct_answer || '无')}</span><br>
+            <span><strong>知识点：</strong>${escapeHtml(w.knowledge || '未标注')}</span><br>
+            <span><strong>诊断：</strong>${escapeHtml(w.diagnosis || '建议加强该知识点练习')}</span>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+  }
+
+  // 针对性提升方案
+  let planHTML = '';
+  if (wrongDetails.length > 0) {
+    // 按知识点分组
+    const knowledgeGroups = {};
+    wrongDetails.forEach(w => {
+      const kp = w.knowledge || '未分类';
+      if (!knowledgeGroups[kp]) knowledgeGroups[kp] = [];
+      knowledgeGroups[kp].push(w);
+    });
+
+    planHTML = `
+    <div class="section">
+      <h3>针对性提升方案</h3>
+      ${Object.entries(knowledgeGroups).map(([kp, items]) => {
+        const lecture = getLecture(kp);
+        const questionNos = items.map(w => '第' + (w.question_no || '?') + '题').join('、');
+        return `
+        <div class="knowledge-group">
+          <div class="kp-title">「${escapeHtml(kp)}」(${items.length}题：${questionNos})</div>
+          <div class="kp-suggest">建议回看 ${lecture} 讲义与回放，重点复习「${escapeHtml(kp)}」相关内容，针对错题进行专项练习。</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  } else {
+    planHTML = `
+    <div class="section">
+      <h3>针对性提升方案</h3>
+      <p style="color:#666;font-size:13px;">暂无错题，学生掌握情况良好，建议继续保持并适当拓展学习。</p>
+    </div>`;
+  }
+
+  return `
+  <div class="report-wrapper">
+    <div class="save-btn-row">
+      <button class="btn-save" id="btnSaveImg" onclick="saveReportAsImage()">保存方案书为图片</button>
+    </div>
+    <div id="report-content">
+      <div class="report-title">个性化反馈方案书</div>
+      <div class="report-meta">
+        学生：${name} &nbsp;|&nbsp; 教师：${teacher} &nbsp;|&nbsp; 时间：${now}
+      </div>
+      ${overviewHTML}
+      ${typeBreakdownHTML}
+      ${wrongItemsHTML}
+      <hr class="divider">
+      ${planHTML}
+    </div>
+  </div>`;
+}
+
+// ---------- 保存为图片 ----------
+async function saveReportAsImage() {
+  const btn = document.getElementById('btnSaveImg');
+  const reportEl = document.getElementById('report-content');
+  if (!reportEl) return;
+
+  btn.disabled = true;
+  btn.textContent = '生成中...';
+
+  try {
+    if (typeof html2canvas === 'undefined') {
+      alert('html2canvas 未加载，请检查网络连接');
+      btn.disabled = false;
+      btn.textContent = '保存方案书为图片';
+      return;
+    }
+
+    const canvas = await html2canvas(reportEl, {
+      scale: 2,
+      backgroundColor: '#ffffff',
+      logging: false
+    });
+
+    // 触发下载
+    const link = document.createElement('a');
+    link.download = '个性化反馈方案书_' + (allRecords.find(r => r.id === expandedStudentId)?.student_name || '学生') + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+
+    btn.textContent = '已保存';
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.textContent = '保存方案书为图片';
+    }, 1500);
+  } catch (e) {
+    console.error('html2canvas error:', e);
+    alert('保存失败，请重试');
+    btn.disabled = false;
+    btn.textContent = '保存方案书为图片';
+  }
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ---------- 启动 ----------
+initSupabase();
+loadData();
+</script>
+
+</body>
+</html>
