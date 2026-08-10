@@ -202,11 +202,11 @@
     </main>
   </div>
 
-  <script src="js/common.js?v=20260810j"></script>
-  <script src="js/storage.js?v=20260810j"></script>
-  <script src="js/supabase.js?v=20260810j"></script>
-  <script src="js/data.js?v=20260810j"></script>
-  <script src="js/analyzer.js?v=20260810j"></script>
+  <script src="js/common.js?v=20260810k"></script>
+  <script src="js/storage.js?v=20260810k"></script>
+  <script src="js/supabase.js?v=20260810k"></script>
+  <script src="js/data.js?v=20260810k"></script>
+  <script src="js/analyzer.js?v=20260810k"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
     Common.injectGlobalStyle();
@@ -426,7 +426,7 @@
 
       // 使用 analyzer.js 已经算好的薄弱知识点（已按错误数量倒序）
       // 过滤出错题数量 ≥ 3 的严重薄弱点
-      var seriousGroups = (a.weakPoints || []).filter(function(wp) { return wp.wrongCount >= 3; }).map(function(wp) {
+      var seriousGroups = (a.weakPoints || []).filter(function(wp) { return wp.wrongCount >= 3; }).filter(function(wp) { return wp.name.indexOf('语法填空综合') < 0; }).map(function(wp) {
         return { key: wp.name, info: EXAM_DATA.matchLecture(wp.name), wrongCount: wp.wrongCount };
       });
 
