@@ -570,7 +570,7 @@ window.EXAM_DATA = {
       weakness: '你还没完全掌握英语简单句的五种基本结构（S+V, S+V+O, S+V+P, S+V+IO+DO, S+V+O+OC）。',
       advice: '① 主谓宾：He plays football；② 主谓表：She is a teacher；③ 主谓宾宾：He gives me a book；④ 主谓宾补：We call him Tom；⑤ 牢记"谓语后承受者是宾语，描述性质是表语"。'
     },
-    '冠词 some / a lot of / many / much': {
+    '量词（some/a lot of/many/much）': {
       related: {
         choice: [16],
         cloze: [3]
@@ -667,6 +667,12 @@ window.EXAM_DATA = {
       lectures: ['第6节 方位介词'],
       type: 'basic',
       solution: '基础知识不扎实。介词用法建议回看【第6节 方位介词】课程回放，掌握时间介词口诀（年月季in/星期天on/时刻at）和方位介词辨析（between两者/among三者以上/near附近/on表面/in内部）。',
+    },
+    '动词搭配': {
+      lectures: ['第1节 语法概览', '第4节 人称和物主代词'],
+      type: 'basic',
+      solution: '基础知识不扎实。动词搭配需区分 +doing 和 +to do，以及双宾语动词 sb. 用宾格。建议回看【第1节 语法概览】复习 enjoy/finish/mind/practise+doing 和 decide/hope/want/plan+to do，再回看【第4节 人称和物主代词】复习 show/teach/give sb. sth. 中 sb. 用宾格。',
+      extraPractice: '找辅导老师领取"动词搭配口诀卡"'
     },
     'enjoy': {
       lectures: ['第1节 语法概览'],
