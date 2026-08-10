@@ -202,11 +202,11 @@
     </main>
   </div>
 
-  <script src="js/common.js?v=20260810i"></script>
-  <script src="js/storage.js?v=20260810i"></script>
-  <script src="js/supabase.js?v=20260810i"></script>
-  <script src="js/data.js?v=20260810i"></script>
-  <script src="js/analyzer.js?v=20260810i"></script>
+  <script src="js/common.js?v=20260810j"></script>
+  <script src="js/storage.js?v=20260810j"></script>
+  <script src="js/supabase.js?v=20260810j"></script>
+  <script src="js/data.js?v=20260810j"></script>
+  <script src="js/analyzer.js?v=20260810j"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
     Common.injectGlobalStyle();
@@ -466,11 +466,12 @@
       } else {
         seriousGroups.forEach(function(g) {
           var textbook = textbookFromLectures(g.info.lectures);
+          var isReading = /阅读/.test(g.key);
           html += '<div class="advice-card kp-group">';
           html += '<div class="advice-title">' + Common.escapeHtml(g.key) + ' <span class="kp-type ' + g.info.type + '">' + typeLabel(g.info.type) + '</span></div>';
           html += '<div class="advice-item">';
           html += '看' + g.info.lectures.join('、') + '回放巩固"' + Common.escapeHtml(g.key) + '"，';
-          html += '看完再做' + Common.escapeHtml(textbook) + '。';
+          html += isReading ? '完成暑假课本对应阅读题目练习。' : '看完再做' + Common.escapeHtml(textbook) + '。';
           html += '</div>';
           html += '</div>';
         });
