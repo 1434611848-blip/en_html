@@ -55,9 +55,9 @@
     </main>
   </div>
 
-  <script src="js/common.js"></script>
-  <script src="js/storage.js"></script>
-  <script src="js/supabase.js"></script>
+  <script src="js/common.js?v=20260811a"></script>
+  <script src="js/storage.js?v=20260811a"></script>
+  <script src="js/supabase.js?v=20260811a"></script>
   <script>
     Common.injectGlobalStyle();
 
@@ -82,14 +82,6 @@
             + '<span>' + Common.escapeHtml(t.name) + '</span>'
             + '</label>';
         }).join('');
-        // 还原上次草稿选中的教师
-        try {
-          var draft = Storage.loadDraft();
-          if (draft && draft.student) {
-            var t = teacherGroup.querySelector('input[value="' + draft.student.teacher + '"]');
-            if (t) { t.checked = true; t.dispatchEvent(new Event('change')); }
-          }
-        } catch(e) { console.warn('draft restore fail', e); }
       }).catch(function(err) {
         teacherGroup.innerHTML = '<p class="muted" style="font-size:13px;color:#a4262c;margin:0;">加载教师列表失败：' + Common.escapeHtml(err.message) + '</p>';
       });
@@ -122,8 +114,7 @@
       try {
         var info = validate();
         if (!info) return;
-        try { Storage.saveDraft({ student: info, mode: 'manual', createdAt: Date.now() }); } catch(e) { console.warn('saveDraft fail', e); }
-        location.href = 'manual.html';
+        location.href = 'manual.html?name=' + encodeURIComponent(info.name) + '&teacher=' + encodeURIComponent(info.teacher);
       } catch (err) {
         console.error('go() error:', err);
         alert('页面发生错误，请截图给老师反馈。\n\n' + (err && err.message || ''));
@@ -133,14 +124,6 @@
     var manualBtn = document.getElementById('goManual');
     manualBtn.addEventListener('click', go);
     manualBtn.addEventListener('touchend', function (e) { e.preventDefault(); go(); });
-
-    // 还原上次草稿（姓名部分；教师选择在 loadTeachers 回调中还原）
-    try {
-      var draft = Storage.loadDraft();
-      if (draft && draft.student) {
-        document.getElementById('nameInput').value = draft.student.name || '';
-      }
-    } catch (e) { console.warn('draft restore fail', e); }
   </script>
 </body>
 </html>

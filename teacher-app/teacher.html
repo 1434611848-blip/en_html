@@ -56,10 +56,10 @@
     </main>
   </div>
 
-  <script src="js/common.js"></script>
-  <script src="js/storage.js"></script>
-  <script src="js/supabase.js"></script>
-  <script src="js/data.js"></script>
+  <script src="js/common.js?v=20260811a"></script>
+  <script src="js/storage.js?v=20260811a"></script>
+  <script src="js/supabase.js?v=20260811a"></script>
+  <script src="js/data.js?v=20260811a"></script>
   <script>
     Common.injectGlobalStyle();
 
@@ -75,8 +75,7 @@
       const err = document.getElementById('loginErr');
       if (!t) { err.textContent = '请选择教师身份'; err.style.display='block'; return; }
       err.style.display = 'none';
-      Storage.setTeacherSession(t.value);
-      location.href = 'teacher-list.html';
+      location.href = 'teacher-list.html?teacher=' + encodeURIComponent(t.value);
     });
 
     // 动态加载教师列表
@@ -116,14 +115,8 @@
         maxScoreEl.textContent = max;
         passRateEl.textContent = pass;
       }).catch(function(err) {
-        console.warn('云端概览加载失败，回退本机数据：', err);
-        var records = Storage.loadRecords();
-        recCountEl.textContent = records.length;
-        if (!records.length) return;
-        var scores = records.map(function(r) { return r.analysis.totals.score; });
-        avgScoreEl.textContent = (scores.reduce(function(a,b){return a+b;},0) / scores.length).toFixed(1);
-        maxScoreEl.textContent = Math.max.apply(null, scores);
-        passRateEl.textContent = (scores.filter(function(s){return s >= 60;}).length / scores.length * 100).toFixed(0);
+        console.warn('云端概览加载失败：', err);
+        recCountEl.textContent = '—';
       });
     })();
   </script>

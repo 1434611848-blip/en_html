@@ -128,6 +128,23 @@ window.CloudBox = (function () {
     });
   }
 
+  // 按 ID 加载完整记录（供 report.html 使用）
+  function fetchRecordById(id) {
+    var path = '/submissions?select=id,score,full_score,accuracy,submitted_at,raw_answers,analysis_json,teachers!inner(teacher_name),students!inner(student_name)&id=eq.' + encodeURIComponent(id) + '&limit=1';
+    return request(path).then(function (rows) {
+      if (!rows || !rows.length) throw new Error('记录不存在');
+      var row = rows[0];
+      return {
+        id: row.id,
+        name: row.students && row.students.student_name || '',
+        teacher: row.teachers && row.teachers.teacher_name || '',
+        submittedAt: row.submitted_at,
+        answers: row.raw_answers || {},
+        analysis: row.analysis_json || {}
+      };
+    });
+  }
+
   function deleteRecord(id) {
     // 软删除：标记 status='deleted'，查询端用 status=neq.deleted 过滤
     return request('/submissions?id=eq.' + encodeURIComponent(id), {
@@ -142,5 +159,5 @@ window.CloudBox = (function () {
     });
   }
 
-  return { uploadRecord: uploadRecord, fetchTeacherRecords: fetchTeacherRecords, fetchRecordDetail: fetchRecordDetail, fetchTeachers: fetchTeachers, deleteRecord: deleteRecord };
+  return { uploadRecord: uploadRecord, fetchTeacherRecords: fetchTeacherRecords, fetchRecordDetail: fetchRecordDetail, fetchRecordById: fetchRecordById, fetchTeachers: fetchTeachers, deleteRecord: deleteRecord };
 })();

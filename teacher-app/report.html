@@ -69,19 +69,25 @@
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="js/common.js"></script>
-  <script src="js/storage.js"></script>
-  <script src="js/data.js"></script>
-  <script src="js/analyzer.js"></script>
+  <script src="js/common.js?v=20260811a"></script>
+  <script src="js/storage.js?v=20260811a"></script>
+  <script src="js/supabase.js?v=20260811a"></script>
+  <script src="js/data.js?v=20260811a"></script>
+  <script src="js/analyzer.js?v=20260811a"></script>
   <script>
     Common.injectGlobalStyle();
-    const id = Common.qs('id');
-    const records = Storage.loadRecords();
-    const rec = records.find(r => r.id === id);
-    if (!rec) {
-      document.querySelector('.mp-content').innerHTML = '<div class="empty">未找到报告记录</div>';
-      throw new Error('no record');
+    const recordId = Common.qs('id');
+    if (!recordId) {
+      document.querySelector('.mp-content').innerHTML = '<div class="empty">缺少记录ID</div>';
+      throw new Error('no id');
     }
+
+    // 显示加载中
+    document.querySelector('.mp-content').insertAdjacentHTML('afterbegin', '<div id="loadingMask" style="text-align:center;padding:40px;color:#576b95;font-size:15px;">⏳ 正在从数据库加载报告...</div>');
+
+    // 从数据库加载记录
+    CloudBox.fetchRecordById(recordId).then(function(rec) {
+      document.getElementById('loadingMask').remove();
 
     document.getElementById('repName').textContent = `${rec.name} 同学 · ${rec.teacher}`;
     document.getElementById('repScore').textContent = rec.analysis.totals.score;
@@ -274,6 +280,11 @@
         btn.textContent = originalText;
         btn.disabled = false;
       });
+    });
+    }).catch(function(err) {
+      var mask = document.getElementById('loadingMask');
+      if (mask) mask.remove();
+      document.querySelector('.mp-content').innerHTML = '<div class="empty" style="padding:40px;text-align:center;color:#a4262c;">加载报告失败：' + Common.escapeHtml(err.message || '未知错误') + '</div>';
     });
   </script>
 </body>
