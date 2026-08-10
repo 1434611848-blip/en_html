@@ -202,11 +202,11 @@
     </main>
   </div>
 
-  <script src="js/common.js?v=20260810c"></script>
-  <script src="js/storage.js?v=20260810c"></script>
-  <script src="js/supabase.js?v=20260810c"></script>
-  <script src="js/data.js?v=20260810c"></script>
-  <script src="js/analyzer.js?v=20260810c"></script>
+  <script src="js/common.js?v=20260810d"></script>
+  <script src="js/storage.js?v=20260810d"></script>
+  <script src="js/supabase.js?v=20260810d"></script>
+  <script src="js/data.js?v=20260810d"></script>
+  <script src="js/analyzer.js?v=20260810d"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
     Common.injectGlobalStyle();
@@ -263,7 +263,8 @@
     }
     function loadCloudRecords() {
       CloudBox.fetchTeacherRecords(currentTeacher).then(function (rows) {
-        cloudRecords = rows;
+        var deletedIds = Storage.loadDeletedCloudIds();
+        cloudRecords = rows.filter(function(r) { return deletedIds.indexOf(r.id) === -1; });
         cloudReady = true;
         render();
       }).catch(function (err) {
@@ -395,8 +396,12 @@
               render();
               Common.toast('已删除「' + name + '」的记录', 'success');
             }).catch(function(err) {
-              console.error('delete cloud error:', err);
-              Common.toast('删除失败：' + err.message, 'error');
+              console.warn('云端删除失败，使用本地标记兜底:', err);
+              Storage.addDeletedCloudId(id);
+              cloudRecords = cloudRecords.filter(function(r) { return String(r.id) !== String(id); });
+              if (expandedId === id) expandedId = null;
+              render();
+              Common.toast('已删除「' + name + '」的记录', 'success');
             });
           } else {
             Storage.deleteRecord(id);

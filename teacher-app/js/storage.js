@@ -47,6 +47,18 @@ window.Storage = (function () {
     localStorage.removeItem(KEY_RECORDS);
   }
 
+  // 云端记录的本地删除标记（RLS 无法更新时的兜底方案）
+  const KEY_DELETED_CLOUD = 'exam.deletedCloudIds.v1';
+  function loadDeletedCloudIds() {
+    try {
+      return JSON.parse(localStorage.getItem(KEY_DELETED_CLOUD) || '[]');
+    } catch (e) { return []; }
+  }
+  function addDeletedCloudId(id) {
+    var list = loadDeletedCloudIds();
+    if (list.indexOf(id) === -1) { list.push(id); localStorage.setItem(KEY_DELETED_CLOUD, JSON.stringify(list)); }
+  }
+
   function setTeacherSession(teacher) {
     const s = { teacher, loggedAt: Date.now() };
     sessionStorage.setItem(KEY_TEACHER_SESSION, JSON.stringify(s));
@@ -75,6 +87,7 @@ window.Storage = (function () {
   return {
     loadRecords, saveRecords, addRecord, deleteRecord, clearAll,
     setTeacherSession, getTeacherSession, clearTeacherSession,
-    saveDraft, loadDraft, clearDraft
+    saveDraft, loadDraft, clearDraft,
+    loadDeletedCloudIds, addDeletedCloudId
   };
 })();
