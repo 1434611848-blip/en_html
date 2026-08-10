@@ -425,13 +425,9 @@
           html += '<div class="advice-card kp-group">';
           html += '<div class="advice-title">' + Common.escapeHtml(g.key) + ' <span class="kp-type ' + g.info.type + '">' + typeLabel(g.info.type) + '</span></div>';
           html += '<div class="advice-item">';
-          html += '<b>看回放：</b>' + g.info.lectures.join('、') + '；';
-          html += '<b>做课本：</b>' + Common.escapeHtml(textbook) + '；';
-          if (g.info.extraPractice) {
-            html += '<b>找老师：</b>' + Common.escapeHtml(g.info.extraPractice);
-          } else {
-            html += '<b>找老师：</b>要一份该考点加餐练习';
-          }
+          html += '看' + g.info.lectures.join('、') + '回放巩固"' + Common.escapeHtml(g.key) + '"，';
+          html += '看完再做' + Common.escapeHtml(textbook) + '，';
+          html += '或者找老师要加餐题目练习。';
           html += '</div>';
           html += '</div>';
         });
