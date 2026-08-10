@@ -203,11 +203,11 @@
     </main>
   </div>
 
-  <script src="js/common.js?v=20260811i"></script>
-  <script src="js/storage.js?v=20260811i"></script>
-  <script src="js/supabase.js?v=20260811i"></script>
-  <script src="js/data.js?v=20260811i"></script>
-  <script src="js/analyzer.js?v=20260811i"></script>
+  <script src="js/common.js?v=20260811j"></script>
+  <script src="js/storage.js?v=20260811j"></script>
+  <script src="js/supabase.js?v=20260811j"></script>
+  <script src="js/data.js?v=20260811j"></script>
+  <script src="js/analyzer.js?v=20260811j"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
     Common.injectGlobalStyle();
@@ -309,7 +309,7 @@
         return;
       }
 
-      var recs = getRecords().sort(function(a,b) { return b.analysis.totals.score - a.analysis.totals.score; });
+      var recs = getRecords().sort(function(a,b) { return new Date(b.submittedAt) - new Date(a.submittedAt); });
 
       // 数据来源指示
       if (cloudReady) {
