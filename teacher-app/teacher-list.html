@@ -203,11 +203,11 @@
     </main>
   </div>
 
-  <script src="js/common.js?v=20260810m"></script>
-  <script src="js/storage.js?v=20260810m"></script>
-  <script src="js/supabase.js?v=20260810m"></script>
-  <script src="js/data.js?v=20260810m"></script>
-  <script src="js/analyzer.js?v=20260810m"></script>
+  <script src="js/common.js?v=20260810n"></script>
+  <script src="js/storage.js?v=20260810n"></script>
+  <script src="js/supabase.js?v=20260810n"></script>
+  <script src="js/data.js?v=20260810n"></script>
+  <script src="js/analyzer.js?v=20260810n"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
     Common.injectGlobalStyle();
@@ -376,7 +376,13 @@
         + '</div>';
         // 反馈方案书面板
         html += '<div class="feedback-panel' + (isExpanded ? ' show' : '') + '" id="fp_' + r.id + '">';
-        html += buildFeedbackDoc(r);
+        if (isExpanded && !r._detailLoaded) {
+          html += '<div style="padding:20px;text-align:center;color:#576b95;">⏳ 正在加载详情…</div>';
+        } else if (isExpanded && r._detailLoaded) {
+          html += buildFeedbackDoc(r);
+        } else {
+          html += '<div style="padding:12px;color:#999;font-size:13px;">点击查看学习报告</div>';
+        }
         html += '</div>';
       });
       listEl.innerHTML = html;
@@ -387,11 +393,24 @@
           var id = row.dataset.id;
           if (expandedId === id) {
             expandedId = null;
+            render();
           } else {
             expandedId = id;
-          }
-          render();
-          if (expandedId) {
+            render();
+            // 懒加载详情数据
+            var rec = cloudRecords.find(function(r) { return String(r.id) === String(id); });
+            if (rec && !rec._detailLoaded) {
+              CloudBox.fetchRecordDetail(id).then(function(detail) {
+                rec.answers = detail.answers;
+                rec.analysis = detail.analysis;
+                rec._detailLoaded = true;
+                if (expandedId === id) render();
+              }).catch(function(err) {
+                console.warn('加载详情失败:', err);
+                var fp = document.getElementById('fp_' + id);
+                if (fp) fp.innerHTML = '<div style="padding:20px;text-align:center;color:#a4262c;">加载失败，请重试</div>';
+              });
+            }
             setTimeout(function() {
               var el = document.getElementById('fp_' + expandedId);
               if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });

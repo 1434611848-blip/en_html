@@ -92,21 +92,39 @@ window.CloudBox = (function () {
     });
   }
 
+  // 列表摘要查询：只取小字段，约 4KB，秒开
   function fetchTeacherRecords(teacherName) {
     var filter = teacherName && teacherName !== '__all' ? '&teachers.teacher_name=eq.' + encodeURIComponent(teacherName) : '';
-    var path = '/submissions?select=*,teachers!inner(teacher_name),students!inner(student_name)&status=neq.deleted' + filter + '&order=submitted_at.desc';
+    var path = '/submissions?select=id,score,full_score,accuracy,right_count,wrong_count,blank_count,submitted_at,teachers!inner(teacher_name),students!inner(student_name)&status=neq.deleted' + filter + '&order=submitted_at.desc';
     return request(path).then(function (rows) {
       return rows.map(function (row) {
-        var analysis = row.analysis_json || {};
+        // 用平铺字段构造最小 analysis 对象，供列表渲染
+        var analysis = {
+          totals: { score: row.score || 0, full: row.full_score || 100, rate: row.accuracy || 0 },
+          stats: { right: row.right_count || 0, wrong: row.wrong_count || 0, blank: row.blank_count || 0 }
+        };
         return {
           id: row.id,
           name: row.students && row.students.student_name || '',
           teacher: row.teachers && row.teachers.teacher_name || '',
           submittedAt: row.submitted_at,
-          answers: row.raw_answers || {},
-          analysis: analysis
+          answers: null,       // 详情懒加载
+          analysis: analysis,  // 最小 analysis，列表够用
+          _detailLoaded: false  // 标记详情未加载
         };
       });
+    });
+  }
+
+  // 详情查询：点击展开时才加载单条记录的 raw_answers + analysis_json
+  function fetchRecordDetail(id) {
+    var path = '/submissions?select=id,raw_answers,analysis_json&id=eq.' + encodeURIComponent(id) + '&limit=1';
+    return request(path).then(function (rows) {
+      if (!rows || !rows.length) throw new Error('记录不存在');
+      return {
+        answers: rows[0].raw_answers || {},
+        analysis: rows[0].analysis_json || {}
+      };
     });
   }
 
@@ -131,5 +149,5 @@ window.CloudBox = (function () {
     });
   }
 
-  return { uploadRecord: uploadRecord, fetchTeacherRecords: fetchTeacherRecords, fetchTeachers: fetchTeachers, deleteRecord: deleteRecord };
+  return { uploadRecord: uploadRecord, fetchTeacherRecords: fetchTeacherRecords, fetchRecordDetail: fetchRecordDetail, fetchTeachers: fetchTeachers, deleteRecord: deleteRecord };
 })();
