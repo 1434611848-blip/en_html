@@ -202,11 +202,11 @@
     </main>
   </div>
 
-  <script src="js/common.js?v=20260810e"></script>
-  <script src="js/storage.js?v=20260810e"></script>
-  <script src="js/supabase.js?v=20260810e"></script>
-  <script src="js/data.js?v=20260810e"></script>
-  <script src="js/analyzer.js?v=20260810e"></script>
+  <script src="js/common.js?v=20260810f"></script>
+  <script src="js/storage.js?v=20260810f"></script>
+  <script src="js/supabase.js?v=20260810f"></script>
+  <script src="js/data.js?v=20260810f"></script>
+  <script src="js/analyzer.js?v=20260810f"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
     Common.injectGlobalStyle();
@@ -283,29 +283,14 @@
       });
     }
 
-    // 知识点→讲义映射匹配
-    function matchLectureKey(knowledgeText) {
-      var keys = Object.keys(EXAM_DATA.lectureMap);
-      for (var i = 0; i < keys.length; i++) {
-        if (knowledgeText.indexOf(keys[i]) >= 0) return keys[i];
+    // 确保 analysis 包含 weakPoints（旧记录可能没有，用 analyzer 重新计算）
+    function ensureAnalysis(r) {
+      var a = r.analysis;
+      if (!a) return a;
+      if (!a.weakPoints && r.answers && window.Analyzer && Analyzer.analyze) {
+        try { a = Analyzer.analyze(r.answers); } catch (e) { console.error('re-analyze failed:', e); }
       }
-      return null;
-    }
-
-    // 将错题按讲义知识点分组
-    function groupWrongByLecture(wrongList) {
-      var groups = {};
-      var order = []; // 保持出现顺序
-      wrongList.forEach(function(item) {
-        var key = matchLectureKey(item.knowledge);
-        if (!key) key = '句子结构'; // 默认回退
-        if (!groups[key]) {
-          groups[key] = { key: key, info: EXAM_DATA.lectureMap[key], questions: [] };
-          order.push(key);
-        }
-        groups[key].questions.push(item);
-      });
-      return order.map(function(k) { return groups[k]; });
+      return a;
     }
 
     function typeLabel(type) {
@@ -434,16 +419,15 @@
     }
 
     function buildFeedbackDoc(r) {
-      var a = r.analysis;
-      var wrong = a.wrongList;
-      var groups = groupWrongByLecture(wrong);
+      var a = ensureAnalysis(r);
+      var wrong = a.wrongList || [];
       var rate = a.totals.rate;
 
-      // 按错题数量倒序，丢分多的考点排在前面
-      groups.sort(function(aa, bb) { return bb.questions.length - aa.questions.length; });
-
-      // 只保留错题数量 ≥ 3 的严重薄弱点
-      var seriousGroups = groups.filter(function(g) { return g.questions.length >= 3; });
+      // 使用 analyzer.js 已经算好的薄弱知识点（已按错误数量倒序）
+      // 过滤出错题数量 ≥ 3 的严重薄弱点
+      var seriousGroups = (a.weakPoints || []).filter(function(wp) { return wp.wrongCount >= 3; }).map(function(wp) {
+        return { key: wp.name, info: EXAM_DATA.matchLecture(wp.name), wrongCount: wp.wrongCount };
+      });
 
       var html = '<div class="feedback-doc" id="doc_' + r.id + '">';
       html += '<div class="doc-title">📚 摸底测学习报告</div>';
@@ -464,10 +448,9 @@
         html += '<p style="font-size:13px;color:#666;margin:0 0 10px;">以下为本卷严重薄弱考点（错 3 题及以上）：</p>';
         html += '<ul class="weak-list">';
         seriousGroups.forEach(function(g) {
-          var qNos = g.questions.map(function(q) { return '第' + q.no + '题'; }).join('、');
           html += '<li>';
           html += '<span class="wk-name">' + Common.escapeHtml(g.key) + '</span>';
-          html += '<span class="wk-meta">错 ' + g.questions.length + ' 题（' + qNos + '）</span>';
+          html += '<span class="wk-meta">错 ' + g.wrongCount + ' 题</span>';
           html += '</li>';
         });
         html += '</ul>';
