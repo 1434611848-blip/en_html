@@ -113,8 +113,13 @@ window.CloudBox = (function () {
   function deleteRecord(id) {
     return request('/submissions?id=eq.' + encodeURIComponent(id), {
       method: 'PATCH',
-      headers: { 'Prefer': 'return=minimal' },
+      headers: { 'Prefer': 'return=representation' },
       body: JSON.stringify({ status: 'deleted' })
+    }).then(function(rows) {
+      if (!rows || rows.length === 0) {
+        throw new Error('RLS 策略阻止了更新，请在 Supabase 后台添加 UPDATE 权限');
+      }
+      return rows;
     });
   }
 
