@@ -202,11 +202,11 @@
     </main>
   </div>
 
-  <script src="js/common.js?v=20260810f"></script>
-  <script src="js/storage.js?v=20260810f"></script>
-  <script src="js/supabase.js?v=20260810f"></script>
-  <script src="js/data.js?v=20260810f"></script>
-  <script src="js/analyzer.js?v=20260810f"></script>
+  <script src="js/common.js?v=20260810g"></script>
+  <script src="js/storage.js?v=20260810g"></script>
+  <script src="js/supabase.js?v=20260810g"></script>
+  <script src="js/data.js?v=20260810g"></script>
+  <script src="js/analyzer.js?v=20260810g"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
     Common.injectGlobalStyle();
@@ -287,7 +287,8 @@
     function ensureAnalysis(r) {
       var a = r.analysis;
       if (!a) return a;
-      if (!a.weakPoints && r.answers && window.Analyzer && Analyzer.analyze) {
+      // 总是用最新 analyzer 重新计算薄弱点，修复旧数据中的考点统计错误
+      if (r.answers && window.Analyzer && Analyzer.analyze) {
         try { a = Analyzer.analyze(r.answers); } catch (e) { console.error('re-analyze failed:', e); }
       }
       return a;

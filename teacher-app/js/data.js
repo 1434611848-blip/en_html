@@ -511,59 +511,91 @@ window.EXAM_DATA = {
   },
 
   // 薄弱知识点诊断配置（按知识点聚合）
+  // related 格式：{ sectionKey: [题号, ...], ... }，避免跨题型题号重复导致统计错误
   knowledgePoints: {
     '名词复数规则': {
-      related: [1, 4, 17, 2, 18, 7], // choice 1,4,17 + grammar 2,10 + cloze/chioce 不规则 2,18
+      related: {
+        choice: [1, 2, 4, 17, 18],
+        grammar: [2, 3, 6, 7, 10]
+      },
       weakness: '你对名词复数规则掌握不牢固，特别是"辅音+o"和"辅音+y"的变化，以及不规则变化（child/foot/tooth/woman 等）。',
       advice: '① 列表记忆"加 -es 四兄弟（s/x/ch/sh）"；② 区分"元音+y 直接加 s，辅音+y 改 y 为 i 加 es"；③ 整理 10 个常考不规则复数，每天默写。'
     },
     '冠词使用': {
-      related: [3, 9, 10],
+      related: {
+        choice: [9, 10]
+      },
       weakness: '你对冠词 a/an/the 的用法容易混淆，特别是 a/an 看"发音"和"乐器前用 the"的规则。',
       advice: '① a/an 看发音不看字母，记住 honest/hour/honor 等哑音 h 单词；② 球类运动不加 the，乐器前必须加 the；③ 牢记"特指用 the，泛指用 a/an"。'
     },
     '代词（人称/物主/反身）': {
-      related: [6, 7, 8, 5],
+      related: {
+        choice: [6, 7],
+        grammar: [4],
+        cloze: [5, 8]
+      },
       weakness: '代词种类多（主格/宾格/形容词性物主/名词性物主），你在不同句子成分中容易选错形式。',
       advice: '① 画一张表格，分清 8 个代词的"主/宾/形物/名物"四列；② 牢记"动词/介词后必用宾格"；③ 区分"形容词性物主代词必带名词，名词性物主代词独立用"。'
     },
     '介词（时间/方位）': {
-      related: [11, 12],
+      related: {
+        choice: [11, 12],
+        cloze: [2, 7]
+      },
       weakness: '你对介词辨析（between/among、in/on/at）容易混淆。',
       advice: '① 时间介词口诀：年/月/季节 in，星期/某天 on，时刻 at，in the morning/afternoon/evening；② 方位介词：between 两者，among 三者以上。'
     },
     '一般现在时（第三人称单数）': {
-      related: [8, 13, 19, 20, 1, 5, 9],
+      related: {
+        choice: [8, 13, 19, 20],
+        grammar: [1, 5, 9],
+        cloze: [1, 9]
+      },
       weakness: '一般现在时主语为第三人称单数时，谓语动词变化以及否定/疑问的助动词（does/doesn\'t）你掌握不熟练。',
       advice: '① 主语是 he/she/it/单数名词/不可数名词时，谓语加 -s/-es；② 否定借 doesn\'t + 动词原形；③ 疑问借 Does + 主语 + 动词原形；④ 复数主语用动词原形。'
     },
     '动词搭配（enjoy/decide/show/put 等）': {
-      related: [5, 7, 8, 10],
+      related: {
+        choice: [14],
+        grammar: [8],
+        cloze: [4, 5, 10]
+      },
       weakness: '你对动词 + doing 或动词 + to do 的固定搭配区分不清。',
       advice: '① 强记 enjoy/finish/mind/practise + doing；② decide/hope/want/plan/agree + to do；③ show/teach + sb. + sth. 中 sb. 用宾格。'
     },
     '句子结构（简单句五种基本句型）': {
-      related: [15],
+      related: {
+        choice: [15]
+      },
       weakness: '你还没完全掌握英语简单句的五种基本结构（S+V, S+V+O, S+V+P, S+V+IO+DO, S+V+O+OC）。',
       advice: '① 主谓宾：He plays football；② 主谓表：She is a teacher；③ 主谓宾宾：He gives me a book；④ 主谓宾补：We call him Tom；⑤ 牢记"谓语后承受者是宾语，描述性质是表语"。'
     },
     '冠词 some / a lot of / many / much': {
-      related: [3, 16],
+      related: {
+        choice: [16],
+        cloze: [3]
+      },
       weakness: '你对 some / many / much / a lot of 修饰可数与不可数名词的搭配容易混淆。',
       advice: '① many + 可数复数；② much + 不可数；③ a lot of / lots of 通吃；④ some 可修饰两者，但注意不可数名词不能直接加 s。'
     },
     '阅读理解（细节/词义/推断/主旨）': {
-      related: [1, 2, 3, 4, 5],
+      related: {
+        reading: [1, 2, 3, 4, 5]
+      },
       weakness: '你的阅读理解在不同题型上的表现不一，可能在词义猜测或主旨大意题上失分较多。',
       advice: '① 细节题：回到原句圈关键词；② 词义题：看上下文/举例/对比；③ 原因题：找文中"动作→结果"；④ 主旨题：看首尾段、各段主题词、高频词。'
     },
     '完形填空（上下文逻辑）': {
-      related: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      related: {
+        cloze: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      },
       weakness: '你的完形填空可能在时态判断、固定搭配和上下文逻辑上失分。',
       advice: '① 通读首段抓主旨；② 注意时间状语判断时态（Last Saturday → 过去时）；③ 牢记常见搭配（how to do, decide to do, show sb. sth.）；④ 空格前后语境推理。'
     },
     '语法填空综合（时态/语态/词形）': {
-      related: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      related: {
+        grammar: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      },
       weakness: '你在语法填空中需要综合运用"时态 + 主谓一致 + 词形变化 + 固定搭配"的能力。',
       advice: '① 第一步先看时态/语态标志词；② 第二步看主语确定谓语形式；③ 第三步看空格所需词性；④ 最后核对搭配（介词/冠词/动词不定式/动名词等）。'
     }

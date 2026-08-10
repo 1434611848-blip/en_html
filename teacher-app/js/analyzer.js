@@ -115,26 +115,31 @@ window.Analyzer = (function () {
 
     result.totals.rate = +(result.totals.score / result.totals.full * 100).toFixed(1);
 
-    // 知识点 → 错题统计
+    // 知识点 → 错题统计（按 section + 题号 精确匹配，避免跨题型重复）
     Object.keys(D.knowledgePoints).forEach(kp => {
       const cfg = D.knowledgePoints[kp];
       let wrong = 0;
       const wrongs = [];
-      cfg.related.forEach(ref => {
-        Object.values(result.sections).forEach(sec => {
-          sec.items.forEach(it => {
-            if (it.no === ref && it.state === 'wrong' && !wrongs.includes(ref)) {
-              wrong++;
-              wrongs.push(ref);
-            }
-          });
+      let totalRelated = 0;
+      Object.keys(cfg.related).forEach(secKey => {
+        const sec = result.sections[secKey];
+        const nos = cfg.related[secKey];
+        if (!sec || !Array.isArray(nos)) return;
+        totalRelated += nos.length;
+        nos.forEach(no => {
+          const it = sec.items.find(x => x.no === no);
+          const uid = secKey + '-' + no;
+          if (it && it.state === 'wrong' && !wrongs.includes(uid)) {
+            wrong++;
+            wrongs.push(uid);
+          }
         });
       });
       if (wrong > 0) {
         result.weakPoints.push({
           name: kp,
           wrongCount: wrong,
-          totalRelated: cfg.related.length,
+          totalRelated: totalRelated,
           weakness: cfg.weakness,
           advice: cfg.advice
         });
