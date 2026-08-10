@@ -426,11 +426,11 @@
           html += '<div class="advice-title">' + Common.escapeHtml(g.key) + ' <span class="kp-type ' + g.info.type + '">' + typeLabel(g.info.type) + '</span></div>';
           html += '<div class="advice-item">';
           html += '看' + g.info.lectures.join('、') + '回放巩固"' + Common.escapeHtml(g.key) + '"，';
-          html += '看完再做' + Common.escapeHtml(textbook) + '，';
-          html += '或者找老师要加餐题目练习。';
+          html += '看完再做' + Common.escapeHtml(textbook) + '。';
           html += '</div>';
           html += '</div>';
         });
+        html += '<p style="font-size:13px;color:#576b95;text-align:center;padding:10px 0 4px;margin:0;">💡 以上练习完成后还有疑问，可以找老师要加餐题目练习。</p>';
       }
 
       // 第三部分：开学前冲刺计划
