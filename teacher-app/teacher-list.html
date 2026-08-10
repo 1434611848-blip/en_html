@@ -202,11 +202,11 @@
     </main>
   </div>
 
-  <script src="js/common.js?v=20260810d"></script>
-  <script src="js/storage.js?v=20260810d"></script>
-  <script src="js/supabase.js?v=20260810d"></script>
-  <script src="js/data.js?v=20260810d"></script>
-  <script src="js/analyzer.js?v=20260810d"></script>
+  <script src="js/common.js?v=20260810e"></script>
+  <script src="js/storage.js?v=20260810e"></script>
+  <script src="js/supabase.js?v=20260810e"></script>
+  <script src="js/data.js?v=20260810e"></script>
+  <script src="js/analyzer.js?v=20260810e"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
     Common.injectGlobalStyle();
@@ -256,20 +256,29 @@
 
     var cloudRecords = [];
     var cloudReady = false;
+    var cloudLoading = false;
     function getRecords() {
-      var all = cloudReady ? cloudRecords : Storage.loadRecords();
+      if (!cloudReady && !cloudLoading) {
+        // 云端失败后才用本地数据兜底
+        return Storage.loadRecords();
+      }
+      var all = cloudReady ? cloudRecords : [];
       if (currentTeacher === '__all') return all;
       return all.filter(function(r) { return r.teacher === currentTeacher; });
     }
     function loadCloudRecords() {
+      cloudLoading = true;
+      render();
       CloudBox.fetchTeacherRecords(currentTeacher).then(function (rows) {
         var deletedIds = Storage.loadDeletedCloudIds();
         cloudRecords = rows.filter(function(r) { return deletedIds.indexOf(r.id) === -1; });
         cloudReady = true;
+        cloudLoading = false;
         render();
       }).catch(function (err) {
         console.warn('读取云端数据失败，使用本机数据：', err);
         cloudReady = false;
+        cloudLoading = false;
         render();
       });
     }
@@ -306,6 +315,17 @@
     }
 
     function render() {
+      // 加载中状态
+      if (cloudLoading && !cloudReady) {
+        document.getElementById('recCount').textContent = '—';
+        document.getElementById('avgScore').textContent = '—';
+        document.getElementById('maxScore').textContent = '—';
+        document.getElementById('passRate').textContent = '—';
+        var listEl = document.getElementById('studentList');
+        listEl.innerHTML = '<div class="empty-state" style="color:#576b95;">⏳ 正在加载数据，请稍候...</div>';
+        return;
+      }
+
       var recs = getRecords().sort(function(a,b) { return b.analysis.totals.score - a.analysis.totals.score; });
 
       // 概览
