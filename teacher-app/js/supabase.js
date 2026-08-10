@@ -129,23 +129,16 @@ window.CloudBox = (function () {
   }
 
   function deleteRecord(id) {
-    // 先尝试 DELETE（硬删除），RLS 可能允许 DELETE 但不允许 UPDATE
+    // 软删除：标记 status='deleted'，查询端用 status=neq.deleted 过滤
     return request('/submissions?id=eq.' + encodeURIComponent(id), {
-      method: 'DELETE',
-      headers: { 'Prefer': 'return=representation' }
+      method: 'PATCH',
+      headers: { 'Prefer': 'return=representation' },
+      body: JSON.stringify({ status: 'deleted' })
     }).then(function(rows) {
-      if (rows && rows.length > 0) return rows;
-      // DELETE 返回空，可能 RLS 也阻止了，尝试 PATCH 软删除
-      return request('/submissions?id=eq.' + encodeURIComponent(id), {
-        method: 'PATCH',
-        headers: { 'Prefer': 'return=representation' },
-        body: JSON.stringify({ status: 'deleted' })
-      }).then(function(patchRows) {
-        if (!patchRows || patchRows.length === 0) {
-          throw new Error('RLS 策略阻止了删除和更新');
-        }
-        return patchRows;
-      });
+      if (!rows || rows.length === 0) {
+        throw new Error('RLS 未授权 UPDATE，请先在 Supabase SQL Editor 执行授权语句');
+      }
+      return rows;
     });
   }
 

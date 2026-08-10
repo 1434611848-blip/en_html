@@ -203,11 +203,11 @@
     </main>
   </div>
 
-  <script src="js/common.js?v=20260810n"></script>
-  <script src="js/storage.js?v=20260810n"></script>
-  <script src="js/supabase.js?v=20260810n"></script>
-  <script src="js/data.js?v=20260810n"></script>
-  <script src="js/analyzer.js?v=20260810n"></script>
+  <script src="js/common.js?v=20260811a"></script>
+  <script src="js/storage.js?v=20260811a"></script>
+  <script src="js/supabase.js?v=20260811a"></script>
+  <script src="js/data.js?v=20260811a"></script>
+  <script src="js/analyzer.js?v=20260811a"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
     Common.injectGlobalStyle();
@@ -251,7 +251,6 @@
     });
 
     document.getElementById('logoutBtn').addEventListener('click', function() {
-      Storage.clearTeacherSession();
       location.href = 'teacher.html';
     });
 
@@ -259,10 +258,6 @@
     var cloudReady = false;
     var cloudLoading = false;
     function getRecords() {
-      if (!cloudReady && !cloudLoading) {
-        // 云端失败后才用本地数据兜底
-        return Storage.loadRecords();
-      }
       var all = cloudReady ? cloudRecords : [];
       if (currentTeacher === '__all') return all;
       return all.filter(function(r) { return r.teacher === currentTeacher; });
@@ -271,13 +266,12 @@
       cloudLoading = true;
       render();
       CloudBox.fetchTeacherRecords(currentTeacher).then(function (rows) {
-        var deletedIds = Storage.loadDeletedCloudIds();
-        cloudRecords = rows.filter(function(r) { return deletedIds.indexOf(r.id) === -1; });
+        cloudRecords = rows;
         cloudReady = true;
         cloudLoading = false;
         render();
       }).catch(function (err) {
-        console.warn('读取云端数据失败，使用本机数据：', err);
+        console.warn('读取云端数据失败：', err);
         cloudReady = false;
         cloudLoading = false;
         render();
@@ -319,19 +313,9 @@
 
       // 数据来源指示
       if (cloudReady) {
-        var deletedCount = Storage.loadDeletedCloudIds().length;
-        var html = '<span style="color:#0a7a3b;">☁ 云端数据</span>';
-        if (deletedCount > 0) {
-          html += '<span style="color:#c97a00;">⚠ 本机已标记删除 ' + deletedCount + ' 条（仅本设备生效）</span>';
-          html += ' <a href="javascript:void(0)" id="syncDeletedTip" style="color:#576b95;text-decoration:underline;">说明</a>';
-        }
-        dsEl.innerHTML = html;
-        var tipEl = document.getElementById('syncDeletedTip');
-        if (tipEl) tipEl.onclick = function() {
-          alert('删除标记仅保存在当前设备的浏览器中，不会同步到其他设备。\n\n如需在所有设备上一致显示，请联系开发者在 Supabase 后台开启 UPDATE 权限。');
-        };
+        dsEl.innerHTML = '<span style="color:#0a7a3b;">☁ 云端数据</span>';
       } else {
-        dsEl.innerHTML = '<span style="color:#a4262c;font-weight:600;">⚠ 本地缓存数据（云端连接失败）</span> <a href="javascript:void(0)" id="retryCloudBtn" style="color:#576b95;text-decoration:underline;">重新加载</a>';
+        dsEl.innerHTML = '<span style="color:#a4262c;font-weight:600;">⚠ 云端连接失败</span> <a href="javascript:void(0)" id="retryCloudBtn" style="color:#576b95;text-decoration:underline;">重新加载</a>';
         var retryBtn = document.getElementById('retryCloudBtn');
         if (retryBtn) retryBtn.onclick = function() { loadCloudRecords(); };
       }
@@ -438,24 +422,16 @@
           if (!confirm('确定删除「' + name + '」的提交记录吗？此操作不可恢复。')) return;
           if (cloudReady) {
             CloudBox.deleteRecord(id).then(function() {
-              // 云端删除成功，从本地列表移除（无需本地标记）
               cloudRecords = cloudRecords.filter(function(r) { return String(r.id) !== String(id); });
               if (expandedId === id) expandedId = null;
               render();
-              Common.toast('已删除「' + name + '」的记录（云端已删除）', 'success');
+              Common.toast('已删除「' + name + '」的记录', 'success');
             }).catch(function(err) {
-              console.warn('云端删除失败，使用本地标记兜底:', err);
-              Storage.addDeletedCloudId(id);
-              cloudRecords = cloudRecords.filter(function(r) { return String(r.id) !== String(id); });
-              if (expandedId === id) expandedId = null;
-              render();
-              Common.toast('已删除「' + name + '」的记录（仅本设备生效）', 'success');
+              console.warn('云端删除失败:', err);
+              Common.toast('删除失败：数据库权限不足，请联系管理员开启删除权限', 'error');
             });
           } else {
-            Storage.deleteRecord(id);
-            if (expandedId === id) expandedId = null;
-            render();
-            Common.toast('已删除「' + name + '」的记录', 'success');
+            Common.toast('云端未连接，无法删除', 'error');
           }
         });
       });
@@ -637,12 +613,28 @@
       Common.toast('已导出 CSV', 'success');
     });
 
-    // 清空数据
+    // 清空数据 — 仅在云端可用时操作
     document.getElementById('clearBtn').addEventListener('click', function() {
-      if (!confirm('确定清空所有学生数据吗？此操作不可恢复！')) return;
-      Storage.clearAll();
-      Common.toast('已清空数据', 'success');
-      render();
+      if (!cloudReady) { Common.toast('云端未连接，无法清空', 'warning'); return; }
+      if (!cloudRecords.length) { Common.toast('暂无数据可清空', 'warning'); return; }
+      if (!confirm('确定清空所有 ' + cloudRecords.length + ' 条学生数据吗？此操作不可恢复！')) return;
+      var ids = cloudRecords.map(function(r) { return r.id; });
+      var done = 0, failed = 0;
+      function deleteNext() {
+        if (done + failed >= ids.length) {
+          Common.toast('已删除 ' + done + ' 条' + (failed > 0 ? '，' + failed + ' 条失败' : ''), failed > 0 ? 'warning' : 'success');
+          loadCloudRecords();
+          return;
+        }
+        CloudBox.deleteRecord(ids[done + failed]).then(function() {
+          done++;
+          deleteNext();
+        }).catch(function() {
+          failed++;
+          deleteNext();
+        });
+      }
+      deleteNext();
     });
   </script>
 </body>
