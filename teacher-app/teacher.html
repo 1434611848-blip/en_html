@@ -56,10 +56,10 @@
     </main>
   </div>
 
-  <script src="js/common.js?v=20260811j"></script>
-  <script src="js/storage.js?v=20260811j"></script>
-  <script src="js/supabase.js?v=20260811j"></script>
-  <script src="js/data.js?v=20260811j"></script>
+  <script src="js/common.js?v=20260811k"></script>
+  <script src="js/storage.js?v=20260811k"></script>
+  <script src="js/supabase.js?v=20260811k"></script>
+  <script src="js/data.js?v=20260811k"></script>
   <script>
     Common.injectGlobalStyle();
 
@@ -108,9 +108,10 @@
         recCountEl.textContent = records.length;
         if (!records.length) return;
         var scores = records.map(function(r) { return r.analysis.totals.score; });
+        var rates = records.map(function(r) { return r.analysis.totals.rate; });
         var avg = (scores.reduce(function(a,b){return a+b;},0) / scores.length).toFixed(1);
         var max = Math.max.apply(null, scores);
-        var pass = (scores.filter(function(s){return s >= 60;}).length / scores.length * 100).toFixed(0);
+        var pass = (rates.filter(function(r){return r >= 60;}).length / rates.length * 100).toFixed(0);
         avgScoreEl.textContent = avg;
         maxScoreEl.textContent = max;
         passRateEl.textContent = pass;

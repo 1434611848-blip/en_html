@@ -203,11 +203,11 @@
     </main>
   </div>
 
-  <script src="js/common.js?v=20260811j"></script>
-  <script src="js/storage.js?v=20260811j"></script>
-  <script src="js/supabase.js?v=20260811j"></script>
-  <script src="js/data.js?v=20260811j"></script>
-  <script src="js/analyzer.js?v=20260811j"></script>
+  <script src="js/common.js?v=20260811k"></script>
+  <script src="js/storage.js?v=20260811k"></script>
+  <script src="js/supabase.js?v=20260811k"></script>
+  <script src="js/data.js?v=20260811k"></script>
+  <script src="js/analyzer.js?v=20260811k"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
     Common.injectGlobalStyle();
@@ -324,9 +324,10 @@
       document.getElementById('recCount').textContent = recs.length;
       if (recs.length) {
         var scores = recs.map(function(r) { return r.analysis.totals.score; });
+        var rates = recs.map(function(r) { return r.analysis.totals.rate; });
         var avg = (scores.reduce(function(a,b){return a+b;},0) / scores.length).toFixed(1);
         var max = Math.max.apply(null, scores);
-        var pass = (scores.filter(function(s) { return s >= 60; }).length / scores.length * 100).toFixed(0);
+        var pass = (rates.filter(function(r) { return r >= 60; }).length / rates.length * 100).toFixed(0);
         document.getElementById('avgScore').textContent = avg;
         document.getElementById('maxScore').textContent = max;
         document.getElementById('passRate').textContent = pass;
