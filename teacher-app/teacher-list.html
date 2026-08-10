@@ -203,11 +203,11 @@
     </main>
   </div>
 
-  <script src="js/common.js?v=20260811h"></script>
-  <script src="js/storage.js?v=20260811h"></script>
-  <script src="js/supabase.js?v=20260811h"></script>
-  <script src="js/data.js?v=20260811h"></script>
-  <script src="js/analyzer.js?v=20260811h"></script>
+  <script src="js/common.js?v=20260811i"></script>
+  <script src="js/storage.js?v=20260811i"></script>
+  <script src="js/supabase.js?v=20260811i"></script>
+  <script src="js/data.js?v=20260811i"></script>
+  <script src="js/analyzer.js?v=20260811i"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
     Common.injectGlobalStyle();
@@ -502,10 +502,9 @@
         html += '<p style="font-size:13px;color:#666;margin:0 0 10px;">' + summaryText + '</p>';
         html += '<ul class="weak-list">';
         displayPoints.forEach(function(wp) {
-          var info = EXAM_DATA.matchLecture(wp.name);
           html += '<li>';
           html += '<span class="wk-name">' + Common.escapeHtml(wp.name) + '</span>';
-          html += '<span class="wk-meta">错 ' + wp.wrongCount + ' 题 · 看' + info.lectures.join('、') + '</span>';
+          html += '<span class="wk-meta">错 ' + wp.wrongCount + ' 题</span>';
           html += '</li>';
         });
         html += '</ul>';
