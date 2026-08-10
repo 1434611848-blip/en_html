@@ -54,7 +54,7 @@ window.CloudBox = (function () {
 
   // 获取所有教师名（从 teachers 表）
   function fetchTeachers() {
-    return request('/teachers?select=name&order=name.asc').then(function (rows) {
+    return request('/teachers?select=name&order=created_at.asc').then(function (rows) {
       return rows.map(function (row) {
         return { name: row.name || '' };
       }).filter(function (t) { return t.name; });
