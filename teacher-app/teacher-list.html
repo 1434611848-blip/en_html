@@ -421,12 +421,11 @@
       var seriousGroups = groups.filter(function(g) { return g.questions.length >= 3; });
 
       var html = '<div class="feedback-doc" id="doc_' + r.id + '">';
-      html += '<div class="doc-title">📚 个性化反馈方案书</div>';
+      html += '<div class="doc-title">📚 摸底测学习报告</div>';
       html += '<div class="doc-info">';
       html += '<span>学生：<b>' + Common.escapeHtml(r.name) + '</b></span>';
       html += '<span>老师：<b>' + Common.escapeHtml(r.teacher) + '</b></span>';
       html += '<span>得分：<b>' + a.totals.score + '/' + a.totals.full + '</b></span>';
-      html += '<span>正确率：<b>' + rate + '%</b></span>';
       html += '<span>日期：<b>' + Common.formatDateTime(r.submittedAt) + '</b></span>';
       html += '</div>';
 
