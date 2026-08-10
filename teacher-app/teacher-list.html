@@ -140,17 +140,14 @@
     .weak-list .wk-meta { color: #888; font-size: 12px; text-align: right; max-width: 55%; }
 
     /* 复习建议卡片 */
-    .advice-card { margin-bottom: 12px; }
+    .advice-card { margin-bottom: 10px; }
     .advice-card .advice-title {
-      font-size: 14px; font-weight: 700; color: #576b95; margin-bottom: 8px;
+      font-size: 14px; font-weight: 700; color: #576b95; margin-bottom: 6px;
     }
     .advice-card .advice-item {
-      font-size: 13px; color: #444; line-height: 1.7; margin-bottom: 4px; padding-left: 22px; position: relative;
+      font-size: 13px; color: #444; line-height: 1.6; padding-left: 22px; position: relative;
     }
-    .advice-card .advice-item::before { position: absolute; left: 0; }
-    .advice-card .advice-item.replay::before { content: '📺'; }
-    .advice-card .advice-item.book::before { content: '📗'; }
-    .advice-card .advice-item.extra::before { content: '🍱'; }
+    .advice-card .advice-item::before { position: absolute; left: 0; content: '📌'; }
 
     /* 开学前计划 */
     .plan-box {
@@ -384,6 +381,9 @@
       // 按错题数量倒序，丢分多的考点排在前面
       groups.sort(function(aa, bb) { return bb.questions.length - aa.questions.length; });
 
+      // 只保留错题数量 ≥ 3 的严重薄弱点
+      var seriousGroups = groups.filter(function(g) { return g.questions.length >= 3; });
+
       var html = '<div class="feedback-doc" id="doc_' + r.id + '">';
       html += '<div class="doc-title">📚 个性化反馈方案书</div>';
       html += '<div class="doc-info">';
@@ -398,10 +398,12 @@
       html += '<div class="section-title">一、薄弱考点（丢分汇总）</div>';
       if (!wrong.length) {
         html += '<p style="font-size:14px;color:#0a7a3b;text-align:center;padding:12px;">🎉 全部正确，无薄弱考点！继续保持！</p>';
+      } else if (!seriousGroups.length) {
+        html += '<p style="font-size:13.5px;color:#666;text-align:center;padding:12px;">本次错题比较分散，没有集中的严重薄弱点，建议把错题再过一遍。</p>';
       } else {
-        html += '<p style="font-size:13px;color:#666;margin:0 0 10px;">本次共错 <b style="color:#a4262c;">' + wrong.length + '</b> 题，按丢分多少排列如下：</p>';
+        html += '<p style="font-size:13px;color:#666;margin:0 0 10px;">以下为本卷严重薄弱考点（错 3 题及以上）：</p>';
         html += '<ul class="weak-list">';
-        groups.forEach(function(g) {
+        seriousGroups.forEach(function(g) {
           var qNos = g.questions.map(function(q) { return '第' + q.no + '题'; }).join('、');
           html += '<li>';
           html += '<span class="wk-name">' + Common.escapeHtml(g.key) + '</span>';
@@ -415,18 +417,22 @@
       html += '<div class="section-title">二、针对性复习建议</div>';
       if (!wrong.length) {
         html += '<p style="font-size:14px;color:#0a7a3b;text-align:center;padding:12px;">可以适当预习新学期内容，挑战拔高练习！</p>';
+      } else if (!seriousGroups.length) {
+        html += '<p style="font-size:13.5px;color:#666;text-align:center;padding:12px;">错题较零散，建议把本次错题逐题订正，并巩固对应知识点。</p>';
       } else {
-        groups.forEach(function(g) {
+        seriousGroups.forEach(function(g) {
           var textbook = textbookFromLectures(g.info.lectures);
           html += '<div class="advice-card kp-group">';
           html += '<div class="advice-title">' + Common.escapeHtml(g.key) + ' <span class="kp-type ' + g.info.type + '">' + typeLabel(g.info.type) + '</span></div>';
-          html += '<div class="advice-item replay"><b>看回放：</b>' + g.info.lectures.join('、') + '</div>';
-          html += '<div class="advice-item book"><b>做课本：</b>' + Common.escapeHtml(textbook) + '</div>';
+          html += '<div class="advice-item">';
+          html += '<b>看回放：</b>' + g.info.lectures.join('、') + '；';
+          html += '<b>做课本：</b>' + Common.escapeHtml(textbook) + '；';
           if (g.info.extraPractice) {
-            html += '<div class="advice-item extra"><b>找老师：</b>' + Common.escapeHtml(g.info.extraPractice) + '</div>';
+            html += '<b>找老师：</b>' + Common.escapeHtml(g.info.extraPractice);
           } else {
-            html += '<div class="advice-item extra"><b>找老师：</b>请辅导老师针对该考点准备一份加餐练习</div>';
+            html += '<b>找老师：</b>要一份该考点加餐练习';
           }
+          html += '</div>';
           html += '</div>';
         });
       }
