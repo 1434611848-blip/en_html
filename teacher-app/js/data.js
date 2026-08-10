@@ -602,106 +602,124 @@ window.EXAM_DATA = {
   },
 
   // ===== 知识点→讲义回放章节映射表 =====
+  // 依据 26年暑假7年级英语 第1~10节笔记首页 Part2 内容整理
   // type: 'basic'(基础不扎实→看回放) / 'advanced'(升级题目→加餐练习) / 'instability'(不稳定→分析原因)
   lectureMap: {
     '名词复数': {
-      lectures: ['第2讲 名词基础', '第3讲 名词进阶'],
+      lectures: ['第2节 名词基础', '第3节 名词进阶'],
       type: 'basic',
-      solution: '基础知识不扎实。名词复数变化规则是七年级核心考点，建议回看【第2讲 名词基础】和【第3讲 名词进阶】课程回放，重点复习：① s/x/ch/sh结尾加-es；② 辅音+y改y为i加-es；③ 辅音+o结尾加-es（tomato→tomatoes）。回看后请完成课后配套练习。',
+      solution: '基础知识不扎实。名词复数变化规则是七年级核心考点，建议回看【第2节 名词基础】和【第3节 名词进阶】课程回放，重点复习：① s/x/ch/sh结尾加-es；② 辅音+y改y为i加-es；③ 辅音+o结尾加-es（tomato→tomatoes）。回看后请完成课后配套练习。',
       extraPractice: '找辅导老师领取"名词复数变化专项加餐练习"15题'
     },
     '不规则名词': {
-      lectures: ['第3讲 名词进阶'],
+      lectures: ['第3节 名词进阶'],
       type: 'basic',
-      solution: '基础知识不扎实。不规则名词复数需要记忆，建议回看【第3讲 名词进阶】课程回放，整理10个常考不规则复数（child→children, woman→women, tooth→teeth, foot→feet, mouse→mice），每天默写一遍，连续坚持5天。',
+      solution: '基础知识不扎实。不规则名词复数需要记忆，建议回看【第3节 名词进阶】课程回放，整理10个常考不规则复数（child→children, woman→women, tooth→teeth, foot→feet, mouse→mice），每天默写一遍，连续坚持5天。',
       extraPractice: '找辅导老师领取"不规则名词默写卡"'
     },
     '不可数名词': {
-      lectures: ['第2讲 名词基础'],
+      lectures: ['第2节 名词基础'],
       type: 'basic',
-      solution: '基础知识不扎实。不可数名词不能直接加-s，建议回看【第2讲 名词基础】课程回放，掌握常见不可数名词（water, homework, housework, bread, money等）及量词搭配（a glass of / a bottle of / a piece of）。',
+      solution: '基础知识不扎实。不可数名词不能直接加-s，建议回看【第2节 名词基础】课程回放，掌握常见不可数名词（water, homework, housework, bread, money等）及量词搭配（a glass of / a bottle of / a piece of）。',
     },
     '所有格': {
-      lectures: ['第5讲 名词拔高'],
+      lectures: ['第5节 名词拔高'],
       type: 'advanced',
-      solution: '属于拔高知识点。名词所有格的"共有与独立"规则较灵活，建议回看【第5讲 名词拔高】课程回放，掌握"共享加最后，独立各加各"的口诀，并注意"of所有格"的用法。',
+      solution: '属于拔高知识点。名词所有格的"共有与独立"规则较灵活，建议回看【第5节 名词拔高】课程回放，掌握"共享加最后，独立各加各"的口诀，并注意"of所有格"的用法。',
       extraPractice: '找辅导老师要"名词所有格加餐练习"10题（含易错对比题）'
     },
     '物主代词': {
-      lectures: ['第4讲 人称和物主代词'],
+      lectures: ['第4节 人称和物主代词'],
       type: 'basic',
-      solution: '基础知识不扎实。代词是七年级重点，建议回看【第4讲 人称和物主代词】课程回放，画一张"主格/宾格/形容词性物主/名词性物主"四列表格，熟记：① 动词和介词后用宾格；② 形容词性物主代词必须带名词；③ 名词性物主代词独立使用。',
+      solution: '基础知识不扎实。代词是七年级重点，建议回看【第4节 人称和物主代词】课程回放，画一张"主格/宾格/形容词性物主/名词性物主"四列表格，熟记：① 动词和介词后用宾格；② 形容词性物主代词必须带名词；③ 名词性物主代词独立使用。',
       extraPractice: '找辅导老师领取"代词四格转换练习表"'
     },
     '宾格': {
-      lectures: ['第4讲 人称和物主代词'],
+      lectures: ['第4节 人称和物主代词'],
       type: 'basic',
-      solution: '基础知识不扎实。动词和介词后必须用宾格，建议回看【第4讲 人称和物主代词】课程回放，牢记teach us / show him / for them / between them等搭配。',
+      solution: '基础知识不扎实。动词和介词后必须用宾格，建议回看【第4节 人称和物主代词】课程回放，牢记teach us / show him / for them / between them等搭配。',
     },
     '一般现在时': {
-      lectures: ['第9讲 一般现在时'],
+      lectures: ['第9节 一般现在时'],
       type: 'basic',
-      solution: '基础知识不扎实。一般现在时是七年级语法核心，建议回看【第9讲 一般现在时】课程回放，重点掌握：① 第三人称单数动词变化（加-s/-es）；② 否定句doesn\'t+动词原形；③ 疑问句Does+主语+动词原形；④ 复数主语用动词原形。',
+      solution: '基础知识不扎实。一般现在时是七年级语法核心，建议回看【第9节 一般现在时】课程回放，重点掌握：① 第三人称单数动词变化（加-s/-es）；② 否定句doesn\'t+动词原形；③ 疑问句Does+主语+动词原形；④ 复数主语用动词原形。',
       extraPractice: '找辅导老师领取"一般现在时专项加餐练习"20题'
     },
     '冠词': {
-      lectures: ['第7讲 冠词基础'],
+      lectures: ['第7节 冠词基础'],
       type: 'basic',
-      solution: '基础知识不扎实。冠词a/an/the的用法建议回看【第7讲 冠词基础】课程回放，掌握：① a/an看发音不看字母（honest用an）；② 乐器前加the，球类不加the；③ 特指用the，泛指用a/an。',
+      solution: '基础知识不扎实。冠词a/an/the的用法建议回看【第7节 冠词基础】课程回放，掌握：① a/an看发音不看字母（honest用an）；② 乐器前加the，球类不加the；③ 特指用the，泛指用a/an。',
     },
     '介词': {
-      lectures: ['第6讲 方位介词'],
+      lectures: ['第6节 方位介词'],
       type: 'basic',
-      solution: '基础知识不扎实。介词用法建议回看【第6讲 方位介词】课程回放，掌握时间介词口诀（年月季in/星期天on/时刻at）和方位介词辨析（between两者/among三者以上/near附近/on表面/in内部）。',
+      solution: '基础知识不扎实。介词用法建议回看【第6节 方位介词】课程回放，掌握时间介词口诀（年月季in/星期天on/时刻at）和方位介词辨析（between两者/among三者以上/near附近/on表面/in内部）。',
     },
     'enjoy': {
-      lectures: ['第1讲 语法概览'],
+      lectures: ['第1节 语法概览'],
       type: 'basic',
-      solution: '基础知识不扎实。动词+doing/to do的搭配是常考点，建议回看【第1讲 语法概览】课程回放，强记：enjoy/finish/mind/practise+doing；decide/hope/want/plan/agree+to do。',
+      solution: '基础知识不扎实。动词+doing/to do的搭配是常考点，建议回看【第1节 语法概览】课程回放，强记：enjoy/finish/mind/practise+doing；decide/hope/want/plan/agree+to do。',
       extraPractice: '找辅导老师领取"动词搭配口诀卡"'
     },
     'decide': {
-      lectures: ['第1讲 语法概览'],
+      lectures: ['第1节 语法概览'],
       type: 'basic',
-      solution: '基础知识不扎实。decide+to do是固定搭配，建议回看【第1讲 语法概览】课程回放，牢记decide/hope/want/plan/agree+to do，enjoy/finish/mind/practise+doing。',
+      solution: '基础知识不扎实。decide+to do是固定搭配，建议回看【第1节 语法概览】课程回放，牢记decide/hope/want/plan/agree+to do，enjoy/finish/mind/practise+doing。',
     },
     '句子结构': {
-      lectures: ['第1讲 语法概览'],
+      lectures: ['第1节 语法概览'],
       type: 'advanced',
-      solution: '属于拔高知识点。简单句五种基本句型是语法分析的基础，建议回看【第1讲 语法概览】课程回放，掌握：S+V（主谓）、S+V+O（主谓宾）、S+V+P（主谓表）、S+V+IO+DO（主谓双宾）、S+V+O+OC（主谓宾补），并学会判断宾语vs表语。',
+      solution: '属于拔高知识点。简单句五种基本句型是语法分析的基础，建议回看【第1节 语法概览】课程回放，掌握：S+V（主谓）、S+V+O（主谓宾）、S+V+P（主谓表）、S+V+IO+DO（主谓双宾）、S+V+O+OC（主谓宾补），并学会判断宾语vs表语。',
       extraPractice: '找辅导老师要"句子结构分析加餐练习"10题'
     },
     'a lot of': {
-      lectures: ['第2讲 名词基础'],
+      lectures: ['第2节 名词基础'],
       type: 'basic',
-      solution: '基础知识不扎实。量词搭配建议回看【第2讲 名词基础】课程回放，掌握：many+可数复数；much+不可数；a lot of/lots of通吃；some可修饰两者。',
+      solution: '基础知识不扎实。量词搭配建议回看【第2节 名词基础】课程回放，掌握：many+可数复数；much+不可数；a lot of/lots of通吃；some可修饰两者。',
     },
     'show': {
-      lectures: ['第4讲 人称和物主代词'],
+      lectures: ['第4节 人称和物主代词'],
       type: 'basic',
-      solution: '基础知识不扎实。双宾语动词show/teach/give/buy/pass sb. sth.中sb.必须用宾格，建议回看【第4讲 人称和物主代词】课程回放。',
+      solution: '基础知识不扎实。双宾语动词show/teach/give/buy/pass sb. sth.中sb.必须用宾格，建议回看【第4节 人称和物主代词】课程回放。',
     },
     '过去': {
-      lectures: ['第1讲 语法概览'],
+      lectures: ['第1节 语法概览'],
       type: 'instability',
-      solution: '答题不稳定。过去时态判断需要根据时间状语（Last Saturday, yesterday等），建议回看【第1讲 语法概览】课程回放复习时态标志词，特别注意read等过去式与原形同形的动词，避免误写成reads。',
+      solution: '答题不稳定。过去时态判断需要根据时间状语（Last Saturday, yesterday等），建议回看【第1节 语法概览】课程回放复习时态标志词，特别注意read等过去式与原形同形的动词，避免误写成reads。',
     },
     '阅读': {
-      lectures: ['第8讲 初阶写作（认知概览）'],
+      lectures: [
+        '第1节 语法概览',
+        '第3节 名词进阶',
+        '第4节 人称和物主代词',
+        '第5节 名词拔高',
+        '第7节 冠词基础',
+        '第8节 初阶写作（认知概览）',
+        '第10节 初阶写作（审题训练）'
+      ],
       type: 'instability',
-      solution: '答题不稳定。阅读理解失分原因多样：① 细节题没回原文定位关键词；② 词义题没看上下文举例；③ 原因题没找"动作→结果"逻辑；④ 主旨题没抓首尾段和高频词。建议回看【第8讲 初阶写作（认知概览）】培养语篇分析能力，每天坚持阅读1篇短文并做题。',
+      solution: '答题不稳定。阅读理解失分原因多样：① 细节题没回原文定位关键词；② 词义题没看上下文举例；③ 原因题没找"动作→结果"逻辑；④ 主旨题没抓首尾段和高频词。建议回看第1、3、4、5、7、8、10节相关阅读回放，培养语篇分析能力，每天坚持阅读1篇短文并做题。',
       extraPractice: '找辅导老师领取"阅读理解分类专项训练"5篇'
     },
     '完形': {
-      lectures: ['第1讲 语法概览'],
+      lectures: ['第2节 名词基础', '第6节 方位介词', '第9节 一般现在时'],
       type: 'instability',
-      solution: '答题不稳定。完形填空失分原因：① 时态判断错误（看时间状语）；② 固定搭配不熟（how to do / decide to do / show sb. sth.）；③ 上下文逻辑断裂。建议回看【第1讲 语法概览】巩固语法基础，做题时先通读全文抓主旨，再逐空填。',
+      solution: '答题不稳定。完形填空失分原因：① 时态判断错误（看时间状语）；② 固定搭配不熟（how to do / decide to do / show sb. sth.）；③ 上下文逻辑断裂。建议回看第2、6、9节完形相关回放，做题时先通读全文抓主旨，再逐空填。',
       extraPractice: '找辅导老师领取"完形填空专项训练"3篇'
     },
     '语法填空': {
-      lectures: ['第1讲 语法概览', '第9讲 一般现在时'],
+      lectures: [
+        '第1节 语法概览',
+        '第2节 名词基础',
+        '第3节 名词进阶',
+        '第4节 人称和物主代词',
+        '第5节 名词拔高',
+        '第6节 方位介词',
+        '第7节 冠词基础',
+        '第9节 一般现在时'
+      ],
       type: 'instability',
-      solution: '答题不稳定。语法填空需综合运用"时态+主谓一致+词形变化+固定搭配"，建议回看【第1讲 语法概览】和【第9讲 一般现在时】，按四步法做题：①看时态标志词→②看主语定谓语→③看空格定词性→④核搭配。',
+      solution: '答题不稳定。语法填空需综合运用"时态+主谓一致+词形变化+固定搭配"，建议回看第1、2、3、4、5、6、7、9节语法回放，按四步法做题：①看时态标志词→②看主语定谓语→③看空格定词性→④核搭配。',
       extraPractice: '找辅导老师领取"语法填空四步法加餐练习"10题'
     }
   },
