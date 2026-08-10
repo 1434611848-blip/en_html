@@ -61,29 +61,26 @@ window.CloudBox = (function () {
     });
   }
 
-  // 列表摘要查询：只取 id/姓名/教师/时间/analysis，不拉 answers（省流量秒开）
+  // 一次性加载全部数据（记录少，无需懒加载）
   function fetchTeacherRecords(teacherName) {
     var filter = teacherName && teacherName !== '__all' ? '&teacher=eq.' + encodeURIComponent(teacherName) : '';
-    var path = TABLE + '?select=id,student_name,teacher,submitted_at,analysis' + filter + '&status=neq.deleted&order=submitted_at.desc';
+    var path = TABLE + '?select=id,student_name,teacher,submitted_at,answers,analysis' + filter + '&status=neq.deleted&order=submitted_at.desc';
     return request(path).then(function (rows) {
       return rows.map(function (row) {
-        var analysis = row.analysis || {};
-        var totals = analysis.totals || { score: 0, full: 100, rate: 0 };
-        var stats = analysis.stats || { right: 0, wrong: 0, blank: 0 };
         return {
           id: row.id,
           name: row.student_name || '',
           teacher: row.teacher || '',
           submittedAt: row.submitted_at,
-          answers: null,       // 详情懒加载
-          analysis: { totals: totals, stats: stats },  // 最小 analysis，列表够用
-          _detailLoaded: false  // 标记详情未加载
+          answers: row.answers || {},
+          analysis: row.analysis || {},
+          _detailLoaded: true  // 数据已完整加载
         };
       });
     });
   }
 
-  // 详情查询：点击展开时才加载单条记录的 answers + 完整 analysis
+  // 保留兼容（report.html 使用）
   function fetchRecordDetail(id) {
     var path = TABLE + '?select=id,answers,analysis&id=eq.' + encodeURIComponent(id) + '&limit=1';
     return request(path).then(function (rows) {
