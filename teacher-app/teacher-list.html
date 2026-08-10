@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>学生列表 · 教师端</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* 教师端列表专用样式 */
+    .teacher-shell { max-width: 900px; margin: 0 auto; min-height: 100vh; background: #f5f6f8; }
+    .teacher-header {
+      background: linear-gradient(135deg,#576b95,#44557a);
+      color: #fff; height: 52px; display: flex; align-items: center;
+      padding: 0 20px; position: sticky; top: 0; z-index: 10;
+    }
+    .teacher-header .title { font-size: 17px; font-weight: 600; flex: 1; text-align: center; }
+    .teacher-header .back-btn {
+      background: rgba(255,255,255,.15); border: none; color: #fff;
+      width: 36px; height: 36px; border-radius: 18px; font-size: 18px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .teacher-header .placeholder { width: 36px; }
+    .teacher-content { padding: 16px; padding-bottom: 60px; }
+
+    /* 教师切换标签 */
+    .teacher-tabs { display: flex; gap: 10px; margin-bottom: 16px; }
+    .teacher-tabs .tab {
+      flex: 1; background: #fff; border: 1px solid #dcdfe6; border-radius: 8px;
+      padding: 10px 16px; font-size: 14px; cursor: pointer; text-align: center;
+      transition: all .15s;
+    }
+    .teacher-tabs .tab.active { background: #576b95; color: #fff; border-color: #576b95; font-weight: 600; }
+
+    /* 数据概览 */
+    .overview-grid {
+      display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 16px;
+    }
+    .overview-grid .cell {
+      background: #fff; border-radius: 10px; padding: 14px; text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,.04);
+    }
+    .overview-grid .cell .n { font-size: 24px; font-weight: 700; color: #576b95; }
+    .overview-grid .cell .l { font-size: 12px; color: #888; margin-top: 2px; }
+
+    /* 学生列表 */
+    .student-list { background: #fff; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.04); overflow: hidden; }
+    .student-row {
+      display: flex; align-items: center; padding: 14px 18px;
+      border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background .12s;
+    }
+    .student-row:hover { background: #f9faff; }
+    .student-row:last-child { border-bottom: none; }
+    .student-row .s-name { font-size: 15px; font-weight: 600; color: #1f1f1f; flex: 1; }
+    .student-row .s-info { display: flex; gap: 16px; align-items: center; }
+    .student-row .s-score { font-size: 18px; font-weight: 700; min-width: 40px; text-align: right; }
+    .student-row .s-score.good { color: #0a7a3b; }
+    .student-row .s-score.mid { color: #c97a00; }
+    .student-row .s-score.bad { color: #a4262c; }
+    .student-row .s-rate { font-size: 13px; color: #666; min-width: 55px; text-align: right; }
+    .student-row .s-arrow { font-size: 14px; color: #bbb; margin-left: 8px; transition: transform .2s; }
+    .student-row.expanded .s-arrow { transform: rotate(90deg); }
+
+    /* 反馈方案书 */
+    .feedback-panel {
+      display: none; padding: 20px; background: #f9faff;
+      border-bottom: 1px solid #e8eaf0;
+    }
+    .feedback-panel.show { display: block; }
+
+    .feedback-doc {
+      background: #fff; border-radius: 12px; padding: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.06); max-width: 680px; margin: 0 auto;
+    }
+    .feedback-doc .doc-title {
+      text-align: center; font-size: 20px; font-weight: 700; color: #576b95;
+      padding-bottom: 12px; border-bottom: 2px solid #576b95; margin-bottom: 16px;
+    }
+    .feedback-doc .doc-info {
+      display: flex; justify-content: space-around; flex-wrap: wrap; gap: 8px;
+      background: #f5f6f8; border-radius: 8px; padding: 12px; margin-bottom: 16px; font-size: 13px; color: #444;
+    }
+    .feedback-doc .doc-info span { white-space: nowrap; }
+    .feedback-doc .doc-info b { color: #576b95; }
+
+    .feedback-doc .section-title {
+      font-size: 15px; font-weight: 700; color: #1f1f1f;
+      padding: 8px 12px; background: #eef1f7; border-radius: 6px; margin: 16px 0 10px;
+      border-left: 4px solid #576b95;
+    }
+
+    /* 知识点分组 */
+    .kp-group {
+      background: #fff; border: 1px solid #ececec; border-radius: 8px;
+      padding: 14px; margin-bottom: 12px;
+    }
+    .kp-group .kp-header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+    }
+    .kp-group .kp-name { font-size: 14px; font-weight: 600; color: #333; }
+    .kp-group .kp-questions { font-size: 12px; color: #888; }
+    .kp-group .kp-knowledge { font-size: 12.5px; color: #666; margin-bottom: 8px; line-height: 1.5; }
+    .kp-group .kp-type {
+      display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600;
+    }
+    .kp-type.basic { background: #fdecec; color: #a4262c; }
+    .kp-type.advanced { background: #e8f0ff; color: #1a5ec0; }
+    .kp-type.instability { background: #fff4e5; color: #a85b00; }
+
+    .solution-box {
+      background: #f8faff; border-radius: 8px; padding: 12px; margin-top: 8px;
+    }
+    .solution-box .sol-item { font-size: 13px; margin-bottom: 6px; line-height: 1.6; }
+    .solution-box .sol-item:last-child { margin-bottom: 0; }
+    .solution-box .sol-icon { margin-right: 4px; }
+
+    .doc-footer {
+      text-align: center; padding-top: 12px; border-top: 1px dashed #ddd; margin-top: 16px;
+      font-size: 12px; color: #999;
+    }
+
+    .export-bar {
+      display: flex; gap: 10px; margin-top: 14px; justify-content: center;
+    }
+    .export-bar button {
+      padding: 10px 24px; border-radius: 8px; font-size: 14px; cursor: pointer; border: none;
+    }
+    .btn-export { background: #07c160; color: #fff; }
+    .btn-export:active { background: #06ad56; }
+
+    .btn-del {
+      background: #f5f5f5; color: #999; border: 1px solid #e5e5e5;
+      border-radius: 6px; font-size: 12px; padding: 4px 10px; cursor: pointer;
+      margin-left: 10px; transition: all .15s;
+    }
+    .btn-del:hover { background: #fff0f0; color: #a4262c; border-color: #f3c2c5; }
+    .btn-del:active { background: #ffe0e0; }
+
+    .empty-state { text-align: center; padding: 48px 20px; color: #999; font-size: 14px; }
+
+    /* 薄弱考点简洁列表 */
+    .weak-list { margin: 0; padding: 0; list-style: none; }
+    .weak-list li {
+      display: flex; justify-content: space-between; align-items: center;
+      background: #fff; border: 1px solid #ececec; border-radius: 8px;
+      padding: 12px 14px; margin-bottom: 8px; font-size: 13.5px;
+    }
+    .weak-list .wk-name { font-weight: 600; color: #333; }
+    .weak-list .wk-meta { color: #888; font-size: 12px; text-align: right; max-width: 55%; }
+
+    /* 复习建议卡片 */
+    .advice-card { margin-bottom: 10px; }
+    .advice-card .advice-title {
+      font-size: 14px; font-weight: 700; color: #576b95; margin-bottom: 6px;
+    }
+    .advice-card .advice-item {
+      font-size: 13px; color: #444; line-height: 1.6; padding-left: 22px; position: relative;
+    }
+    .advice-card .advice-item::before { position: absolute; left: 0; content: '📌'; }
+
+    /* 开学前计划 */
+    .plan-box {
+      background: #f8faff; border-radius: 8px; padding: 14px;
+      font-size: 13px; color: #333; line-height: 1.7;
+    }
+    .plan-box .plan-title { font-weight: 700; color: #576b95; margin-bottom: 6px; }
+    .plan-box ul { margin: 6px 0; padding-left: 18px; }
+    .plan-box li { margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+  <div class="teacher-shell">
+    <header class="teacher-header">
+      <button class="back-btn" onclick="location.href='teacher.html'">‹</button>
+      <div class="title" id="headerTitle">学生列表</div>
+      <button class="back-btn" id="logoutBtn" title="切换老师">⎋</button>
+    </header>
+
+    <main class="teacher-content">
+      <!-- 教师切换 -->
+      <div class="teacher-tabs" id="teacherTabs">
+        <div class="tab" data-t="__all">全部学生</div>
+      </div>
+
+      <!-- 数据概览 -->
+      <div class="overview-grid">
+        <div class="cell"><div class="n" id="recCount">0</div><div class="l">学生数</div></div>
+        <div class="cell"><div class="n" id="avgScore">—</div><div class="l">平均分</div></div>
+        <div class="cell"><div class="n" id="maxScore">—</div><div class="l">最高分</div></div>
+        <div class="cell"><div class="n" id="passRate">—</div><div class="l">及格率%</div></div>
+      </div>
+      <div id="dataSourceInfo" style="font-size:12px;color:#888;margin-bottom:10px;display:flex;align-items:center;gap:6px;"></div>
+
+      <!-- 学生列表 -->
+      <div class="student-list" id="studentList">
+        <div class="empty-state">暂无学生提交记录</div>
+      </div>
+
+      <!-- 操作 -->
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <button class="btn-secondary" style="flex:1;padding:10px;border-radius:8px;" id="exportBtn">导出 CSV</button>
+        <button class="btn-secondary" style="flex:1;padding:10px;border-radius:8px;color:#a4262c;" id="clearBtn">清空数据</button>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/common.js?v=20260810n"></script>
+  <script src="js/storage.js?v=20260810n"></script>
+  <script src="js/supabase.js?v=20260810n"></script>
+  <script src="js/data.js?v=20260810n"></script>
+  <script src="js/analyzer.js?v=20260810n"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script>
+    Common.injectGlobalStyle();
+    var session = Common.requireTeacherSession();
+    if (!session) throw new Error('no session');
+    document.getElementById('headerTitle').textContent = session.teacher + ' · 学生列表';
+
+    var currentTeacher = session.teacher;
+    var expandedId = null; // 当前展开的学生ID
+
+    var tabsContainer = document.getElementById('teacherTabs');
+
+    function bindTabs() {
+      var tabs = tabsContainer.querySelectorAll('.tab');
+      tabs.forEach(function(t) { t.addEventListener('click', function() { setActive(t.dataset.t); }); });
+    }
+
+    function setActive(t) {
+      var tabs = tabsContainer.querySelectorAll('.tab');
+      tabs.forEach(function(x) { x.classList.toggle('active', x.dataset.t === t); });
+      currentTeacher = t;
+      expandedId = null;
+      render();
+      loadCloudRecords();
+    }
+
+    // 动态加载教师标签
+    CloudBox.fetchTeachers().then(function(teachers) {
+      var html = teachers.map(function(t) {
+        return '<div class="tab" data-t="' + Common.escapeHtml(t.name) + '">' + Common.escapeHtml(t.name) + '</div>';
+      }).join('');
+      html += '<div class="tab" data-t="__all">全部学生</div>';
+      tabsContainer.innerHTML = html;
+      bindTabs();
+      setActive(session.teacher);
+    }).catch(function(err) {
+      console.warn('加载教师列表失败：', err);
+      // 回退：至少有"全部学生"
+      bindTabs();
+      setActive(session.teacher);
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', function() {
+      Storage.clearTeacherSession();
+      location.href = 'teacher.html';
+    });
+
+    var cloudRecords = [];
+    var cloudReady = false;
+    var cloudLoading = false;
+    function getRecords() {
+      if (!cloudReady && !cloudLoading) {
+        // 云端失败后才用本地数据兜底
+        return Storage.loadRecords();
+      }
+      var all = cloudReady ? cloudRecords : [];
+      if (currentTeacher === '__all') return all;
+      return all.filter(function(r) { return r.teacher === currentTeacher; });
+    }
+    function loadCloudRecords() {
+      cloudLoading = true;
+      render();
+      CloudBox.fetchTeacherRecords(currentTeacher).then(function (rows) {
+        var deletedIds = Storage.loadDeletedCloudIds();
+        cloudRecords = rows.filter(function(r) { return deletedIds.indexOf(r.id) === -1; });
+        cloudReady = true;
+        cloudLoading = false;
+        render();
+      }).catch(function (err) {
+        console.warn('读取云端数据失败，使用本机数据：', err);
+        cloudReady = false;
+        cloudLoading = false;
+        render();
+      });
+    }
+
+    // 确保 analysis 包含 weakPoints（旧记录可能没有，用 analyzer 重新计算）
+    function ensureAnalysis(r) {
+      var a = r.analysis;
+      if (!a) return a;
+      // 总是用最新 analyzer 重新计算薄弱点，修复旧数据中的考点统计错误
+      if (r.answers && window.Analyzer && Analyzer.analyze) {
+        try { a = Analyzer.analyze(r.answers); } catch (e) { console.error('re-analyze failed:', e); }
+      }
+      return a;
+    }
+
+    function typeLabel(type) {
+      if (type === 'basic') return '基础不扎实';
+      if (type === 'advanced') return '升级题目';
+      return '答题不稳定';
+    }
+
+    function render() {
+      var dsEl = document.getElementById('dataSourceInfo');
+      // 加载中状态
+      if (cloudLoading && !cloudReady) {
+        document.getElementById('recCount').textContent = '—';
+        document.getElementById('avgScore').textContent = '—';
+        document.getElementById('maxScore').textContent = '—';
+        document.getElementById('passRate').textContent = '—';
+        dsEl.innerHTML = '<span style="color:#576b95;">⏳ 正在从云端加载…</span>';
+        var listEl = document.getElementById('studentList');
+        listEl.innerHTML = '<div class="empty-state" style="color:#576b95;">⏳ 正在加载数据，请稍候...</div>';
+        return;
+      }
+
+      var recs = getRecords().sort(function(a,b) { return b.analysis.totals.score - a.analysis.totals.score; });
+
+      // 数据来源指示
+      if (cloudReady) {
+        var deletedCount = Storage.loadDeletedCloudIds().length;
+        var html = '<span style="color:#0a7a3b;">☁ 云端数据</span>';
+        if (deletedCount > 0) {
+          html += '<span style="color:#c97a00;">⚠ 本机已标记删除 ' + deletedCount + ' 条（仅本设备生效）</span>';
+          html += ' <a href="javascript:void(0)" id="syncDeletedTip" style="color:#576b95;text-decoration:underline;">说明</a>';
+        }
+        dsEl.innerHTML = html;
+        var tipEl = document.getElementById('syncDeletedTip');
+        if (tipEl) tipEl.onclick = function() {
+          alert('删除标记仅保存在当前设备的浏览器中，不会同步到其他设备。\n\n如需在所有设备上一致显示，请联系开发者在 Supabase 后台开启 UPDATE 权限。');
+        };
+      } else {
+        dsEl.innerHTML = '<span style="color:#a4262c;font-weight:600;">⚠ 本地缓存数据（云端连接失败）</span> <a href="javascript:void(0)" id="retryCloudBtn" style="color:#576b95;text-decoration:underline;">重新加载</a>';
+        var retryBtn = document.getElementById('retryCloudBtn');
+        if (retryBtn) retryBtn.onclick = function() { loadCloudRecords(); };
+      }
+
+      // 概览
+      document.getElementById('recCount').textContent = recs.length;
+      if (recs.length) {
+        var scores = recs.map(function(r) { return r.analysis.totals.score; });
+        var avg = (scores.reduce(function(a,b){return a+b;},0) / scores.length).toFixed(1);
+        var max = Math.max.apply(null, scores);
+        var pass = (scores.filter(function(s) { return s >= 60; }).length / scores.length * 100).toFixed(0);
+        document.getElementById('avgScore').textContent = avg;
+        document.getElementById('maxScore').textContent = max;
+        document.getElementById('passRate').textContent = pass;
+      } else {
+        document.getElementById('avgScore').textContent = '—';
+        document.getElementById('maxScore').textContent = '—';
+        document.getElementById('passRate').textContent = '—';
+      }
+
+      // 列表
+      var listEl = document.getElementById('studentList');
+      if (!recs.length) {
+        listEl.innerHTML = '<div class="empty-state">暂无学生提交记录</div>';
+        return;
+      }
+
+      var html = '';
+      recs.forEach(function(r) {
+        var score = r.analysis.totals.score;
+        var rate = r.analysis.totals.rate;
+        var cls = score >= 60 ? (score >= 75 ? 'good' : 'mid') : 'bad';
+        var isExpanded = (expandedId === r.id);
+        html += '<div class="student-row' + (isExpanded ? ' expanded' : '') + '" data-id="' + r.id + '">'
+          + '<div class="s-name">' + Common.escapeHtml(r.name) + '</div>'
+          + '<div class="s-info">'
+            + '<div class="s-rate">正确率 ' + rate + '%</div>'
+            + '<div class="s-score ' + cls + '">' + score + '分</div>'
+            + '<button class="btn-del" data-del="' + r.id + '">删除</button>'
+            + '<div class="s-arrow">▶</div>'
+          + '</div>'
+        + '</div>';
+        // 反馈方案书面板
+        html += '<div class="feedback-panel' + (isExpanded ? ' show' : '') + '" id="fp_' + r.id + '">';
+        if (isExpanded && !r._detailLoaded) {
+          html += '<div style="padding:20px;text-align:center;color:#576b95;">⏳ 正在加载详情…</div>';
+        } else if (isExpanded && r._detailLoaded) {
+          html += buildFeedbackDoc(r);
+        } else {
+          html += '<div style="padding:12px;color:#999;font-size:13px;">点击查看学习报告</div>';
+        }
+        html += '</div>';
+      });
+      listEl.innerHTML = html;
+
+      // 绑定点击展开
+      listEl.querySelectorAll('.student-row').forEach(function(row) {
+        row.addEventListener('click', function() {
+          var id = row.dataset.id;
+          if (expandedId === id) {
+            expandedId = null;
+            render();
+          } else {
+            expandedId = id;
+            render();
+            // 懒加载详情数据
+            var rec = cloudRecords.find(function(r) { return String(r.id) === String(id); });
+            if (rec && !rec._detailLoaded) {
+              CloudBox.fetchRecordDetail(id).then(function(detail) {
+                rec.answers = detail.answers;
+                rec.analysis = detail.analysis;
+                rec._detailLoaded = true;
+                if (expandedId === id) render();
+              }).catch(function(err) {
+                console.warn('加载详情失败:', err);
+                var fp = document.getElementById('fp_' + id);
+                if (fp) fp.innerHTML = '<div style="padding:20px;text-align:center;color:#a4262c;">加载失败，请重试</div>';
+              });
+            }
+            setTimeout(function() {
+              var el = document.getElementById('fp_' + expandedId);
+              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+          }
+        });
+      });
+
+      // 绑定导出按钮
+      listEl.querySelectorAll('.btn-export').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var id = btn.dataset.id;
+          exportFeedbackImage(id);
+        });
+      });
+
+      // 绑定删除按钮
+      listEl.querySelectorAll('.btn-del').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var id = btn.dataset.del;
+          var rec = getRecords().find(function(r) { return String(r.id) === String(id); });
+          var name = rec ? rec.name : '该记录';
+          if (!confirm('确定删除「' + name + '」的提交记录吗？此操作不可恢复。')) return;
+          if (cloudReady) {
+            CloudBox.deleteRecord(id).then(function() {
+              // 云端删除成功，从本地列表移除（无需本地标记）
+              cloudRecords = cloudRecords.filter(function(r) { return String(r.id) !== String(id); });
+              if (expandedId === id) expandedId = null;
+              render();
+              Common.toast('已删除「' + name + '」的记录（云端已删除）', 'success');
+            }).catch(function(err) {
+              console.warn('云端删除失败，使用本地标记兜底:', err);
+              Storage.addDeletedCloudId(id);
+              cloudRecords = cloudRecords.filter(function(r) { return String(r.id) !== String(id); });
+              if (expandedId === id) expandedId = null;
+              render();
+              Common.toast('已删除「' + name + '」的记录（仅本设备生效）', 'success');
+            });
+          } else {
+            Storage.deleteRecord(id);
+            if (expandedId === id) expandedId = null;
+            render();
+            Common.toast('已删除「' + name + '」的记录', 'success');
+          }
+        });
+      });
+    }
+
+    function buildFeedbackDoc(r) {
+      var a = ensureAnalysis(r);
+      var wrong = a.wrongList || [];
+      var rate = a.totals.rate;
+
+      // 使用 analyzer.js 已经算好的薄弱知识点（已按错误数量倒序）
+      // 过滤出错题数量 ≥ 3 的严重薄弱点
+      var seriousGroups = (a.weakPoints || []).filter(function(wp) { return wp.wrongCount >= 3; }).filter(function(wp) { return wp.name.indexOf('语法填空综合') < 0; }).map(function(wp) {
+        return { key: wp.name, info: EXAM_DATA.matchLecture(wp.name), wrongCount: wp.wrongCount };
+      });
+
+      var html = '<div class="feedback-doc" id="doc_' + r.id + '">';
+      html += '<div class="doc-title">📚 摸底测学习报告</div>';
+      html += '<div class="doc-info">';
+      html += '<span>学生：<b>' + Common.escapeHtml(r.name) + '</b></span>';
+      html += '<span>老师：<b>' + Common.escapeHtml(r.teacher) + '</b></span>';
+      html += '<span>得分：<b>' + a.totals.score + '/' + a.totals.full + '</b></span>';
+      html += '<span>日期：<b>' + Common.formatDateTime(r.submittedAt) + '</b></span>';
+      html += '</div>';
+
+      // 第一部分：薄弱考点（丢分汇总）
+      html += '<div class="section-title">一、薄弱考点（丢分汇总）</div>';
+      if (!wrong.length) {
+        html += '<p style="font-size:14px;color:#0a7a3b;text-align:center;padding:12px;">🎉 全部正确，无薄弱考点！继续保持！</p>';
+      } else if (!seriousGroups.length) {
+        html += '<p style="font-size:13.5px;color:#666;text-align:center;padding:12px;">本次错题比较分散，没有集中的严重薄弱点，建议把错题再过一遍。</p>';
+      } else {
+        html += '<p style="font-size:13px;color:#666;margin:0 0 10px;">以下为本卷严重薄弱考点（错 3 题及以上）：</p>';
+        html += '<ul class="weak-list">';
+        seriousGroups.forEach(function(g) {
+          html += '<li>';
+          html += '<span class="wk-name">' + Common.escapeHtml(g.key) + '</span>';
+          html += '<span class="wk-meta">错 ' + g.wrongCount + ' 题</span>';
+          html += '</li>';
+        });
+        html += '</ul>';
+      }
+
+      // 第二部分：针对性复习建议
+      html += '<div class="section-title">二、针对性复习建议</div>';
+      if (!wrong.length) {
+        html += '<p style="font-size:14px;color:#0a7a3b;text-align:center;padding:12px;">可以适当预习新学期内容，挑战拔高练习！</p>';
+      } else if (!seriousGroups.length) {
+        html += '<p style="font-size:13.5px;color:#666;text-align:center;padding:12px;">错题较零散，建议把本次错题逐题订正，并巩固对应知识点。</p>';
+      } else {
+        seriousGroups.forEach(function(g) {
+          var textbook = textbookFromLectures(g.info.lectures);
+          var isReading = /阅读/.test(g.key);
+          html += '<div class="advice-card kp-group">';
+          html += '<div class="advice-title">' + Common.escapeHtml(g.key) + ' <span class="kp-type ' + g.info.type + '">' + typeLabel(g.info.type) + '</span></div>';
+          html += '<div class="advice-item">';
+          html += '看' + g.info.lectures.join('、') + '回放巩固"' + Common.escapeHtml(g.key) + '"，';
+          html += isReading ? '完成暑假课本对应阅读题目练习。' : '看完再做' + Common.escapeHtml(textbook) + '。';
+          html += '</div>';
+          html += '</div>';
+        });
+        html += '<p style="font-size:13px;color:#576b95;text-align:center;padding:10px 0 4px;margin:0;">💡 以上练习完成后还有疑问，可以找老师要加餐题目练习。</p>';
+      }
+
+      var score = a.totals.score;
+      var full = a.totals.full;
+
+      // 第三部分：开学前冲刺计划
+      html += '<div class="section-title">三、开学前冲刺计划</div>';
+      html += '<div class="plan-box">';
+      html += '<p class="plan-title">🌟 老师寄语</p>';
+      if (score === full) {
+        html += '<p>太棒了，满分拿下！这份成绩是你认真听讲、扎实练习的结果。继续保持，新学期可以挑战更高难度的内容，也可以多帮助身边同学一起进步！</p>';
+      } else if (rate >= 80) {
+        html += '<p>基础非常扎实，这次检测表现优秀！开学前保持每天背单词的习惯，再适当挑战一些拓展题型，新学期你会更从容。</p>';
+      } else if (rate >= 60) {
+        html += '<p>整体掌握不错，但还有可以提升的空间。按照下面的建议针对薄弱点再集中突破一下，开学后一定能稳上新台阶。加油！</p>';
+      } else {
+        html += '<p>这次分数不代表你的能力，只是提醒我们哪些地方需要多花点时间。暑假还有时间，把基础考点逐个过关，老师也会帮你。加油！</p>';
+      }
+      html += '<p class="plan-title" style="margin-top:12px;">📖 复习建议</p>';
+      html += '<ul>';
+      if (score === full) {
+        html += '<li><b>单词：</b>每天抽 10 分钟复习七年级核心词汇，保持语感。七年级上册单词背完后，继续背七年级下册单词，优先用爱学 App 的背单词功能坚持打卡。</li>';
+        html += '<li><b>错题：</b>本次没有错题，可以选做 1-2 道课外拓展题，保持题感即可。</li>';
+        html += '<li><b>小造课：</b>欢迎参加小造课试卷评讲，和老师一起帮助同学梳理思路，巩固自己的知识体系。</li>';
+      } else if (rate >= 80) {
+        html += '<li><b>单词：</b>每天抽 15 分钟背诵七年级核心词汇，重点复习本次错题涉及的单词和短语，建议用"先读准音、再记拼写、最后造句"三步法。</li>';
+        html += '<li><b>错题：</b>把标出的少量错题重新做一遍，搞懂每一处失误，避免下次再犯。</li>';
+        html += '<li><b>小造课：</b>记得参加小造课试卷评讲，老师会逐题梳理思路，帮你把最后几个漏洞补上。</li>';
+      } else if (rate >= 60) {
+        html += '<li><b>单词：</b>每天抽 15-20 分钟背诵七年级核心词汇，重点复习本次错题涉及的单词和短语，建议用"先读准音、再记拼写、最后造句"三步法。</li>';
+        html += '<li><b>错题：</b>把本次错题重新做一遍，尤其关注标出的薄弱考点，做懂比做多更重要。</li>';
+        html += '<li><b>小造课：</b>记得参加小造课试卷评讲，老师会逐题梳理思路和解题方法，这是非常宝贵的查漏补缺机会。</li>';
+      } else {
+        html += '<li><b>单词：</b>每天抽 20 分钟从最基础的七年级上册单词开始补起，重点记忆本次错题中反复出现的词汇，先读准音再记拼写。</li>';
+        html += '<li><b>错题：</b>把本次错题按薄弱考点分类，先从基础题入手，一步一步搞懂；不要盲目刷新题。</li>';
+        html += '<li><b>小造课：</b>一定要参加小造课试卷评讲，老师会放慢节奏逐题讲解，这是帮你重新建立信心的好机会。</li>';
+      }
+      html += '</ul>';
+      if (a.stats.blank > 0) {
+        html += '<p style="color:#a85b00;margin-top:8px;">⚠ 本次有 ' + a.stats.blank + ' 题未作答，下次考试要先做会做的，把基础分拿稳。</p>';
+      }
+      html += '</div>';
+
+      html += '</div>';
+
+      // 导出按钮
+      html += '<div class="export-bar">';
+      html += '<button class="btn-export" data-id="' + r.id + '">📋 复制成图片</button>';
+      html += '</div>';
+
+      return html;
+    }
+
+    // 根据回放讲次生成对应的暑假课本练习建议
+    function textbookFromLectures(lectures) {
+      if (!lectures || !lectures.length) return '暑假课本对应章节';
+      var topic = lectures[0].replace(/^第\d+讲\s*/, '').replace(/（.*?）/g, '').trim();
+      if (!topic) return '暑假课本对应章节';
+      return '暑假课本 · ' + topic + '相关练习';
+    }
+
+    // 导出反馈方案书为图片
+    function exportFeedbackImage(id) {
+      var docEl = document.getElementById('doc_' + id);
+      if (!docEl) return;
+      Common.toast('正在生成图片...', 'info');
+      html2canvas(docEl, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        logging: false
+      }).then(function(canvas) {
+        canvas.toBlob(function(blob) {
+          if (!blob) {
+            Common.toast('生成图片失败，请重试', 'error');
+            return;
+          }
+          if (typeof ClipboardItem === 'undefined' || !navigator.clipboard || !navigator.clipboard.write) {
+            Common.toast('当前浏览器不支持复制图片，请手动截图', 'warning');
+            return;
+          }
+          var item = new ClipboardItem({ 'image/png': blob });
+          navigator.clipboard.write([item]).then(function() {
+            Common.toast('图片已复制，可直接粘贴到微信', 'success');
+          }).catch(function(err) {
+            console.error('clipboard write error:', err);
+            Common.toast('复制失败，请手动截图', 'error');
+          });
+        }, 'image/png');
+      }).catch(function(err) {
+        console.error('html2canvas error:', err);
+        Common.toast('生成图片失败，请重试', 'error');
+      });
+    }
+
+    // 导出 CSV
+    document.getElementById('exportBtn').addEventListener('click', function() {
+      var recs = getRecords();
+      if (!recs.length) { Common.toast('暂无数据可导出', 'warning'); return; }
+      var head = ['姓名','老师','提交时间','总分','得分率%','答对','答错','未答'];
+      var lines = [head.join(',')];
+      recs.forEach(function(r) {
+        var a = r.analysis;
+        lines.push([
+          r.name, r.teacher, Common.formatDateTime(r.submittedAt),
+          a.totals.score, a.totals.rate,
+          a.stats.right, a.stats.wrong, a.stats.blank
+        ].join(','));
+      });
+      var csv = '\uFEFF' + lines.join('\n');
+      var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = '学生成绩-' + currentTeacher + '-' + Date.now() + '.csv';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      Common.toast('已导出 CSV', 'success');
+    });
+
+    // 清空数据
+    document.getElementById('clearBtn').addEventListener('click', function() {
+      if (!confirm('确定清空所有学生数据吗？此操作不可恢复！')) return;
+      Storage.clearAll();
+      Common.toast('已清空数据', 'success');
+      render();
+    });
+  </script>
+</body>
+</html>

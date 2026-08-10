@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>答题录入 · 暑假综合检测</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="mp-shell">
+    <header class="mp-header">
+      <button class="back-btn" onclick="history.back()">‹</button>
+      <div class="title">答题录入</div>
+      <div class="placeholder"></div>
+    </header>
+
+    <main class="mp-content">
+      <!-- 学生信息卡 -->
+      <section class="card">
+        <h3>📝 答题人</h3>
+        <div class="row between">
+          <div>
+            <div style="font-weight:600;font-size:16px;" id="displayName">—</div>
+            <div class="muted" style="font-size:12px;" id="displayTeacher">—</div>
+          </div>
+          <div class="tag" id="modeTag">手动录入</div>
+        </div>
+        <div class="progress" style="margin-top:10px;"><div class="bar" id="progBar" style="width:0%"></div></div>
+        <div class="muted text-center" style="font-size:12px;margin-top:4px;" id="progText">已作答 0 / 50 题</div>
+      </section>
+
+      <!-- 题型切换 -->
+      <div class="type-tabs" id="typeTabs">
+        <div class="tab active" data-type="choice">① 单项选择 20</div>
+        <div class="tab" data-type="cloze">② 完形填空 10</div>
+        <div class="tab" data-type="reading">③ 阅读理解 5</div>
+        <div class="tab" data-type="task">④ 任务型阅读 5</div>
+        <div class="tab" data-type="grammar">⑤ 语法填空 10</div>
+      </div>
+
+      <!-- 题容器 -->
+      <section id="questionsArea"></section>
+
+      <!-- 提示：OCR 问题题号 -->
+      <section class="card" id="ocrIssuesCard" style="display:none;border-left:3px solid #ff9a3c;">
+        <h3 style="color:#c97a00;">⚠️ OCR 需要你手动确认</h3>
+        <p class="muted" style="font-size:13px;margin:0 0 8px;">以下题号识别存在歧义或置信度低，请核对或手动选择答案：</p>
+        <div id="ocrIssuesList"></div>
+      </section>
+    </main>
+
+    <footer class="mp-footer">
+      <button class="btn-secondary" id="prevBtn">上一题型</button>
+      <button class="btn-primary" id="nextBtn">下一题型</button>
+    </footer>
+  </div>
+
+  <!-- 提交确认模态 -->
+  <div id="submitModal" class="modal-mask" style="display:none;">
+    <div class="modal">
+      <h3>提交确认</h3>
+      <p id="submitHint" style="font-size:14px;color:#444;"></p>
+      <p class="muted" style="font-size:12px;">提交后将立即生成您的专属报告。</p>
+      <div class="actions">
+        <button class="btn-secondary" id="submitCancel">再检查一下</button>
+        <button class="btn-primary" id="submitConfirm">确认提交</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/common.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/analyzer.js"></script>
+  <script>
+    Common.injectGlobalStyle();
+
+    const draft = Storage.loadDraft();
+    if (!draft || !draft.student) { location.href = 'student.html'; }
+    const fromOCR = Common.qs('from') === 'ocr';
+
+    document.getElementById('displayName').textContent = draft.student.name;
+    document.getElementById('displayTeacher').textContent = '所属老师：' + draft.student.teacher;
+    document.getElementById('modeTag').textContent = fromOCR ? 'OCR + 手动核对' : '手动录入';
+
+    // 初始化答案（来自 draft 或空）
+    const answers = {
+      choice: (draft.answers && draft.answers.choice) || {},
+      cloze:  (draft.answers && draft.answers.cloze)  || {},
+      reading: (draft.answers && draft.answers.reading) || {},
+      task:   (draft.answers && draft.answers.task)   || {},
+      grammar:(draft.answers && draft.answers.grammar)|| {}
+    };
+
+    // 显示 OCR issues（如有）
+    if (draft.ocrIssues && draft.ocrIssues.length) {
+      const card = document.getElementById('ocrIssuesCard');
+      card.style.display = '';
+      const list = document.getElementById('ocrIssuesList');
+      draft.ocrIssues.forEach(it => {
+        const tag = document.createElement('span');
+        tag.className = 'pill warn';
+        tag.style.marginRight = '6px';
+        tag.textContent = `第${it.no}题${it.suggestion ? ' (识别: ' + it.suggestion + ')' : ''}`;
+        list.appendChild(tag);
+      });
+    }
+
+    let currentType = 'choice';
+    const order = ['choice','cloze','reading','task','grammar'];
+
+    const typeNames = {
+      choice: '单项选择',
+      cloze: '完形填空',
+      reading: '阅读理解',
+      task: '任务型阅读',
+      grammar: '语法填空'
+    };
+
+    function escapeAttr(s){ return String(s||'').replace(/[<>"']/g, c=>({'<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+    function renderQuestion(q, type) {
+      const isChoiceLike = (type === 'choice' || type === 'cloze' || type === 'reading');
+      const opts = isChoiceLike ? q.options : null;
+      const cur = answers[type][q.no];
+      const stemHtml = `<div class="q-item">
+        <div><span class="qno">${q.no}.</span><span class="stem">${Common.escapeHtml(q.stem || q.label)}</span></div>`;
+      let body = '';
+      if (isChoiceLike) {
+        const cols = opts ? Object.keys(opts).length : 0;
+        body = `<div class="option-list cols-${Math.min(2, cols)}">`;
+        Object.keys(opts).forEach(L => {
+          const sel = cur === L ? 'selected' : '';
+          body += `<div class="opt ${sel}" data-type="${type}" data-no="${q.no}" data-letter="${L}">
+            <span class="ltr">${L}</span><span>${Common.escapeHtml(opts[L])}</span>
+          </div>`;
+        });
+        body += '</div>';
+      } else {
+        body = `<input type="text" class="fill-input" data-type="${type}" data-no="${q.no}" placeholder="请输入答案" value="${escapeAttr(cur||'')}">`;
+      }
+      return stemHtml + body + '</div>';
+    }
+
+    function renderSection() {
+      var sec = window.EXAM_DATA[currentType];
+      var area = document.getElementById('questionsArea');
+      var list = (currentType === 'task') ? (sec.blanks || []) : (sec.questions || []);
+      area.innerHTML = '<div class="card"><h3>' + sec.sectionName + '</h3></div>' +
+        list.map(function(q) { return renderQuestion(q, currentType); }).join('');
+      bindEvents();
+      updateProgress();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function bindEvents() {
+      document.querySelectorAll('.opt').forEach(el => {
+        el.addEventListener('click', () => {
+          const t = el.dataset.type;
+          const n = parseInt(el.dataset.no, 10);
+          const L = el.dataset.letter;
+          answers[t][n] = L;
+          // 视觉切换
+          el.parentElement.querySelectorAll('.opt').forEach(x => x.classList.remove('selected'));
+          el.classList.add('selected');
+          saveDraftAnswers();
+          updateProgress();
+        });
+      });
+      document.querySelectorAll('.fill-input').forEach(el => {
+        el.addEventListener('input', () => {
+          const t = el.dataset.type;
+          const n = parseInt(el.dataset.no, 10);
+          answers[t][n] = el.value.trim();
+          saveDraftAnswers();
+          updateProgress();
+        });
+      });
+    }
+
+    function saveDraftAnswers() {
+      draft.answers = answers;
+      Storage.saveDraft(draft);
+    }
+
+    function countAnswered() {
+      let total = 0, done = 0;
+      order.forEach(k => {
+        const list = (k === 'task') ? window.EXAM_DATA.task.blanks : window.EXAM_DATA[k].questions;
+        list.forEach(q => {
+          total++;
+          if (answers[k][q.no] && String(answers[k][q.no]).trim()) done++;
+        });
+      });
+      return { done, total };
+    }
+
+    function updateProgress() {
+      const { done, total } = countAnswered();
+      const pct = (done / total * 100).toFixed(0);
+      document.getElementById('progBar').style.width = pct + '%';
+      document.getElementById('progText').textContent = `已作答 ${done} / ${total} 题`;
+    }
+
+    // 题型切换
+    document.getElementById('typeTabs').addEventListener('click', e => {
+      const tab = e.target.closest('.tab');
+      if (!tab) return;
+      document.querySelectorAll('#typeTabs .tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      currentType = tab.dataset.type;
+      renderSection();
+      updateFooterBtn();
+    });
+
+    function updateFooterBtn() {
+      const idx = order.indexOf(currentType);
+      document.getElementById('prevBtn').disabled = (idx === 0);
+      document.getElementById('nextBtn').textContent = (idx === order.length - 1) ? '提交答卷' : '下一题型';
+    }
+
+    document.getElementById('prevBtn').addEventListener('click', () => {
+      const idx = order.indexOf(currentType);
+      if (idx > 0) { currentType = order[idx-1]; switchTab(currentType); }
+    });
+    document.getElementById('nextBtn').addEventListener('click', () => {
+      const idx = order.indexOf(currentType);
+      if (idx < order.length - 1) { currentType = order[idx+1]; switchTab(currentType); }
+      else confirmSubmit();
+    });
+
+    function switchTab(t) {
+      document.querySelectorAll('#typeTabs .tab').forEach(x => x.classList.toggle('active', x.dataset.type === t));
+      currentType = t;
+      renderSection();
+      updateFooterBtn();
+    }
+
+    function confirmSubmit() {
+      const { done, total } = countAnswered();
+      const blank = total - done;
+      const hint = `已作答 ${done} 题${blank ? `，还有 ${blank} 题未作答` : ''}。\n确认提交后系统将立即生成您的专属报告。`;
+      document.getElementById('submitHint').textContent = hint;
+      document.getElementById('submitModal').style.display = 'flex';
+    }
+    document.getElementById('submitCancel').addEventListener('click', () => document.getElementById('submitModal').style.display = 'none');
+    document.getElementById('submitConfirm').addEventListener('click', () => {
+      document.getElementById('submitModal').style.display = 'none';
+      // 计算分析结果
+      const analysis = Analyzer.analyze(answers);
+      const rec = Storage.addRecord({
+        name: draft.student.name,
+        teacher: draft.student.teacher,
+        mode: fromOCR ? 'ocr+manual' : 'manual',
+        answers: JSON.parse(JSON.stringify(answers)),
+        analysis
+      });
+      // 先保留本机记录，再上传云端；上传失败时仍可查看本机报告
+      const submitBtn = document.getElementById('submitConfirm');
+      submitBtn.disabled = true;
+      submitBtn.textContent = '正在保存到数据收集箱...';
+      CloudBox.uploadRecord(rec).then(function () {
+        Storage.clearDraft();
+        location.href = 'report.html?id=' + rec.id;
+      }).catch(function (err) {
+        console.error('CloudBox upload failed:', err);
+        submitBtn.disabled = false;
+        submitBtn.textContent = '确认提交';
+        alert('云端保存失败：' + (err.message || '请检查网络或 Supabase 配置') + '\n\n本机报告仍可查看。');
+        Storage.clearDraft();
+        location.href = 'report.html?id=' + rec.id;
+      });
+    });
+
+    // 初始化
+    renderSection();
+    updateFooterBtn();
+  </script>
+</body>
+</html>

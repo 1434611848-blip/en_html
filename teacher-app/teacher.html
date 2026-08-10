@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>教师工作台 · 暑假综合检测</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="mp-shell">
+    <header class="mp-header" style="background:#576b95;">
+      <div class="placeholder"></div>
+      <div class="title">教师工作台</div>
+      <div class="placeholder"></div>
+    </header>
+
+    <main class="mp-content">
+      <section class="hero" style="background:linear-gradient(135deg,#576b95,#44557a);">
+        <div class="logo">👩‍🏫</div>
+        <h1>教师工作台</h1>
+        <p>查看本班学生成绩 · 答题详情 · 个性化反馈方案书</p>
+      </section>
+
+      <section class="card">
+        <h3>选择身份</h3>
+        <p class="muted" style="font-size:13px;margin:0 0 14px;">请选择您的教师身份，进入对应班级的学生数据。</p>
+
+        <div class="radio-group" id="teacherPick" style="margin-bottom:16px;">
+          <p class="muted" id="teacherLoading" style="font-size:13px;margin:0;">正在加载教师列表...</p>
+        </div>
+
+        <p id="loginErr" class="muted" style="color:#a4262c;font-size:13px;display:none;"></p>
+
+        <button class="btn-primary" id="enterBtn" style="width:100%;margin-top:8px;">进入学生列表</button>
+      </section>
+
+      <section class="card">
+        <h3>📊 数据概览（全部）</h3>
+        <div class="summary-grid">
+          <div class="cell"><div class="n" id="recCount">0</div><div class="l">已提交学生</div></div>
+          <div class="cell"><div class="n" id="avgScore">—</div><div class="l">平均分</div></div>
+          <div class="cell"><div class="n" id="maxScore">—</div><div class="l">最高分</div></div>
+          <div class="cell"><div class="n" id="passRate">—</div><div class="l">及格率%</div></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>📋 功能说明</h3>
+        <ol style="margin:0;padding-left:18px;font-size:13px;color:#555;line-height:1.85;">
+          <li>选择身份后进入学生列表，纵向显示学生姓名、分数、正确率。</li>
+          <li>点击学生姓名展开个性化反馈方案书。</li>
+          <li>反馈方案书含错题知识点剖析归类 + 针对性解决方案。</li>
+          <li>支持一键保存反馈方案书为图片，可复制转发至微信。</li>
+        </ol>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/common.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/data.js"></script>
+  <script>
+    Common.injectGlobalStyle();
+
+    // 单选样式
+    document.getElementById('teacherPick').addEventListener('change', () => {
+      document.querySelectorAll('#teacherPick label').forEach(l => l.classList.remove('checked'));
+      const checked = document.querySelector('#teacherPick input:checked');
+      if (checked) checked.parentElement.classList.add('checked');
+    });
+
+    document.getElementById('enterBtn').addEventListener('click', () => {
+      const t = document.querySelector('#teacherPick input:checked');
+      const err = document.getElementById('loginErr');
+      if (!t) { err.textContent = '请选择教师身份'; err.style.display='block'; return; }
+      err.style.display = 'none';
+      Storage.setTeacherSession(t.value);
+      location.href = 'teacher-list.html';
+    });
+
+    // 动态加载教师列表
+    (function loadTeachers() {
+      var container = document.getElementById('teacherPick');
+      CloudBox.fetchTeachers().then(function(teachers) {
+        if (!teachers.length) {
+          container.innerHTML = '<p class="muted" style="font-size:13px;color:#a4262c;margin:0;">未找到教师数据，请检查数据库配置。</p>';
+          return;
+        }
+        container.innerHTML = teachers.map(function(t) {
+          return '<label data-value="' + Common.escapeHtml(t.name) + '">'
+            + '<input type="radio" name="t" value="' + Common.escapeHtml(t.name) + '">'
+            + '<span>' + Common.escapeHtml(t.name) + '</span>'
+            + '</label>';
+        }).join('');
+      }).catch(function(err) {
+        container.innerHTML = '<p class="muted" style="font-size:13px;color:#a4262c;margin:0;">加载教师列表失败：' + Common.escapeHtml(err.message) + '</p>';
+      });
+    })();
+
+    // 概览数据 — 从云端获取
+    (function renderOverview() {
+      var recCountEl = document.getElementById('recCount');
+      var avgScoreEl = document.getElementById('avgScore');
+      var maxScoreEl = document.getElementById('maxScore');
+      var passRateEl = document.getElementById('passRate');
+
+      CloudBox.fetchTeacherRecords('__all').then(function(records) {
+        recCountEl.textContent = records.length;
+        if (!records.length) return;
+        var scores = records.map(function(r) { return r.analysis.totals.score; });
+        var avg = (scores.reduce(function(a,b){return a+b;},0) / scores.length).toFixed(1);
+        var max = Math.max.apply(null, scores);
+        var pass = (scores.filter(function(s){return s >= 60;}).length / scores.length * 100).toFixed(0);
+        avgScoreEl.textContent = avg;
+        maxScoreEl.textContent = max;
+        passRateEl.textContent = pass;
+      }).catch(function(err) {
+        console.warn('云端概览加载失败，回退本机数据：', err);
+        var records = Storage.loadRecords();
+        recCountEl.textContent = records.length;
+        if (!records.length) return;
+        var scores = records.map(function(r) { return r.analysis.totals.score; });
+        avgScoreEl.textContent = (scores.reduce(function(a,b){return a+b;},0) / scores.length).toFixed(1);
+        maxScoreEl.textContent = Math.max.apply(null, scores);
+        passRateEl.textContent = (scores.filter(function(s){return s >= 60;}).length / scores.length * 100).toFixed(0);
+      });
+    })();
+  </script>
+</body>
+</html>

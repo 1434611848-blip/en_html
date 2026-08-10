@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>专属报告 · 暑假综合检测</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="mp-shell">
+    <header class="mp-header">
+      <button class="back-btn" onclick="location.href='index.html'">⌂</button>
+      <div class="title">我的专属报告</div>
+      <button class="back-btn" id="shareBtn" title="分享">↗</button>
+    </header>
+
+    <main class="mp-content">
+      <!-- 顶部得分 -->
+      <section class="score-hero">
+        <div style="font-size:13px;opacity:.9;" id="repName">—</div>
+        <div class="big" id="repScore">—</div>
+        <div class="full">满分 <span id="repFull">80</span> 分</div>
+        <div class="rate">得分率 <span id="repRate">—</span>%</div>
+        <div class="muted" style="font-size:12px;margin-top:6px;opacity:.85;" id="repTime">—</div>
+      </section>
+
+      <p class="muted text-center" style="font-size:11px;margin:6px 0 14px;">说明：本工具按答案卷实际覆盖的 80 分客观题计分（试卷题头标注"满分 100 分"，答案卷明确为 80 分）。</p>
+
+      <!-- 题型得分 -->
+      <section class="card">
+        <h3>📊 各题型得分</h3>
+        <div id="sectionScores"></div>
+      </section>
+
+      <!-- 总评 -->
+      <section class="card">
+        <h3>💬 老师寄语</h3>
+        <div id="comments" style="font-size:14px;color:#444;"></div>
+      </section>
+
+      <!-- 错题清单 -->
+      <section class="card" id="wrongSection">
+        <h3>❌ 错题诊断 <span class="muted" style="font-weight:normal;font-size:12px;" id="wrongCount">—</span></h3>
+        <div id="wrongList"></div>
+      </section>
+
+      <!-- 薄弱点 -->
+      <section class="card" id="weakSection">
+        <h3>🎯 薄弱点总结</h3>
+        <div id="weakList"></div>
+      </section>
+
+      <!-- 全题对错概览 -->
+      <section class="card">
+        <h3>📋 全题对错概览</h3>
+        <div id="allOverview" style="font-size:13px;"></div>
+      </section>
+
+      <p class="muted text-center" style="font-size:12px;margin-top:10px;">本报告已自动提交到教师端，老师可在后台查看。</p>
+
+      <div style="height:16px;"></div>
+      <div class="row" style="gap:10px;">
+        <button class="btn-secondary" style="flex:1;" onclick="location.href='index.html'">回到首页</button>
+        <button class="btn-primary" style="flex:1;" id="saveImgBtn">💾 保存为图片</button>
+        <button class="btn-primary" style="flex:1;" id="savePdfBtn">📄 保存为PDF</button>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/analyzer.js"></script>
+  <script>
+    Common.injectGlobalStyle();
+    const id = Common.qs('id');
+    const records = Storage.loadRecords();
+    const rec = records.find(r => r.id === id);
+    if (!rec) {
+      document.querySelector('.mp-content').innerHTML = '<div class="empty">未找到报告记录</div>';
+      throw new Error('no record');
+    }
+
+    document.getElementById('repName').textContent = `${rec.name} 同学 · ${rec.teacher}`;
+    document.getElementById('repScore').textContent = rec.analysis.totals.score;
+    document.getElementById('repFull').textContent = rec.analysis.totals.full;
+    document.getElementById('repRate').textContent = rec.analysis.totals.rate;
+    document.getElementById('repTime').textContent = '提交时间：' + Common.formatDateTime(rec.submittedAt);
+
+    // 各题型得分
+    const sectionScoresEl = document.getElementById('sectionScores');
+    const order = ['choice','cloze','reading','task','grammar'];
+    order.forEach(k => {
+      const s = rec.analysis.sections[k];
+      const pct = (s.score / s.full);
+      const cls = pct >= 0.85 ? 'good' : (pct >= 0.6 ? 'mid' : 'bad');
+      sectionScoresEl.insertAdjacentHTML('beforeend', `
+        <div class="section-bar">
+          <span class="name">${s.name}（每题 ${s.perScore} 分）</span>
+          <span class="score ${cls}">${s.score} / ${s.full}</span>
+        </div>`);
+    });
+
+    // 老师寄语
+    document.getElementById('comments').innerHTML =
+      rec.analysis.comments.map(c => `<p style="margin:6px 0;">${Common.escapeHtml(c)}</p>`).join('');
+
+    // 错题
+    const wrong = rec.analysis.wrongList;
+    document.getElementById('wrongCount').textContent = `共 ${wrong.length} 题`;
+    const wrongSection = document.getElementById('wrongSection');
+    if (!wrong.length) wrongSection.style.display = 'none';
+    else {
+      const wrongList = document.getElementById('wrongList');
+      wrong.forEach(it => {
+        wrongList.insertAdjacentHTML('beforeend', `
+          <div class="card wrong-card" style="margin-bottom:8px;">
+            <div class="head">
+              <span class="qno">${Common.escapeHtml(it.section)} · 第 ${it.no} 题</span>
+              <span class="pill wrong">你答：${Common.escapeHtml(it.student || '未作答')}</span>
+            </div>
+            <div class="stem">${Common.escapeHtml(it.stem)}</div>
+            <div class="answer-row">
+              <span class="lab">正确答案：</span>
+              <span class="ok">${Common.escapeHtml(it.correct)}</span>
+            </div>
+            <div class="diag"><b>📌 诊断：</b>${Common.escapeHtml(it.diagnosis)}</div>
+            <div class="tip"><b>💡 小贴士：</b>${Common.escapeHtml(it.tip || it.knowledge)}</div>
+            <div class="know">考点：${Common.escapeHtml(it.knowledge)}</div>
+          </div>
+        `);
+      });
+    }
+
+    // 薄弱点
+    const weak = rec.analysis.weakPoints;
+    const weakSection = document.getElementById('weakSection');
+    if (!weak.length) weakSection.style.display = 'none';
+    else {
+      const weakList = document.getElementById('weakList');
+      weak.forEach(w => {
+        weakList.insertAdjacentHTML('beforeend', `
+          <div class="card weakness-card" style="margin-bottom:8px;">
+            <h4>${Common.escapeHtml(w.name)} <span class="pill wrong" style="font-size:11px;">错 ${w.wrongCount} / 相关 ${w.totalRelated}</span></h4>
+            <div class="bad">${Common.escapeHtml(w.weakness)}</div>
+            <div class="advice"><b>🎯 提升建议：</b>${Common.escapeHtml(w.advice)}</div>
+          </div>
+        `);
+      });
+    }
+
+    // 全题概览
+    const overview = document.getElementById('allOverview');
+    let overviewHtml = '';
+    order.forEach(k => {
+      const s = rec.analysis.sections[k];
+      const pills = s.items.map(it => {
+        if (it.state === 'right') return `<span class="pill right" title="第${it.no}题：${Common.escapeHtml(it.student)}">${it.no}✓</span>`;
+        if (it.state === 'wrong') return `<span class="pill wrong" title="第${it.no}题：${Common.escapeHtml(it.student||'未答')}">${it.no}✗</span>`;
+        return `<span class="pill blank" title="第${it.no}题：未作答">${it.no}—</span>`;
+      }).join(' ');
+      overviewHtml += `<div style="margin-bottom:6px;"><b>${s.name}</b>：${pills}</div>`;
+    });
+    overview.innerHTML = overviewHtml;
+
+    // 分享（简易：复制链接到剪贴板）
+    document.getElementById('shareBtn').addEventListener('click', () => {
+      const txt = `【${rec.name}同学 · ${rec.teacher}】暑假综合检测试卷得分：${rec.analysis.totals.score}/${rec.analysis.totals.full}（${rec.analysis.totals.rate}%）`;
+      navigator.clipboard && navigator.clipboard.writeText(txt + '\n' + location.href);
+      Common.toast('已复制到剪贴板', 'success');
+    });
+
+    // 保存为图片
+    document.getElementById('saveImgBtn').addEventListener('click', () => {
+      const btn = document.getElementById('saveImgBtn');
+      const originalText = btn.textContent;
+      if (typeof html2canvas === 'undefined') {
+        Common.toast('html2canvas未加载，请检查网络', 'error');
+        return;
+      }
+      btn.textContent = '正在生成图片...';
+      btn.disabled = true;
+      const target = document.querySelector('.mp-content');
+      html2canvas(target, {
+        scale: 2,
+        backgroundColor: '#f5f6f8',
+        useCORS: true
+      }).then(canvas => {
+        const dataUrl = canvas.toDataURL('image/png');
+        // 弹层显示图片，长按/右键保存
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;';
+        const tip = document.createElement('p');
+        tip.textContent = '长按图片保存到手机 / 右键图片另存为';
+        tip.style.cssText = 'color:#fff;font-size:14px;margin-bottom:12px;text-align:center;';
+        const img = document.createElement('img');
+        img.src = dataUrl;
+        img.style.cssText = 'max-width:100%;max-height:80vh;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.5);';
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = '✕ 关闭';
+        closeBtn.style.cssText = 'margin-top:16px;padding:8px 24px;border:none;border-radius:20px;background:rgba(255,255,255,0.2);color:#fff;font-size:15px;cursor:pointer;';
+        closeBtn.onclick = () => overlay.remove();
+        overlay.appendChild(tip);
+        overlay.appendChild(img);
+        overlay.appendChild(closeBtn);
+        document.body.appendChild(overlay);
+        Common.toast('长按图片可保存', 'success');
+      }).catch(err => {
+        console.error('image generate error:', err);
+        Common.toast('保存失败：' + (err.message || err), 'error');
+      }).finally(() => {
+        btn.textContent = originalText;
+        btn.disabled = false;
+      });
+    });
+
+    // 保存为PDF
+    document.getElementById('savePdfBtn').addEventListener('click', () => {
+      const btn = document.getElementById('savePdfBtn');
+      const originalText = btn.textContent;
+      if (typeof html2canvas === 'undefined') {
+        Common.toast('html2canvas未加载，请检查网络', 'error');
+        return;
+      }
+      if (!window.jspdf) {
+        Common.toast('jsPDF未加载，请检查网络', 'error');
+        return;
+      }
+      btn.textContent = '正在生成PDF...';
+      btn.disabled = true;
+      const target = document.querySelector('.mp-content');
+      html2canvas(target, {
+        scale: 2,
+        backgroundColor: '#f5f6f8',
+        useCORS: true
+      }).then(canvas => {
+        const { jsPDF } = window.jspdf;
+        const imgData = canvas.toDataURL('image/png');
+        const imgW = canvas.width;
+        const imgH = canvas.height;
+        const pdfW = 210;
+        const pdfH = 297;
+        const ratio = imgH / imgW;
+        const renderW = pdfW - 20;
+        const renderH = renderW * ratio;
+        let heightLeft = renderH;
+        let position = 10;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        pdf.addImage(imgData, 'PNG', 10, position, renderW, renderH);
+        heightLeft -= (pdfH - 20);
+        while (heightLeft > 0) {
+          position = heightLeft - renderH + 10;
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', 10, position, renderW, renderH);
+          heightLeft -= (pdfH - 20);
+        }
+        const fileName = `专属报告_${rec.name}_${new Date().toISOString().slice(0, 10)}.pdf`;
+        const blob = pdf.output('blob');
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 30000);
+        Common.toast('PDF已下载', 'success');
+      }).catch(err => {
+        console.error('PDF generate error:', err);
+        Common.toast('保存失败：' + (err.message || err), 'error');
+      }).finally(() => {
+        btn.textContent = originalText;
+        btn.disabled = false;
+      });
+    });
+  </script>
+</body>
+</html>
