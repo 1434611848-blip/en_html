@@ -110,5 +110,13 @@ window.CloudBox = (function () {
     });
   }
 
-  return { uploadRecord: uploadRecord, fetchTeacherRecords: fetchTeacherRecords, fetchTeachers: fetchTeachers };
+  function deleteRecord(id) {
+    return request('/submissions?id=eq.' + encodeURIComponent(id), {
+      method: 'PATCH',
+      headers: { 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ status: 'deleted' })
+    });
+  }
+
+  return { uploadRecord: uploadRecord, fetchTeacherRecords: fetchTeacherRecords, fetchTeachers: fetchTeachers, deleteRecord: deleteRecord };
 })();

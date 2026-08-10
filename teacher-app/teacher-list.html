@@ -127,6 +127,14 @@
     .btn-export { background: #07c160; color: #fff; }
     .btn-export:active { background: #06ad56; }
 
+    .btn-del {
+      background: #f5f5f5; color: #999; border: 1px solid #e5e5e5;
+      border-radius: 6px; font-size: 12px; padding: 4px 10px; cursor: pointer;
+      margin-left: 10px; transition: all .15s;
+    }
+    .btn-del:hover { background: #fff0f0; color: #a4262c; border-color: #f3c2c5; }
+    .btn-del:active { background: #ffe0e0; }
+
     .empty-state { text-align: center; padding: 48px 20px; color: #999; font-size: 14px; }
 
     /* 薄弱考点简洁列表 */
@@ -333,6 +341,7 @@
           + '<div class="s-info">'
             + '<div class="s-rate">正确率 ' + rate + '%</div>'
             + '<div class="s-score ' + cls + '">' + score + '分</div>'
+            + '<button class="btn-del" data-del="' + r.id + '">删除</button>'
             + '<div class="s-arrow">▶</div>'
           + '</div>'
         + '</div>';
@@ -368,6 +377,33 @@
           e.stopPropagation();
           var id = btn.dataset.id;
           exportFeedbackImage(id);
+        });
+      });
+
+      // 绑定删除按钮
+      listEl.querySelectorAll('.btn-del').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var id = btn.dataset.del;
+          var rec = getRecords().find(function(r) { return String(r.id) === String(id); });
+          var name = rec ? rec.name : '该记录';
+          if (!confirm('确定删除「' + name + '」的提交记录吗？此操作不可恢复。')) return;
+          if (cloudReady) {
+            CloudBox.deleteRecord(id).then(function() {
+              cloudRecords = cloudRecords.filter(function(r) { return String(r.id) !== String(id); });
+              if (expandedId === id) expandedId = null;
+              render();
+              Common.toast('已删除「' + name + '」的记录', 'success');
+            }).catch(function(err) {
+              console.error('delete cloud error:', err);
+              Common.toast('删除失败：' + err.message, 'error');
+            });
+          } else {
+            Storage.deleteRecord(id);
+            if (expandedId === id) expandedId = null;
+            render();
+            Common.toast('已删除「' + name + '」的记录', 'success');
+          }
         });
       });
     }
