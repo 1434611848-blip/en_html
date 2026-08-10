@@ -188,6 +188,7 @@
         <div class="cell"><div class="n" id="maxScore">—</div><div class="l">最高分</div></div>
         <div class="cell"><div class="n" id="passRate">—</div><div class="l">及格率%</div></div>
       </div>
+      <div id="dataSourceInfo" style="font-size:12px;color:#888;margin-bottom:10px;display:flex;align-items:center;gap:6px;"></div>
 
       <!-- 学生列表 -->
       <div class="student-list" id="studentList">
@@ -202,11 +203,11 @@
     </main>
   </div>
 
-  <script src="js/common.js?v=20260810l"></script>
-  <script src="js/storage.js?v=20260810l"></script>
-  <script src="js/supabase.js?v=20260810l"></script>
-  <script src="js/data.js?v=20260810l"></script>
-  <script src="js/analyzer.js?v=20260810l"></script>
+  <script src="js/common.js?v=20260810m"></script>
+  <script src="js/storage.js?v=20260810m"></script>
+  <script src="js/supabase.js?v=20260810m"></script>
+  <script src="js/data.js?v=20260810m"></script>
+  <script src="js/analyzer.js?v=20260810m"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
     Common.injectGlobalStyle();
@@ -301,18 +302,39 @@
     }
 
     function render() {
+      var dsEl = document.getElementById('dataSourceInfo');
       // 加载中状态
       if (cloudLoading && !cloudReady) {
         document.getElementById('recCount').textContent = '—';
         document.getElementById('avgScore').textContent = '—';
         document.getElementById('maxScore').textContent = '—';
         document.getElementById('passRate').textContent = '—';
+        dsEl.innerHTML = '<span style="color:#576b95;">⏳ 正在从云端加载…</span>';
         var listEl = document.getElementById('studentList');
         listEl.innerHTML = '<div class="empty-state" style="color:#576b95;">⏳ 正在加载数据，请稍候...</div>';
         return;
       }
 
       var recs = getRecords().sort(function(a,b) { return b.analysis.totals.score - a.analysis.totals.score; });
+
+      // 数据来源指示
+      if (cloudReady) {
+        var deletedCount = Storage.loadDeletedCloudIds().length;
+        var html = '<span style="color:#0a7a3b;">☁ 云端数据</span>';
+        if (deletedCount > 0) {
+          html += '<span style="color:#c97a00;">⚠ 本机已标记删除 ' + deletedCount + ' 条（仅本设备生效）</span>';
+          html += ' <a href="javascript:void(0)" id="syncDeletedTip" style="color:#576b95;text-decoration:underline;">说明</a>';
+        }
+        dsEl.innerHTML = html;
+        var tipEl = document.getElementById('syncDeletedTip');
+        if (tipEl) tipEl.onclick = function() {
+          alert('删除标记仅保存在当前设备的浏览器中，不会同步到其他设备。\n\n如需在所有设备上一致显示，请联系开发者在 Supabase 后台开启 UPDATE 权限。');
+        };
+      } else {
+        dsEl.innerHTML = '<span style="color:#a4262c;font-weight:600;">⚠ 本地缓存数据（云端连接失败）</span> <a href="javascript:void(0)" id="retryCloudBtn" style="color:#576b95;text-decoration:underline;">重新加载</a>';
+        var retryBtn = document.getElementById('retryCloudBtn');
+        if (retryBtn) retryBtn.onclick = function() { loadCloudRecords(); };
+      }
 
       // 概览
       document.getElementById('recCount').textContent = recs.length;
@@ -397,17 +419,18 @@
           if (!confirm('确定删除「' + name + '」的提交记录吗？此操作不可恢复。')) return;
           if (cloudReady) {
             CloudBox.deleteRecord(id).then(function() {
+              // 云端删除成功，从本地列表移除（无需本地标记）
               cloudRecords = cloudRecords.filter(function(r) { return String(r.id) !== String(id); });
               if (expandedId === id) expandedId = null;
               render();
-              Common.toast('已删除「' + name + '」的记录', 'success');
+              Common.toast('已删除「' + name + '」的记录（云端已删除）', 'success');
             }).catch(function(err) {
               console.warn('云端删除失败，使用本地标记兜底:', err);
               Storage.addDeletedCloudId(id);
               cloudRecords = cloudRecords.filter(function(r) { return String(r.id) !== String(id); });
               if (expandedId === id) expandedId = null;
               render();
-              Common.toast('已删除「' + name + '」的记录', 'success');
+              Common.toast('已删除「' + name + '」的记录（仅本设备生效）', 'success');
             });
           } else {
             Storage.deleteRecord(id);

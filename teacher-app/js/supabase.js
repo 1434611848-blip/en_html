@@ -111,15 +111,23 @@ window.CloudBox = (function () {
   }
 
   function deleteRecord(id) {
+    // 先尝试 DELETE（硬删除），RLS 可能允许 DELETE 但不允许 UPDATE
     return request('/submissions?id=eq.' + encodeURIComponent(id), {
-      method: 'PATCH',
-      headers: { 'Prefer': 'return=representation' },
-      body: JSON.stringify({ status: 'deleted' })
+      method: 'DELETE',
+      headers: { 'Prefer': 'return=representation' }
     }).then(function(rows) {
-      if (!rows || rows.length === 0) {
-        throw new Error('RLS 策略阻止了更新，请在 Supabase 后台添加 UPDATE 权限');
-      }
-      return rows;
+      if (rows && rows.length > 0) return rows;
+      // DELETE 返回空，可能 RLS 也阻止了，尝试 PATCH 软删除
+      return request('/submissions?id=eq.' + encodeURIComponent(id), {
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify({ status: 'deleted' })
+      }).then(function(patchRows) {
+        if (!patchRows || patchRows.length === 0) {
+          throw new Error('RLS 策略阻止了删除和更新');
+        }
+        return patchRows;
+      });
     });
   }
 
