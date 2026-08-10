@@ -68,11 +68,11 @@
     </div>
   </div>
 
-  <script src="js/common.js?v=20260811d"></script>
-  <script src="js/storage.js?v=20260811d"></script>
-  <script src="js/supabase.js?v=20260811d"></script>
-  <script src="js/data.js?v=20260811d"></script>
-  <script src="js/analyzer.js?v=20260811d"></script>
+  <script src="js/common.js?v=20260811e"></script>
+  <script src="js/storage.js?v=20260811e"></script>
+  <script src="js/supabase.js?v=20260811e"></script>
+  <script src="js/data.js?v=20260811e"></script>
+  <script src="js/analyzer.js?v=20260811e"></script>
   <script>
     Common.injectGlobalStyle();
 
@@ -236,19 +236,20 @@
       document.getElementById('submitModal').style.display = 'none';
       // 计算分析结果
       const analysis = Analyzer.analyze(answers);
-      const rec = Storage.addRecord({
+      // 直接构建记录对象（不经过 Storage）
+      const rec = {
         name: studentName,
         teacher: studentTeacher,
-        mode: fromOCR ? 'ocr+manual' : 'manual',
         answers: JSON.parse(JSON.stringify(answers)),
-        analysis
-      });
+        analysis: analysis,
+        submittedAt: new Date().toISOString()
+      };
       // 上传云端数据库
       const submitBtn = document.getElementById('submitConfirm');
       submitBtn.disabled = true;
       submitBtn.textContent = '正在保存到数据库...';
       CloudBox.uploadRecord(rec).then(function (rows) {
-        var cloudId = rows && rows[0] && rows[0].id ? rows[0].id : rec.id;
+        var cloudId = rows && rows[0] && rows[0].id ? rows[0].id : '';
         location.href = 'report.html?id=' + encodeURIComponent(cloudId);
       }).catch(function (err) {
         console.error('CloudBox upload failed:', err);
