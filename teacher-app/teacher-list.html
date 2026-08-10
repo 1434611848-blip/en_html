@@ -128,6 +128,38 @@
     .btn-export:active { background: #06ad56; }
 
     .empty-state { text-align: center; padding: 48px 20px; color: #999; font-size: 14px; }
+
+    /* 薄弱考点简洁列表 */
+    .weak-list { margin: 0; padding: 0; list-style: none; }
+    .weak-list li {
+      display: flex; justify-content: space-between; align-items: center;
+      background: #fff; border: 1px solid #ececec; border-radius: 8px;
+      padding: 12px 14px; margin-bottom: 8px; font-size: 13.5px;
+    }
+    .weak-list .wk-name { font-weight: 600; color: #333; }
+    .weak-list .wk-meta { color: #888; font-size: 12px; text-align: right; max-width: 55%; }
+
+    /* 复习建议卡片 */
+    .advice-card { margin-bottom: 12px; }
+    .advice-card .advice-title {
+      font-size: 14px; font-weight: 700; color: #576b95; margin-bottom: 8px;
+    }
+    .advice-card .advice-item {
+      font-size: 13px; color: #444; line-height: 1.7; margin-bottom: 4px; padding-left: 22px; position: relative;
+    }
+    .advice-card .advice-item::before { position: absolute; left: 0; }
+    .advice-card .advice-item.replay::before { content: '📺'; }
+    .advice-card .advice-item.book::before { content: '📗'; }
+    .advice-card .advice-item.extra::before { content: '🍱'; }
+
+    /* 开学前计划 */
+    .plan-box {
+      background: #f8faff; border-radius: 8px; padding: 14px;
+      font-size: 13px; color: #333; line-height: 1.7;
+    }
+    .plan-box .plan-title { font-weight: 700; color: #576b95; margin-bottom: 6px; }
+    .plan-box ul { margin: 6px 0; padding-left: 18px; }
+    .plan-box li { margin-bottom: 6px; }
   </style>
 </head>
 <body>
@@ -349,17 +381,8 @@
       var groups = groupWrongByLecture(wrong);
       var rate = a.totals.rate;
 
-      // 总体评价
-      var overall = '';
-      if (rate >= 90) {
-        overall = '基础扎实、综合运用能力强，请继续保持并尝试更高难度的拓展练习。建议关注个别错题，查漏补缺即可。';
-      } else if (rate >= 75) {
-        overall = '整体掌握不错，针对薄弱知识点集中突破，可以再上一个台阶。建议优先解决"基础不扎实"类型的错题，再攻克"升级题目"。';
-      } else if (rate >= 60) {
-        overall = '基础部分有进步空间，建议针对错题集中的知识点逐个击破，并加强语篇训练。重点关注标红"基础不扎实"的知识点，回看对应讲义回放。';
-      } else {
-        overall = '这次分数偏低，不要灰心。先把高频考点（名词复数、时态、介词、代词、搭配）系统过一遍，再看同类练习巩固。建议从"基础不扎实"类型的错题开始，逐一回看对应讲义回放。';
-      }
+      // 按错题数量倒序，丢分多的考点排在前面
+      groups.sort(function(aa, bb) { return bb.questions.length - aa.questions.length; });
 
       var html = '<div class="feedback-doc" id="doc_' + r.id + '">';
       html += '<div class="doc-title">📚 个性化反馈方案书</div>';
@@ -371,54 +394,66 @@
       html += '<span>日期：<b>' + Common.formatDateTime(r.submittedAt) + '</b></span>';
       html += '</div>';
 
-      // 第一部分：错题知识点剖析归类
-      html += '<div class="section-title">一、错题知识点剖析归类</div>';
+      // 第一部分：薄弱考点（丢分汇总）
+      html += '<div class="section-title">一、薄弱考点（丢分汇总）</div>';
       if (!wrong.length) {
-        html += '<p style="font-size:14px;color:#0a7a3b;text-align:center;padding:12px;">🎉 全部正确，无错题！</p>';
+        html += '<p style="font-size:14px;color:#0a7a3b;text-align:center;padding:12px;">🎉 全部正确，无薄弱考点！继续保持！</p>';
       } else {
-        html += '<p style="font-size:13px;color:#666;margin:0 0 10px;">本次共错 <b style="color:#a4262c;">' + wrong.length + '</b> 题，按知识点归类如下：</p>';
+        html += '<p style="font-size:13px;color:#666;margin:0 0 10px;">本次共错 <b style="color:#a4262c;">' + wrong.length + '</b> 题，按丢分多少排列如下：</p>';
+        html += '<ul class="weak-list">';
         groups.forEach(function(g) {
           var qNos = g.questions.map(function(q) { return '第' + q.no + '题'; }).join('、');
-          html += '<div class="kp-group">';
-          html += '<div class="kp-header">';
-          html += '<span class="kp-name">' + Common.escapeHtml(g.key) + '</span>';
-          html += '<span class="kp-type ' + g.info.type + '">' + typeLabel(g.info.type) + '</span>';
-          html += '</div>';
-          html += '<div class="kp-questions">涉及题目：' + qNos + '（共' + g.questions.length + '题）</div>';
-          var kText = g.questions.map(function(q) { return q.knowledge; }).filter(function(v,i,arr){ return arr.indexOf(v) === i; }).join('；');
-          html += '<div class="kp-knowledge">📌 ' + Common.escapeHtml(kText) + '</div>';
-          html += '</div>';
+          html += '<li>';
+          html += '<span class="wk-name">' + Common.escapeHtml(g.key) + '</span>';
+          html += '<span class="wk-meta">错 ' + g.questions.length + ' 题（' + qNos + '）</span>';
+          html += '</li>';
         });
+        html += '</ul>';
       }
 
-      // 第二部分：针对性解决方案
-      html += '<div class="section-title">二、针对性解决方案（辅导老师建议）</div>';
+      // 第二部分：针对性复习建议
+      html += '<div class="section-title">二、针对性复习建议</div>';
       if (!wrong.length) {
-        html += '<p style="font-size:14px;color:#0a7a3b;text-align:center;padding:12px;">继续保持，可尝试拔高练习！</p>';
+        html += '<p style="font-size:14px;color:#0a7a3b;text-align:center;padding:12px;">可以适当预习新学期内容，挑战拔高练习！</p>';
       } else {
         groups.forEach(function(g) {
-          html += '<div class="kp-group">';
-          html += '<div class="kp-header">';
-          html += '<span class="kp-name">' + Common.escapeHtml(g.key) + '</span>';
-          html += '<span class="kp-type ' + g.info.type + '">' + typeLabel(g.info.type) + '</span>';
-          html += '</div>';
-          html += '<div class="solution-box">';
-          html += '<div class="sol-item"><span class="sol-icon">📺</span><b>建议回看：</b>' + g.info.lectures.join('、') + '</div>';
-          html += '<div class="sol-item"><span class="sol-icon">💡</span><b>辅导老师建议：</b>' + Common.escapeHtml(g.info.solution) + '</div>';
+          var textbook = textbookFromLectures(g.info.lectures);
+          html += '<div class="advice-card kp-group">';
+          html += '<div class="advice-title">' + Common.escapeHtml(g.key) + ' <span class="kp-type ' + g.info.type + '">' + typeLabel(g.info.type) + '</span></div>';
+          html += '<div class="advice-item replay"><b>看回放：</b>' + g.info.lectures.join('、') + '</div>';
+          html += '<div class="advice-item book"><b>做课本：</b>' + Common.escapeHtml(textbook) + '</div>';
           if (g.info.extraPractice) {
-            html += '<div class="sol-item"><span class="sol-icon">📝</span><b>加餐练习：</b>' + Common.escapeHtml(g.info.extraPractice) + '</div>';
+            html += '<div class="advice-item extra"><b>找老师：</b>' + Common.escapeHtml(g.info.extraPractice) + '</div>';
+          } else {
+            html += '<div class="advice-item extra"><b>找老师：</b>请辅导老师针对该考点准备一份加餐练习</div>';
           }
-          html += '</div>';
           html += '</div>';
         });
       }
 
-      // 第三部分：总体评价
-      html += '<div class="section-title">三、总体评价与下一步计划</div>';
-      html += '<div style="font-size:13.5px;color:#333;line-height:1.7;padding:4px 0;">' + Common.escapeHtml(overall) + '</div>';
-      if (a.stats.blank > 0) {
-        html += '<div style="font-size:12.5px;color:#a85b00;margin-top:6px;">⚠ 本次有 ' + a.stats.blank + ' 题未作答，建议先做会做的拿稳基础分，再攻克难题。</div>';
+      // 第三部分：开学前冲刺计划
+      html += '<div class="section-title">三、开学前冲刺计划</div>';
+      html += '<div class="plan-box">';
+      html += '<p class="plan-title">🌟 老师寄语</p>';
+      if (rate >= 90) {
+        html += '<p>基础非常扎实，这次检测表现优异！开学前保持每天背单词的习惯，再适当挑战一些拓展题型，新学期会更轻松。</p>';
+      } else if (rate >= 75) {
+        html += '<p>整体掌握不错，只要针对上面的薄弱考点再集中突破一下，开学后就能稳上新台阶。相信你可以做到！</p>';
+      } else if (rate >= 60) {
+        html += '<p>还有不小的进步空间，但方向已经明确了。按照上面的建议一项项落实，开学前把漏洞补上，新学期一定会有进步。</p>';
+      } else {
+        html += '<p>这次分数不代表你的能力，只是提醒我们哪些地方需要多花点时间。暑假还有时间，把基础考点逐个过关，老师也会帮你。加油！</p>';
       }
+      html += '<p class="plan-title" style="margin-top:12px;">📖 复习建议</p>';
+      html += '<ul>';
+      html += '<li><b>单词：</b>每天抽 15-20 分钟背诵七年级核心词汇，重点复习本次错题涉及的单词和短语，建议用"先读准音、再记拼写、最后造句"三步法。</li>';
+      html += '<li><b>错题：</b>把本次错题重新做一遍，尤其关注标出的薄弱考点，做懂比做多更重要。</li>';
+      html += '<li><b>小造课：</b>记得参加小造课试卷评讲，老师会逐题梳理思路和解题方法，这是非常宝贵的查漏补缺机会。</li>';
+      html += '</ul>';
+      if (a.stats.blank > 0) {
+        html += '<p style="color:#a85b00;margin-top:8px;">⚠ 本次有 ' + a.stats.blank + ' 题未作答，下次考试要先做会做的，把基础分拿稳。</p>';
+      }
+      html += '</div>';
 
       html += '<div class="doc-footer">— 亚飞/亚楠英语教研组 · 暑假综合检测 —</div>';
       html += '</div>';
@@ -429,6 +464,14 @@
       html += '</div>';
 
       return html;
+    }
+
+    // 根据回放讲次生成对应的暑假课本练习建议
+    function textbookFromLectures(lectures) {
+      if (!lectures || !lectures.length) return '暑假课本对应章节';
+      var topic = lectures[0].replace(/^第\d+讲\s*/, '').replace(/（.*?）/g, '').trim();
+      if (!topic) return '暑假课本对应章节';
+      return '暑假课本 · ' + topic + '相关练习';
     }
 
     // 导出反馈方案书为图片
