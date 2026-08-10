@@ -61,10 +61,10 @@ window.CloudBox = (function () {
     });
   }
 
-  // 一次性加载全部数据（记录少，无需懒加载）
+  // 轻量列表查询：只取 totals 和 stats（JSONB 提取），1.7KB vs 370KB
   function fetchTeacherRecords(teacherName) {
     var filter = teacherName && teacherName !== '__all' ? '&teacher=eq.' + encodeURIComponent(teacherName) : '';
-    var path = TABLE + '?select=id,student_name,teacher,submitted_at,answers,analysis' + filter + '&status=neq.deleted&order=submitted_at.desc';
+    var path = TABLE + '?select=id,student_name,teacher,submitted_at,analysis-%3Etotals,analysis-%3Estats' + filter + '&status=neq.deleted&order=submitted_at.desc';
     return request(path).then(function (rows) {
       return rows.map(function (row) {
         return {
@@ -72,23 +72,28 @@ window.CloudBox = (function () {
           name: row.student_name || '',
           teacher: row.teacher || '',
           submittedAt: row.submitted_at,
-          answers: row.answers || {},
-          analysis: row.analysis || {},
-          _detailLoaded: true  // 数据已完整加载
+          answers: null,
+          analysis: {
+            totals: row.totals || { score: 0, full: 80, rate: 0 },
+            stats: row.stats || { right: 0, wrong: 0, blank: 0, total: 0 }
+          },
+          _detailLoaded: false
         };
       });
     });
   }
 
-  // 保留兼容（report.html 使用）
+  // 详情查询：点击展开时加载单条记录的 answers，然后重新分析
   function fetchRecordDetail(id) {
-    var path = TABLE + '?select=id,answers,analysis&id=eq.' + encodeURIComponent(id) + '&limit=1';
+    var path = TABLE + '?select=answers&id=eq.' + encodeURIComponent(id) + '&limit=1';
     return request(path).then(function (rows) {
       if (!rows || !rows.length) throw new Error('记录不存在');
-      return {
-        answers: rows[0].answers || {},
-        analysis: rows[0].analysis || {}
-      };
+      var answers = rows[0].answers || {};
+      var analysis = {};
+      if (window.Analyzer && Analyzer.analyze) {
+        try { analysis = Analyzer.analyze(answers); } catch (e) { console.error('re-analyze failed:', e); }
+      }
+      return { answers: answers, analysis: analysis };
     });
   }
 
