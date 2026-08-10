@@ -52,18 +52,12 @@ window.CloudBox = (function () {
     });
   }
 
-  // 获取所有教师名（去重）
+  // 获取所有教师名（从 teachers 表）
   function fetchTeachers() {
-    return request(TABLE + '?select=teacher&status=neq.deleted').then(function (rows) {
-      var seen = {};
-      var result = [];
-      rows.forEach(function (row) {
-        if (row.teacher && !seen[row.teacher]) {
-          seen[row.teacher] = true;
-          result.push({ name: row.teacher });
-        }
-      });
-      return result;
+    return request('/teachers?select=name&order=name.asc').then(function (rows) {
+      return rows.map(function (row) {
+        return { name: row.name || '' };
+      }).filter(function (t) { return t.name; });
     });
   }
 
