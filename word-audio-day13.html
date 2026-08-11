@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>中考单词发音练习 - Day 12</title>
+<title>中考单词发音练习 - Day 13</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -71,30 +71,30 @@
 <p class="subtitle">点击卡片播放对应版本单词音频</p>
 
 <div class="grid">
-  <div class="card" onclick="playAudio(this, 0)"><span class="emoji">📘</span><div class="label">人教版</div><div class="tag">Day 12</div></div>
-  <div class="card" onclick="playAudio(this, 1)"><span class="emoji">📗</span><div class="label">沪教五四</div><div class="tag">Day 12</div></div>
-  <div class="card" onclick="playAudio(this, 2)"><span class="emoji">📙</span><div class="label">仁爱版</div><div class="tag">Day 12</div></div>
-  <div class="card" onclick="playAudio(this, 3)"><span class="emoji">📓</span><div class="label">外研版</div><div class="tag">Day 12</div></div>
-  <div class="card" onclick="playAudio(this, 4)"><span class="emoji">📔</span><div class="label">译林版</div><div class="tag">Day 12</div></div>
-  <div class="card" onclick="playAudio(this, 5)"><span class="emoji">📒</span><div class="label">沪教牛津</div><div class="tag">Day 12</div></div>
-  <div class="card" onclick="playAudio(this, 6)"><span class="emoji">📕</span><div class="label">鲁教版</div><div class="tag">Day 12</div></div>
-  <div class="card" onclick="playAudio(this, 7)"><span class="emoji">📖</span><div class="label">北师大</div><div class="tag">Day 12</div></div>
-  <div class="card" onclick="playAudio(this, 8)"><span class="emoji">📚</span><div class="label">冀教版</div><div class="tag">Day 12</div></div>
+  <div class="card" onclick="playAudio(this, 0)"><span class="emoji">📘</span><div class="label">人教版</div><div class="tag">Day 13</div></div>
+  <div class="card" onclick="playAudio(this, 1)"><span class="emoji">📗</span><div class="label">沪教五四</div><div class="tag">Day 13</div></div>
+  <div class="card" onclick="playAudio(this, 2)"><span class="emoji">📙</span><div class="label">仁爱版</div><div class="tag">Day 13</div></div>
+  <div class="card" onclick="playAudio(this, 3)"><span class="emoji">📓</span><div class="label">外研版</div><div class="tag">Day 13</div></div>
+  <div class="card" onclick="playAudio(this, 4)"><span class="emoji">📔</span><div class="label">译林版</div><div class="tag">Day 13</div></div>
+  <div class="card" onclick="playAudio(this, 5)"><span class="emoji">📒</span><div class="label">沪教牛津</div><div class="tag">Day 13</div></div>
+  <div class="card" onclick="playAudio(this, 6)"><span class="emoji">📕</span><div class="label">鲁教版</div><div class="tag">Day 13</div></div>
+  <div class="card" onclick="playAudio(this, 7)"><span class="emoji">📖</span><div class="label">北师大</div><div class="tag">Day 13</div></div>
+  <div class="card" onclick="playAudio(this, 8)"><span class="emoji">📚</span><div class="label">冀教版</div><div class="tag">Day 13</div></div>
 </div>
 
 <p class="footer">点击卡片即播 · 再次点击或点击其他卡片切换</p>
 
 <script>
 const audioPaths = [
-  'audio/%E4%BA%BA%E6%95%99day12.mp3',
-  'audio/%E6%B2%AA%E6%95%99day12.mp3',
-  'audio/%E4%BB%81%E7%88%B1%E7%89%88Day12.mp3',
-  'audio/%E5%A4%96%E7%A0%94%E7%89%88Day12.mp3',
-  'audio/%E8%AF%91%E6%9E%97%E7%89%88Day12.mp3',
-  'audio/%E6%B2%AA%E6%95%99%E7%89%9B%E6%B4%A5day12.mp3',
-  'audio/%E9%B2%81%E6%95%99%E7%89%88Day12.mp3',
-  'audio/%E5%8C%97%E5%B8%88%E5%A4%A7day12.mp3',
-  'audio/%E5%86%80%E6%95%99day12.mp3',
+  'audio/%E4%BA%BA%E6%95%99day13.mp3',
+  'audio/%E6%B2%AA%E6%95%99day13.mp3',
+  'audio/%E4%BB%81%E7%88%B1%E7%89%88Day13.mp3',
+  'audio/%E5%A4%96%E7%A0%94%E7%89%88Day13.mp3',
+  'audio/%E8%AF%91%E6%9E%97%E7%89%88Day13.mp3',
+  'audio/%E6%B2%AA%E6%95%99%E7%89%9B%E6%B4%A5day13.mp3',
+  'audio/%E9%B2%81%E6%95%99%E7%89%88Day13.mp3',
+  'audio/%E5%8C%97%E5%B8%88%E5%A4%A7day13.mp3',
+  'audio/%E5%86%80%E6%95%99day13.mp3',
 ];
 
 const audios = [];
@@ -102,7 +102,6 @@ const preloaded = [];
 let currentAudio = null;
 let currentCard = null;
 
-// 页面加载时预加载所有音频
 audioPaths.forEach(function(path, i) {
   var a = new Audio();
   a.preload = 'auto';
@@ -127,7 +126,6 @@ function playAudio(card, index) {
     audio.play().catch(function(e) { card.classList.remove('playing'); currentAudio = null; currentCard = null; });
   } else {
     card.classList.add('loading');
-    // 预加载失败时重建 Audio 对象，避免复用已 error 的实例
     audio = new Audio(audioPaths[index]);
     audio.preload = 'auto';
     audios[index] = audio;

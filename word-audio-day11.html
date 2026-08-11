@@ -127,13 +127,17 @@ function playAudio(card, index) {
     audio.play().catch(function(e) { card.classList.remove('playing'); currentAudio = null; currentCard = null; });
   } else {
     card.classList.add('loading');
-    audio.load();
+    audio = new Audio(audioPaths[index]);
+    audio.preload = 'auto';
+    audios[index] = audio;
+    currentAudio = audio;
     audio.oncanplaythrough = function() {
       preloaded[index] = true;
       card.classList.remove('loading');
       card.classList.add('playing');
       audio.play().catch(function(e) { card.classList.remove('playing'); currentAudio = null; currentCard = null; });
     };
+    audio.load();
   }
 
   audio.onended = function() { card.classList.remove('playing', 'loading'); currentAudio = null; currentCard = null; };
