@@ -203,11 +203,11 @@
     </main>
   </div>
 
-  <script src="js/common.js?v=20260811k"></script>
-  <script src="js/storage.js?v=20260811k"></script>
-  <script src="js/supabase.js?v=20260811k"></script>
-  <script src="js/data.js?v=20260811k"></script>
-  <script src="js/analyzer.js?v=20260811k"></script>
+  <script src="js/common.js?v=20260811l"></script>
+  <script src="js/storage.js?v=20260811l"></script>
+  <script src="js/supabase.js?v=20260811l"></script>
+  <script src="js/data.js?v=20260811l"></script>
+  <script src="js/analyzer.js?v=20260811l"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
     Common.injectGlobalStyle();
@@ -526,14 +526,7 @@
           html += '<div class="advice-card kp-group">';
           html += '<div class="advice-title">' + Common.escapeHtml(wp.name) + ' <span class="kp-type ' + info.type + '">' + typeLabel(info.type) + '</span></div>';
           html += '<div class="advice-item">';
-          html += '该考点错了 ' + wp.wrongCount + ' 题。建议先看' + info.lectures.join('、') + '回放，';
-          if (isReading) {
-            html += '然后完成暑假课本对应阅读题目练习。';
-          } else if (isCloze) {
-            html += '然后做暑假课本对应完形填空练习。';
-          } else {
-            html += '再做' + Common.escapeHtml(textbook) + '。';
-          }
+          html += '该考点错了 ' + wp.wrongCount + ' 题。建议先看' + info.lectures.join('、') + '回放，再去完成暑假课本对应课节的练习题。';
           html += '</div>';
           html += '</div>';
         });
