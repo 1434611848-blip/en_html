@@ -97,50 +97,47 @@ const audioPaths = [
   'audio/%E5%86%80%E6%95%99day13.mp3',
 ];
 
-const audios = [];
-const preloaded = [];
 let currentAudio = null;
 let currentCard = null;
 
-audioPaths.forEach(function(path, i) {
-  var a = new Audio();
-  a.preload = 'auto';
-  a.src = path;
-  a.oncanplaythrough = function() { preloaded[i] = true; };
-  a.onerror = function() { preloaded[i] = false; };
-  audios[i] = a;
-});
-
 function playAudio(card, index) {
-  if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; }
+  // 停止当前播放
+  if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; currentAudio = null; }
   if (currentCard) { currentCard.classList.remove('playing', 'loading'); }
-  if (currentCard === card && currentAudio) { currentAudio = null; currentCard = null; return; }
+  // 再次点击同一卡片：停止
+  if (currentCard === card) { currentCard = null; return; }
 
-  var audio = audios[index];
-  audio.currentTime = 0;
-  currentAudio = audio;
   currentCard = card;
+  card.classList.add('loading');
 
-  if (preloaded[index]) {
+  // 每次点击新建 Audio 实例，确保 play() 在用户交互上下文中
+  var audio = new Audio(audioPaths[index]);
+  audio.preload = 'auto';
+  currentAudio = audio;
+
+  audio.oncanplaythrough = function() {
+    card.classList.remove('loading');
     card.classList.add('playing');
-    audio.play().catch(function(e) { card.classList.remove('playing'); currentAudio = null; currentCard = null; });
-  } else {
-    card.classList.add('loading');
-    audio = new Audio(audioPaths[index]);
-    audio.preload = 'auto';
-    audios[index] = audio;
-    currentAudio = audio;
-    audio.oncanplaythrough = function() {
-      preloaded[index] = true;
-      card.classList.remove('loading');
-      card.classList.add('playing');
-      audio.play().catch(function(e) { card.classList.remove('playing'); currentAudio = null; currentCard = null; });
-    };
-    audio.load();
-  }
+  };
+  audio.onended = function() {
+    card.classList.remove('playing', 'loading');
+    currentAudio = null; currentCard = null;
+  };
+  audio.onerror = function() {
+    card.classList.remove('playing', 'loading');
+    currentAudio = null; currentCard = null;
+    alert('音频加载失败，请检查网络后重试');
+  };
 
-  audio.onended = function() { card.classList.remove('playing', 'loading'); currentAudio = null; currentCard = null; };
-  audio.onerror = function() { card.classList.remove('playing', 'loading'); currentAudio = null; currentCard = null; alert('音频加载失败'); };
+  // 关键：play() 必须在用户点击的同步上下文中调用
+  audio.play().then(function() {
+    card.classList.remove('loading');
+    card.classList.add('playing');
+  }).catch(function(e) {
+    card.classList.remove('playing', 'loading');
+    currentAudio = null; currentCard = null;
+    alert('播放失败：' + e.message);
+  });
 }
 </script>
 </body>
