@@ -68,44 +68,32 @@
     </div>
   </div>
 
-  <script src="js/common.js"></script>
-  <script src="js/storage.js"></script>
-  <script src="js/supabase.js"></script>
-  <script src="js/data.js"></script>
-  <script src="js/analyzer.js"></script>
+  <script src="js/common.js?v=20260811l"></script>
+  <script src="js/storage.js?v=20260811l"></script>
+  <script src="js/supabase.js?v=20260811l"></script>
+  <script src="js/data.js?v=20260811l"></script>
+  <script src="js/analyzer.js?v=20260811l"></script>
   <script>
     Common.injectGlobalStyle();
 
-    const draft = Storage.loadDraft();
-    if (!draft || !draft.student) { location.href = 'student.html'; }
-    const fromOCR = Common.qs('from') === 'ocr';
+    // 从 URL 参数读取学生信息（不使用 localStorage）
+    var studentName = Common.qs('name');
+    var studentTeacher = Common.qs('teacher');
+    if (!studentName || !studentTeacher) { location.href = 'student.html'; }
+    var fromOCR = Common.qs('from') === 'ocr';
 
-    document.getElementById('displayName').textContent = draft.student.name;
-    document.getElementById('displayTeacher').textContent = '所属老师：' + draft.student.teacher;
+    document.getElementById('displayName').textContent = studentName;
+    document.getElementById('displayTeacher').textContent = '所属老师：' + studentTeacher;
     document.getElementById('modeTag').textContent = fromOCR ? 'OCR + 手动核对' : '手动录入';
 
-    // 初始化答案（来自 draft 或空）
+    // 答案保存在内存中（不使用 localStorage）
     const answers = {
-      choice: (draft.answers && draft.answers.choice) || {},
-      cloze:  (draft.answers && draft.answers.cloze)  || {},
-      reading: (draft.answers && draft.answers.reading) || {},
-      task:   (draft.answers && draft.answers.task)   || {},
-      grammar:(draft.answers && draft.answers.grammar)|| {}
+      choice: {},
+      cloze:  {},
+      reading: {},
+      task:   {},
+      grammar: {}
     };
-
-    // 显示 OCR issues（如有）
-    if (draft.ocrIssues && draft.ocrIssues.length) {
-      const card = document.getElementById('ocrIssuesCard');
-      card.style.display = '';
-      const list = document.getElementById('ocrIssuesList');
-      draft.ocrIssues.forEach(it => {
-        const tag = document.createElement('span');
-        tag.className = 'pill warn';
-        tag.style.marginRight = '6px';
-        tag.textContent = `第${it.no}题${it.suggestion ? ' (识别: ' + it.suggestion + ')' : ''}`;
-        list.appendChild(tag);
-      });
-    }
 
     let currentType = 'choice';
     const order = ['choice','cloze','reading','task','grammar'];
@@ -180,8 +168,7 @@
     }
 
     function saveDraftAnswers() {
-      draft.answers = answers;
-      Storage.saveDraft(draft);
+      // 答案保存在内存中，不持久化
     }
 
     function countAnswered() {
@@ -249,27 +236,26 @@
       document.getElementById('submitModal').style.display = 'none';
       // 计算分析结果
       const analysis = Analyzer.analyze(answers);
-      const rec = Storage.addRecord({
-        name: draft.student.name,
-        teacher: draft.student.teacher,
-        mode: fromOCR ? 'ocr+manual' : 'manual',
+      // 直接构建记录对象（不经过 Storage）
+      const rec = {
+        name: studentName,
+        teacher: studentTeacher,
         answers: JSON.parse(JSON.stringify(answers)),
-        analysis
-      });
-      // 先保留本机记录，再上传云端；上传失败时仍可查看本机报告
+        analysis: analysis,
+        submittedAt: new Date().toISOString()
+      };
+      // 上传云端数据库
       const submitBtn = document.getElementById('submitConfirm');
       submitBtn.disabled = true;
-      submitBtn.textContent = '正在保存到数据收集箱...';
-      CloudBox.uploadRecord(rec).then(function () {
-        Storage.clearDraft();
-        location.href = 'report.html?id=' + rec.id;
+      submitBtn.textContent = '正在保存到数据库...';
+      CloudBox.uploadRecord(rec).then(function (rows) {
+        var cloudId = rows && rows[0] && rows[0].id ? rows[0].id : '';
+        location.href = 'report.html?id=' + encodeURIComponent(cloudId);
       }).catch(function (err) {
         console.error('CloudBox upload failed:', err);
         submitBtn.disabled = false;
         submitBtn.textContent = '确认提交';
-        alert('云端保存失败：' + (err.message || '请检查网络或 Supabase 配置') + '\n\n本机报告仍可查看。');
-        Storage.clearDraft();
-        location.href = 'report.html?id=' + rec.id;
+        alert('保存失败：' + (err.message || '请检查网络') + '\n\n请重新点击确认提交。');
       });
     });
 

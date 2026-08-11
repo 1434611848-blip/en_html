@@ -1,8 +1,9 @@
-/* Supabase 云端数据收集箱客户端 */
+/* Supabase 云端数据收集箱客户端 — 使用 exam_records 扁平表 */
 window.CloudBox = (function () {
-  var SUPABASE_URL = 'https://ilywffybxgogvvuaynvo.supabase.co';
-  var SUPABASE_KEY = 'sb_publishable_NI1StV7zqLdysR3jHo6h6A_AujM62v4';
+  var SUPABASE_URL = 'https://xwnvsydndaclamzcfrpl.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_PATbkfSdIrjUug0C7qqnsg__fGlTOLZ';
   var API = SUPABASE_URL + '/rest/v1';
+  var TABLE = '/exam_records';
 
   function headers(extra) {
     var h = {
@@ -29,125 +30,110 @@ window.CloudBox = (function () {
     });
   }
 
-  function one(path) {
-    return request(path, { headers: { 'Accept': 'application/json' } }).then(function (rows) {
-      return rows && rows[0] ? rows[0] : null;
-    });
+  // 生成唯一 record_id
+  function genRecordId() {
+    return 'rec_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   }
 
-  function findTeacher(name) {
-    return one('/teachers?select=id,teacher_name&teacher_name=eq.' + encodeURIComponent(name) + '&is_active=eq.true&limit=1');
-  }
-
-  function findExam() {
-    return one('/exams?select=id&exam_code=eq.summer_english_grade7&version=eq.v1&is_active=eq.true&limit=1');
-  }
-
-  function findOrCreateStudent(teacherId, name) {
-    var query = '/students?select=id&teacher_id=eq.' + encodeURIComponent(teacherId) + '&student_name=eq.' + encodeURIComponent(name) + '&limit=1';
-    return one(query).then(function (row) {
-      if (row) return row;
-      return request('/students?select=id', {
-        method: 'POST',
-        headers: { 'Prefer': 'return=representation' },
-        body: JSON.stringify({ teacher_id: teacherId, student_name: name })
-      }).then(function (rows) { return rows[0]; });
-    });
-  }
-
+  // 上传考试记录 — 扁平表，直接存 student_name / teacher
   function uploadRecord(rec) {
-    return Promise.all([findTeacher(rec.teacher), findExam()]).then(function (base) {
-      if (!base[0]) throw new Error('云端未找到所属老师：' + rec.teacher);
-      if (!base[1]) throw new Error('云端未找到试卷版本，请先执行 Supabase SQL');
-      return findOrCreateStudent(base[0].id, rec.name).then(function (student) {
-        return request('/submissions?select=id', {
-          method: 'POST',
-          headers: { 'Prefer': 'return=representation' },
-          body: JSON.stringify({
-            student_id: student.id,
-            teacher_id: base[0].id,
-            exam_id: base[1].id,
-            input_mode: rec.mode === 'ocr+manual' ? 'ocr_manual' : 'manual',
-            status: 'submitted',
-            score: rec.analysis.totals.score,
-            full_score: rec.analysis.totals.full,
-            accuracy: rec.analysis.totals.rate,
-            right_count: rec.analysis.stats.right,
-            wrong_count: rec.analysis.stats.wrong,
-            blank_count: rec.analysis.stats.blank,
-            raw_answers: rec.answers,
-            analysis_json: rec.analysis,
-            submitted_at: rec.submittedAt
-          })
-        });
-      });
+    return request(TABLE + '?select=id', {
+      method: 'POST',
+      headers: { 'Prefer': 'return=representation' },
+      body: JSON.stringify({
+        record_id: genRecordId(),
+        student_name: rec.name,
+        teacher: rec.teacher,
+        answers: rec.answers,
+        analysis: rec.analysis,
+        submitted_at: rec.submittedAt,
+        status: 'submitted'
+      })
     });
   }
 
+  // 获取所有教师名（从 teachers 表）
   function fetchTeachers() {
-    return request('/teachers?select=id,teacher_name&is_active=eq.true&order=created_at.asc').then(function (rows) {
+    return request('/teachers?select=name&order=created_at.asc').then(function (rows) {
       return rows.map(function (row) {
-        return { id: row.id, name: row.teacher_name };
-      });
+        return { name: row.name || '' };
+      }).filter(function (t) { return t.name; });
     });
   }
 
-  // 列表摘要查询：只取小字段，约 4KB，秒开
+  // 轻量列表查询：只取 totals 和 stats（JSONB 提取），1.7KB vs 370KB
   function fetchTeacherRecords(teacherName) {
-    var filter = teacherName && teacherName !== '__all' ? '&teachers.teacher_name=eq.' + encodeURIComponent(teacherName) : '';
-    var path = '/submissions?select=id,score,full_score,accuracy,right_count,wrong_count,blank_count,submitted_at,teachers!inner(teacher_name),students!inner(student_name)&status=neq.deleted' + filter + '&order=submitted_at.desc';
+    var filter = teacherName && teacherName !== '__all' ? '&teacher=eq.' + encodeURIComponent(teacherName) : '';
+    var path = TABLE + '?select=id,student_name,teacher,submitted_at,analysis-%3Etotals,analysis-%3Estats' + filter + '&status=neq.deleted&order=submitted_at.desc';
     return request(path).then(function (rows) {
       return rows.map(function (row) {
-        // 用平铺字段构造最小 analysis 对象，供列表渲染
-        var analysis = {
-          totals: { score: row.score || 0, full: row.full_score || 100, rate: row.accuracy || 0 },
-          stats: { right: row.right_count || 0, wrong: row.wrong_count || 0, blank: row.blank_count || 0 }
-        };
         return {
           id: row.id,
-          name: row.students && row.students.student_name || '',
-          teacher: row.teachers && row.teachers.teacher_name || '',
+          name: row.student_name || '',
+          teacher: row.teacher || '',
           submittedAt: row.submitted_at,
-          answers: null,       // 详情懒加载
-          analysis: analysis,  // 最小 analysis，列表够用
-          _detailLoaded: false  // 标记详情未加载
+          answers: null,
+          analysis: {
+            totals: row.totals || { score: 0, full: 80, rate: 0 },
+            stats: row.stats || { right: 0, wrong: 0, blank: 0, total: 0 }
+          },
+          _detailLoaded: false
         };
       });
     });
   }
 
-  // 详情查询：点击展开时才加载单条记录的 raw_answers + analysis_json
+  // 详情查询：点击展开时加载单条记录的 answers，然后重新分析
   function fetchRecordDetail(id) {
-    var path = '/submissions?select=id,raw_answers,analysis_json&id=eq.' + encodeURIComponent(id) + '&limit=1';
+    var path = TABLE + '?select=answers&id=eq.' + encodeURIComponent(id) + '&limit=1';
     return request(path).then(function (rows) {
       if (!rows || !rows.length) throw new Error('记录不存在');
+      var answers = rows[0].answers || {};
+      var analysis = {};
+      if (window.Analyzer && Analyzer.analyze) {
+        try { analysis = Analyzer.analyze(answers); } catch (e) { console.error('re-analyze failed:', e); }
+      }
+      return { answers: answers, analysis: analysis };
+    });
+  }
+
+  // 按 ID 加载完整记录（供 report.html 使用）
+  function fetchRecordById(id) {
+    var path = TABLE + '?select=id,student_name,teacher,submitted_at,answers,analysis&id=eq.' + encodeURIComponent(id) + '&limit=1';
+    return request(path).then(function (rows) {
+      if (!rows || !rows.length) throw new Error('记录不存在');
+      var row = rows[0];
       return {
-        answers: rows[0].raw_answers || {},
-        analysis: rows[0].analysis_json || {}
+        id: row.id,
+        name: row.student_name || '',
+        teacher: row.teacher || '',
+        submittedAt: row.submitted_at,
+        answers: row.answers || {},
+        analysis: row.analysis || {}
       };
     });
   }
 
+  // 软删除：PATCH status='deleted'，查询端用 status=neq.deleted 过滤
   function deleteRecord(id) {
-    // 先尝试 DELETE（硬删除），RLS 可能允许 DELETE 但不允许 UPDATE
-    return request('/submissions?id=eq.' + encodeURIComponent(id), {
-      method: 'DELETE',
-      headers: { 'Prefer': 'return=representation' }
-    }).then(function(rows) {
-      if (rows && rows.length > 0) return rows;
-      // DELETE 返回空，可能 RLS 也阻止了，尝试 PATCH 软删除
-      return request('/submissions?id=eq.' + encodeURIComponent(id), {
-        method: 'PATCH',
-        headers: { 'Prefer': 'return=representation' },
-        body: JSON.stringify({ status: 'deleted' })
-      }).then(function(patchRows) {
-        if (!patchRows || patchRows.length === 0) {
-          throw new Error('RLS 策略阻止了删除和更新');
-        }
-        return patchRows;
-      });
+    return request(TABLE + '?id=eq.' + encodeURIComponent(id), {
+      method: 'PATCH',
+      headers: { 'Prefer': 'return=representation' },
+      body: JSON.stringify({ status: 'deleted' })
+    }).then(function (rows) {
+      if (!rows || rows.length === 0) {
+        throw new Error('RLS 未授权 UPDATE，请先在 Supabase SQL Editor 执行授权语句');
+      }
+      return rows;
     });
   }
 
-  return { uploadRecord: uploadRecord, fetchTeacherRecords: fetchTeacherRecords, fetchRecordDetail: fetchRecordDetail, fetchTeachers: fetchTeachers, deleteRecord: deleteRecord };
+  return {
+    uploadRecord: uploadRecord,
+    fetchTeacherRecords: fetchTeacherRecords,
+    fetchRecordDetail: fetchRecordDetail,
+    fetchRecordById: fetchRecordById,
+    fetchTeachers: fetchTeachers,
+    deleteRecord: deleteRecord
+  };
 })();

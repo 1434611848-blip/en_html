@@ -55,12 +55,12 @@ window.Common = (function () {
   }
 
   function requireTeacherSession() {
-    const s = Storage.getTeacherSession();
-    if (!s) {
+    const teacher = qs('teacher');
+    if (!teacher) {
       location.href = 'teacher.html';
       return null;
     }
-    return s;
+    return { teacher: teacher };
   }
 
   // 注入全局样式（仅一次）

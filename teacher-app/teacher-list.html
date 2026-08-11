@@ -203,11 +203,11 @@
     </main>
   </div>
 
-  <script src="js/common.js?v=20260810n"></script>
-  <script src="js/storage.js?v=20260810n"></script>
-  <script src="js/supabase.js?v=20260810n"></script>
-  <script src="js/data.js?v=20260810n"></script>
-  <script src="js/analyzer.js?v=20260810n"></script>
+  <script src="js/common.js?v=20260811l"></script>
+  <script src="js/storage.js?v=20260811l"></script>
+  <script src="js/supabase.js?v=20260811l"></script>
+  <script src="js/data.js?v=20260811l"></script>
+  <script src="js/analyzer.js?v=20260811l"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
     Common.injectGlobalStyle();
@@ -251,7 +251,6 @@
     });
 
     document.getElementById('logoutBtn').addEventListener('click', function() {
-      Storage.clearTeacherSession();
       location.href = 'teacher.html';
     });
 
@@ -259,10 +258,6 @@
     var cloudReady = false;
     var cloudLoading = false;
     function getRecords() {
-      if (!cloudReady && !cloudLoading) {
-        // 云端失败后才用本地数据兜底
-        return Storage.loadRecords();
-      }
       var all = cloudReady ? cloudRecords : [];
       if (currentTeacher === '__all') return all;
       return all.filter(function(r) { return r.teacher === currentTeacher; });
@@ -271,13 +266,12 @@
       cloudLoading = true;
       render();
       CloudBox.fetchTeacherRecords(currentTeacher).then(function (rows) {
-        var deletedIds = Storage.loadDeletedCloudIds();
-        cloudRecords = rows.filter(function(r) { return deletedIds.indexOf(r.id) === -1; });
+        cloudRecords = rows;
         cloudReady = true;
         cloudLoading = false;
         render();
       }).catch(function (err) {
-        console.warn('读取云端数据失败，使用本机数据：', err);
+        console.warn('读取云端数据失败：', err);
         cloudReady = false;
         cloudLoading = false;
         render();
@@ -315,23 +309,13 @@
         return;
       }
 
-      var recs = getRecords().sort(function(a,b) { return b.analysis.totals.score - a.analysis.totals.score; });
+      var recs = getRecords().sort(function(a,b) { return new Date(b.submittedAt) - new Date(a.submittedAt); });
 
       // 数据来源指示
       if (cloudReady) {
-        var deletedCount = Storage.loadDeletedCloudIds().length;
-        var html = '<span style="color:#0a7a3b;">☁ 云端数据</span>';
-        if (deletedCount > 0) {
-          html += '<span style="color:#c97a00;">⚠ 本机已标记删除 ' + deletedCount + ' 条（仅本设备生效）</span>';
-          html += ' <a href="javascript:void(0)" id="syncDeletedTip" style="color:#576b95;text-decoration:underline;">说明</a>';
-        }
-        dsEl.innerHTML = html;
-        var tipEl = document.getElementById('syncDeletedTip');
-        if (tipEl) tipEl.onclick = function() {
-          alert('删除标记仅保存在当前设备的浏览器中，不会同步到其他设备。\n\n如需在所有设备上一致显示，请联系开发者在 Supabase 后台开启 UPDATE 权限。');
-        };
+        dsEl.innerHTML = '<span style="color:#0a7a3b;">☁ 云端数据</span>';
       } else {
-        dsEl.innerHTML = '<span style="color:#a4262c;font-weight:600;">⚠ 本地缓存数据（云端连接失败）</span> <a href="javascript:void(0)" id="retryCloudBtn" style="color:#576b95;text-decoration:underline;">重新加载</a>';
+        dsEl.innerHTML = '<span style="color:#a4262c;font-weight:600;">⚠ 云端连接失败</span> <a href="javascript:void(0)" id="retryCloudBtn" style="color:#576b95;text-decoration:underline;">重新加载</a>';
         var retryBtn = document.getElementById('retryCloudBtn');
         if (retryBtn) retryBtn.onclick = function() { loadCloudRecords(); };
       }
@@ -340,9 +324,10 @@
       document.getElementById('recCount').textContent = recs.length;
       if (recs.length) {
         var scores = recs.map(function(r) { return r.analysis.totals.score; });
+        var rates = recs.map(function(r) { return r.analysis.totals.rate; });
         var avg = (scores.reduce(function(a,b){return a+b;},0) / scores.length).toFixed(1);
         var max = Math.max.apply(null, scores);
-        var pass = (scores.filter(function(s) { return s >= 60; }).length / scores.length * 100).toFixed(0);
+        var pass = (rates.filter(function(r) { return r >= 60; }).length / rates.length * 100).toFixed(0);
         document.getElementById('avgScore').textContent = avg;
         document.getElementById('maxScore').textContent = max;
         document.getElementById('passRate').textContent = pass;
@@ -364,7 +349,7 @@
         var score = r.analysis.totals.score;
         var rate = r.analysis.totals.rate;
         var cls = score >= 60 ? (score >= 75 ? 'good' : 'mid') : 'bad';
-        var isExpanded = (expandedId === r.id);
+        var isExpanded = (String(expandedId) === String(r.id));
         html += '<div class="student-row' + (isExpanded ? ' expanded' : '') + '" data-id="' + r.id + '">'
           + '<div class="s-name">' + Common.escapeHtml(r.name) + '</div>'
           + '<div class="s-info">'
@@ -391,7 +376,7 @@
       listEl.querySelectorAll('.student-row').forEach(function(row) {
         row.addEventListener('click', function() {
           var id = row.dataset.id;
-          if (expandedId === id) {
+          if (String(expandedId) === String(id)) {
             expandedId = null;
             render();
           } else {
@@ -404,7 +389,7 @@
                 rec.answers = detail.answers;
                 rec.analysis = detail.analysis;
                 rec._detailLoaded = true;
-                if (expandedId === id) render();
+                if (String(expandedId) === String(id)) render();
               }).catch(function(err) {
                 console.warn('加载详情失败:', err);
                 var fp = document.getElementById('fp_' + id);
@@ -438,24 +423,16 @@
           if (!confirm('确定删除「' + name + '」的提交记录吗？此操作不可恢复。')) return;
           if (cloudReady) {
             CloudBox.deleteRecord(id).then(function() {
-              // 云端删除成功，从本地列表移除（无需本地标记）
               cloudRecords = cloudRecords.filter(function(r) { return String(r.id) !== String(id); });
               if (expandedId === id) expandedId = null;
               render();
-              Common.toast('已删除「' + name + '」的记录（云端已删除）', 'success');
+              Common.toast('已删除「' + name + '」的记录', 'success');
             }).catch(function(err) {
-              console.warn('云端删除失败，使用本地标记兜底:', err);
-              Storage.addDeletedCloudId(id);
-              cloudRecords = cloudRecords.filter(function(r) { return String(r.id) !== String(id); });
-              if (expandedId === id) expandedId = null;
-              render();
-              Common.toast('已删除「' + name + '」的记录（仅本设备生效）', 'success');
+              console.warn('云端删除失败:', err);
+              Common.toast('删除失败：数据库权限不足，请联系管理员开启删除权限', 'error');
             });
           } else {
-            Storage.deleteRecord(id);
-            if (expandedId === id) expandedId = null;
-            render();
-            Common.toast('已删除「' + name + '」的记录', 'success');
+            Common.toast('云端未连接，无法删除', 'error');
           }
         });
       });
@@ -465,12 +442,47 @@
       var a = ensureAnalysis(r);
       var wrong = a.wrongList || [];
       var rate = a.totals.rate;
+      var score = a.totals.score;
+      var full = a.totals.full;
 
-      // 使用 analyzer.js 已经算好的薄弱知识点（已按错误数量倒序）
-      // 过滤出错题数量 ≥ 3 的严重薄弱点
-      var seriousGroups = (a.weakPoints || []).filter(function(wp) { return wp.wrongCount >= 3; }).filter(function(wp) { return wp.name.indexOf('语法填空综合') < 0; }).map(function(wp) {
-        return { key: wp.name, info: EXAM_DATA.matchLecture(wp.name), wrongCount: wp.wrongCount };
+      // 过滤「语法填空综合」，并按错误数量倒序（analyzer 已排序）
+      var weakPoints = (a.weakPoints || []).filter(function(wp) {
+        return wp.name.indexOf('语法填空综合') < 0;
       });
+
+      // 得分率四阶段
+      var isFull = score === full;
+      var isGood = !isFull && rate >= 80;     // 80% 以上
+      var isMid = !isFull && rate >= 60;       // 60% ～ 80%（70% 左右）
+      var isLow = rate < 60;                   // 低于及格分
+
+      // 根据阶段挑选要在报告中重点展示的薄弱考点
+      var displayPoints = [];
+      var summaryText = '';
+      if (isFull) {
+        summaryText = '本次测试全部正确，没有薄弱考点。继续保持，新学期可以挑战更高难度的内容！';
+      } else if (isLow) {
+        var serious = weakPoints.filter(function(wp) { return wp.wrongCount >= 3; });
+        if (serious.length > 0) {
+          displayPoints = serious;
+          summaryText = '本次得分低于及格线，以下考点错题集中，建议优先按顺序突破：';
+        } else {
+          displayPoints = weakPoints.slice(0, 3);
+          summaryText = '本次得分低于及格线，错题虽分散，但建议先从以下考点补起：';
+        }
+      } else if (isMid) {
+        var serious = weakPoints.filter(function(wp) { return wp.wrongCount >= 3; });
+        if (serious.length > 0) {
+          displayPoints = serious;
+          summaryText = '整体还有提升空间，以下考点错误较多，建议重点巩固：';
+        } else {
+          displayPoints = weakPoints.slice(0, 3);
+          summaryText = '错题比较零散，建议针对以下考点查漏补缺：';
+        }
+      } else if (isGood) {
+        displayPoints = weakPoints.slice(0, 3);
+        summaryText = '基础扎实，只需针对以下 ' + displayPoints.length + ' 个薄弱点做最后冲刺：';
+      }
 
       var html = '<div class="feedback-doc" id="doc_' + r.id + '">';
       html += '<div class="doc-title">📚 摸底测学习报告</div>';
@@ -485,15 +497,15 @@
       html += '<div class="section-title">一、薄弱考点（丢分汇总）</div>';
       if (!wrong.length) {
         html += '<p style="font-size:14px;color:#0a7a3b;text-align:center;padding:12px;">🎉 全部正确，无薄弱考点！继续保持！</p>';
-      } else if (!seriousGroups.length) {
-        html += '<p style="font-size:13.5px;color:#666;text-align:center;padding:12px;">本次错题比较分散，没有集中的严重薄弱点，建议把错题再过一遍。</p>';
+      } else if (!displayPoints.length) {
+        html += '<p style="font-size:13.5px;color:#666;text-align:center;padding:12px;">本次错题比较分散，建议把错题逐题订正后再做同类练习。</p>';
       } else {
-        html += '<p style="font-size:13px;color:#666;margin:0 0 10px;">以下为本卷严重薄弱考点（错 3 题及以上）：</p>';
+        html += '<p style="font-size:13px;color:#666;margin:0 0 10px;">' + summaryText + '</p>';
         html += '<ul class="weak-list">';
-        seriousGroups.forEach(function(g) {
+        displayPoints.forEach(function(wp) {
           html += '<li>';
-          html += '<span class="wk-name">' + Common.escapeHtml(g.key) + '</span>';
-          html += '<span class="wk-meta">错 ' + g.wrongCount + ' 题</span>';
+          html += '<span class="wk-name">' + Common.escapeHtml(wp.name) + '</span>';
+          html += '<span class="wk-meta">错 ' + wp.wrongCount + ' 题</span>';
           html += '</li>';
         });
         html += '</ul>';
@@ -503,25 +515,23 @@
       html += '<div class="section-title">二、针对性复习建议</div>';
       if (!wrong.length) {
         html += '<p style="font-size:14px;color:#0a7a3b;text-align:center;padding:12px;">可以适当预习新学期内容，挑战拔高练习！</p>';
-      } else if (!seriousGroups.length) {
+      } else if (!displayPoints.length) {
         html += '<p style="font-size:13.5px;color:#666;text-align:center;padding:12px;">错题较零散，建议把本次错题逐题订正，并巩固对应知识点。</p>';
       } else {
-        seriousGroups.forEach(function(g) {
-          var textbook = textbookFromLectures(g.info.lectures);
-          var isReading = /阅读/.test(g.key);
+        displayPoints.forEach(function(wp) {
+          var info = EXAM_DATA.matchLecture(wp.name);
+          var textbook = textbookFromLectures(info.lectures);
+          var isReading = /阅读/.test(wp.name);
+          var isCloze = /完形/.test(wp.name);
           html += '<div class="advice-card kp-group">';
-          html += '<div class="advice-title">' + Common.escapeHtml(g.key) + ' <span class="kp-type ' + g.info.type + '">' + typeLabel(g.info.type) + '</span></div>';
+          html += '<div class="advice-title">' + Common.escapeHtml(wp.name) + ' <span class="kp-type ' + info.type + '">' + typeLabel(info.type) + '</span></div>';
           html += '<div class="advice-item">';
-          html += '看' + g.info.lectures.join('、') + '回放巩固"' + Common.escapeHtml(g.key) + '"，';
-          html += isReading ? '完成暑假课本对应阅读题目练习。' : '看完再做' + Common.escapeHtml(textbook) + '。';
+          html += '该考点错了 ' + wp.wrongCount + ' 题。建议先看' + info.lectures.join('、') + '回放，再去完成暑假课本对应课节的练习题。';
           html += '</div>';
           html += '</div>';
         });
-        html += '<p style="font-size:13px;color:#576b95;text-align:center;padding:10px 0 4px;margin:0;">💡 以上练习完成后还有疑问，可以找老师要加餐题目练习。</p>';
+        html += '<p style="font-size:13px;color:#576b95;text-align:center;padding:10px 0 4px;margin:0;">💡 以上练习完成后还有疑问，可以找老师要对应考点的加餐题目练习。</p>';
       }
-
-      var score = a.totals.score;
-      var full = a.totals.full;
 
       // 第三部分：开学前冲刺计划
       html += '<div class="section-title">三、开学前冲刺计划</div>';
@@ -573,10 +583,13 @@
 
     // 根据回放讲次生成对应的暑假课本练习建议
     function textbookFromLectures(lectures) {
-      if (!lectures || !lectures.length) return '暑假课本对应章节';
-      var topic = lectures[0].replace(/^第\d+讲\s*/, '').replace(/（.*?）/g, '').trim();
-      if (!topic) return '暑假课本对应章节';
-      return '暑假课本 · ' + topic + '相关练习';
+      if (!lectures || !lectures.length) return '暑假课本对应章节练习';
+      var nums = lectures.map(function(l) {
+        var m = l.match(/^第(\d+)讲/);
+        return m ? '第' + m[1] + '讲' : l;
+      });
+      if (nums.length === 1) return '暑假课本 ' + nums[0] + ' 课后练习';
+      return '暑假课本 ' + nums.join('、') + ' 课后练习';
     }
 
     // 导出反馈方案书为图片
@@ -637,12 +650,28 @@
       Common.toast('已导出 CSV', 'success');
     });
 
-    // 清空数据
+    // 清空数据 — 仅在云端可用时操作
     document.getElementById('clearBtn').addEventListener('click', function() {
-      if (!confirm('确定清空所有学生数据吗？此操作不可恢复！')) return;
-      Storage.clearAll();
-      Common.toast('已清空数据', 'success');
-      render();
+      if (!cloudReady) { Common.toast('云端未连接，无法清空', 'warning'); return; }
+      if (!cloudRecords.length) { Common.toast('暂无数据可清空', 'warning'); return; }
+      if (!confirm('确定清空所有 ' + cloudRecords.length + ' 条学生数据吗？此操作不可恢复！')) return;
+      var ids = cloudRecords.map(function(r) { return r.id; });
+      var done = 0, failed = 0;
+      function deleteNext() {
+        if (done + failed >= ids.length) {
+          Common.toast('已删除 ' + done + ' 条' + (failed > 0 ? '，' + failed + ' 条失败' : ''), failed > 0 ? 'warning' : 'success');
+          loadCloudRecords();
+          return;
+        }
+        CloudBox.deleteRecord(ids[done + failed]).then(function() {
+          done++;
+          deleteNext();
+        }).catch(function() {
+          failed++;
+          deleteNext();
+        });
+      }
+      deleteNext();
     });
   </script>
 </body>
