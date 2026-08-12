@@ -14,10 +14,14 @@
 window.Analyzer = (function () {
   const D = window.EXAM_DATA;
 
-  /** 标准化处理：去空白、小写、可选去除尾部句号 */
+  /** 标准化处理：去空白、小写、可选去除尾部句号 + 合并中间多空格 */
   function norm(s) {
     if (s === null || s === undefined) return '';
-    return String(s).trim().toLowerCase().replace(/[.\s]+$/g, '');
+    return String(s)
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, ' ')         // 合并任意空白字符（多空格/制表/换行）为单空格
+      .replace(/[.\s]+$/g, '');     // 去掉尾部空格和句号
   }
 
   /** 单题判定（选择题 / 任务型 / 语法填空通用） */
