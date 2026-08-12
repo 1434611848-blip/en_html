@@ -57,7 +57,7 @@
   .tip { margin-top: 18px; font-size: 12.5px; color: #c08; opacity: .7; line-height: 1.6; text-align:center; }
 
   /* 游戏页 */
-  .topbar { display:flex; justify-content: space-between; align-items:center; margin-bottom: 14px; font-size: 14px; }
+  .topbar { display:flex; justify-content: flex-start; align-items:center; gap:12px; margin-bottom: 14px; font-size: 14px; }
   .topbar .score { font-weight: bold; color:#dc325a; font-size: 18px; }
   .progress { height: 8px; background:#ffe0ea; border-radius: 6px; overflow:hidden; margin-bottom: 18px; }
   .progress > div { height:100%; background: linear-gradient(90deg,#ff7eb3,#ff5e8a); width:0; transition: width .25s; }
@@ -128,6 +128,17 @@
   .enter-btn:active { transform:scale(.97); }
   .hidden { display:none !important; }
 
+  /* 音乐开关按钮（固定右上角，全局可见） */
+  .music-btn {
+    position: fixed; top: 14px; right: 14px; width: 40px; height: 40px;
+    border-radius: 50%; border: 2px solid #ffc6da; background: #fff;
+    cursor: pointer; font-size: 19px; display: flex; align-items: center;
+    justify-content: center; z-index: 9999; box-shadow: 0 4px 12px rgba(220,80,140,.25);
+    transition: transform .2s;
+  }
+  .music-btn:active { transform: scale(.9); }
+  .music-btn.off { opacity: .5; }
+
   /* 通关点赞弹层 */
   #levelup {
     position:absolute; inset:0; z-index:20;
@@ -143,6 +154,7 @@
 </head>
 <body>
 <div class="app">
+  <button class="music-btn" id="musicBtn" title="音乐开关" onclick="toggleMusic()">🎵</button>
 
   <!-- 首页：填信息 + 选模式 -->
   <div id="home">
@@ -444,13 +456,13 @@ function resolveAnswer(correct, w){
     score += gain;
     document.getElementById('score').textContent = score;
     c.textContent = combo>=2 ? `连对 x${combo}  +${gain}` : '';
-    beep(660,0.08);
+    playRightSfx();
   } else {
     combo = 0;
     c.textContent = '';
     roundWrong++;
     wrongList.push(w);
-    beep(200,0.18);
+    playWrongSfx();
   }
 }
 
@@ -465,7 +477,7 @@ function roundClear(){
     document.getElementById('luSub').textContent = getPraise(round);
     btn.textContent = (round >= TOTAL_ROUNDS) ? '🏁 查看成绩' : '下一关 →';
     btn.setAttribute('onclick','nextRound()');
-    beep(880,0.16);
+    playVictorySfx();
   } else {
     // 有错 → 未通关，需重做本关（全对才放行）
     bigEl.textContent = '💪';
@@ -473,7 +485,7 @@ function roundClear(){
     document.getElementById('luSub').textContent = `本关错了 ${roundWrong} 题，全对才能通关，再来一次吧！`;
     btn.textContent = '🔁 重做本关';
     btn.setAttribute('onclick','retryRound()');
-    beep(300,0.2);
+    playWrongSfx();
   }
   document.getElementById('levelup').classList.remove('hidden');
 }
@@ -581,6 +593,61 @@ function show(id){
   ['home','modeSelect','play','result'].forEach(function(s){ document.getElementById(s).classList.add('hidden'); });
   document.getElementById(id).classList.remove('hidden');
 }
+
+/* ===== 背景音乐 & 音效引擎（参考单词消消乐 Web Audio 实现） ===== */
+let audioCtx = null, musicOn = true, melodyTimeout = null, melodyPtr = 0;
+
+const melodyNotes = [
+  { freq: 523.25, dur: 0.25 }, { freq: 587.33, dur: 0.25 }, { freq: 659.25, dur: 0.25 }, { freq: 783.99, dur: 0.25 },
+  { freq: 659.25, dur: 0.25 }, { freq: 587.33, dur: 0.25 }, { freq: 523.25, dur: 0.35 }, { freq: 0, dur: 0.15 },
+  { freq: 587.33, dur: 0.25 }, { freq: 659.25, dur: 0.25 }, { freq: 783.99, dur: 0.25 }, { freq: 880.00, dur: 0.25 },
+  { freq: 783.99, dur: 0.25 }, { freq: 659.25, dur: 0.25 }, { freq: 587.33, dur: 0.35 }, { freq: 0, dur: 0.15 },
+  { freq: 659.25, dur: 0.2 }, { freq: 783.99, dur: 0.2 }, { freq: 880.00, dur: 0.2 }, { freq: 1046.50, dur: 0.3 },
+  { freq: 880.00, dur: 0.2 }, { freq: 783.99, dur: 0.2 }, { freq: 659.25, dur: 0.35 }, { freq: 0, dur: 0.25 },
+  { freq: 523.25, dur: 0.3 }, { freq: 659.25, dur: 0.2 }, { freq: 783.99, dur: 0.2 }, { freq: 587.33, dur: 0.3 },
+  { freq: 659.25, dur: 0.2 }, { freq: 523.25, dur: 0.4 }, { freq: 0, dur: 0.3 },
+];
+
+function initAudio(){ if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+function playTone(freq, start, dur, vol=0.12){
+  if(!audioCtx||!musicOn||freq===0) return;
+  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+  o.type='triangle';
+  o.frequency.setValueAtTime(freq,start);
+  g.gain.setValueAtTime(vol,start);
+  g.gain.exponentialRampToValueAtTime(0.001,start+dur);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(start); o.stop(start+dur+0.05);
+}
+function playChord(base,start,dur,vol=0.06){ if(!audioCtx||!musicOn) return; [1,1.25,1.5,2].forEach(r=>playTone(base*r,start,dur,vol)); }
+function scheduleMelodyNote(){
+  if(!musicOn) return;
+  const n=melodyNotes[melodyPtr]; const now=audioCtx.currentTime;
+  if(n.freq>0){ playTone(n.freq,now,n.dur,0.1); if(melodyPtr%3===0) playChord(n.freq,now,n.dur,0.04); }
+  melodyPtr=(melodyPtr+1)%melodyNotes.length;
+  melodyTimeout=setTimeout(scheduleMelodyNote,n.dur*1000);
+}
+function startMusic(){
+  initAudio(); if(audioCtx.state==='suspended') audioCtx.resume();
+  musicOn=true; melodyPtr=0;
+  const b=document.getElementById('musicBtn'); if(b){ b.textContent='🎵'; b.classList.remove('off'); }
+  if(melodyTimeout) clearTimeout(melodyTimeout);
+  scheduleMelodyNote();
+}
+function stopMusic(){
+  musicOn=false;
+  const b=document.getElementById('musicBtn'); if(b){ b.textContent='🔇'; b.classList.add('off'); }
+  if(melodyTimeout) clearTimeout(melodyTimeout);
+}
+function toggleMusic(){ musicOn ? stopMusic() : startMusic(); }
+
+/* 游戏音效（替代原 beep，音色更柔和，且随音乐开关联动） */
+function playRightSfx(){ if(!musicOn) return; initAudio(); if(audioCtx.state==='suspended') audioCtx.resume(); const n=audioCtx.currentTime; [659.25,880,1046.50].forEach((f,i)=>playTone(f,n+i*0.06,0.12,0.12)); }
+function playWrongSfx(){ if(!musicOn) return; initAudio(); if(audioCtx.state==='suspended') audioCtx.resume(); const n=audioCtx.currentTime; playTone(220,n,0.18,0.12); playTone(196,n+0.1,0.18,0.12); }
+function playVictorySfx(){ if(!musicOn) return; initAudio(); if(audioCtx.state==='suspended') audioCtx.resume(); const n=audioCtx.currentTime; [523.25,659.25,783.99,1046.50,1318.51].forEach((f,i)=>playTone(f,n+i*0.12,0.3,0.13)); }
+
+/* 首次点击启动背景音乐（浏览器自动播放限制：需用户手势） */
+document.addEventListener('click', function(){ if(musicOn) startMusic(); }, {once:true});
 
 /* 音效 & 朗读 */
 function beep(freq, dur){
