@@ -268,6 +268,7 @@ let queue = [];
 let poolSrc = [];             // 当前轮抽取来源（拼写模式会排除短语）
 let inRetry = false;
 let totalQ = 0;
+let gameStart = 0;           // 本场游戏开始时间（毫秒），用于计算通关总用时
 let roundWrong = 0;          // 本轮（本关）错误数
 let roundStartScore = 0;     // 本轮开始时的累计分（重做本关时回退）
 const TOTAL_ROUNDS = 5;
@@ -335,6 +336,7 @@ function pickMode(m){
 function startGame(m){
   mode = m;
   round = 1; score = 0; combo = 0; wrongList = []; totalQ = 0; inRetry = false;
+  gameStart = Date.now();
   queue = [];
   document.getElementById('score').textContent = '0';
   document.getElementById('combo').textContent = '';
@@ -561,6 +563,7 @@ function endGame(){
 }
 
 function uploadScore(rec){
+  rec.duration = Math.round((Date.now() - gameStart) / 1000); // 通关总用时（秒）
   rec.submittedAt = new Date().toISOString();
   CloudBox.uploadWordScore(rec).then(function(){
     Common.toast('成绩已上传到排行榜 🎉','success');

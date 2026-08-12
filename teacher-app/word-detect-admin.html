@@ -60,6 +60,18 @@
       <label>老师 / 班级</label>
       <select id="teacherSel"><option value="__all">全部老师</option></select>
     </div>
+    <div class="f">
+      <label>教材版本</label>
+      <select id="versionSel"><option value="__all">全部版本</option></select>
+    </div>
+    <div class="f" style="min-width:150px;">
+      <label>排序方式</label>
+      <select id="sortSel">
+        <option value="duration">用时最短优先</option>
+        <option value="score">得分最高优先</option>
+        <option value="time">提交时间最新</option>
+      </select>
+    </div>
   </div>
 
   <div class="overview">
@@ -110,11 +122,22 @@ CloudBox.fetchTeachers().then(function(ts){
 
 teacherSel.addEventListener('change', load);
 
+var versionSel = document.getElementById('versionSel');
+var sortSel = document.getElementById('sortSel');
+if(window.WORD_LISTS){
+  versionSel.innerHTML = '<option value="__all">全部版本</option>' + Object.keys(window.WORD_LISTS).map(function(v){
+    return '<option value="'+Common.escapeHtml(v)+'">'+Common.escapeHtml(v)+'</option>';
+  }).join('');
+}
+versionSel.addEventListener('change', load);
+sortSel.addEventListener('change', render);
+
 function load(){
   loading = true;
   var teacher = teacherSel.value;
+  var version = versionSel.value;
   content.innerHTML = '<div class="empty-state">⏳ 加载中…</div>';
-  CloudBox.fetchWordScores(teacher, '__all').then(function(rows){
+  CloudBox.fetchWordScores(teacher, version).then(function(rows){
     allRows = rows; loading = false;
     render();
     document.getElementById('srcInfo').innerHTML = '<span class="ok">☁ 云端数据</span>';
@@ -125,7 +148,27 @@ function load(){
   });
 }
 
+function fmtDur(s){
+  if(s==null) return '—';
+  var m = Math.floor(s/60), sec = s%60;
+  return m>0 ? (m+'分'+sec+'秒') : (sec+'秒');
+}
+
 function render(){
+  // 排序：默认用时最短优先（无用时记录排最后）
+  var sortBy = sortSel.value;
+  allRows.sort(function(a,b){
+    if(sortBy === 'duration'){
+      var da = (a.duration==null) ? Infinity : a.duration;
+      var db = (b.duration==null) ? Infinity : b.duration;
+      if(da !== db) return da - db;
+      return new Date(a.submitted_at) - new Date(b.submitted_at);
+    } else if(sortBy === 'score'){
+      return (b.score - a.score) || (new Date(b.submitted_at) - new Date(a.submitted_at));
+    }
+    return new Date(b.submitted_at) - new Date(a.submitted_at);
+  });
+
   // 概览
   document.getElementById('ovCount').textContent = allRows.length;
   var uniq = {};
@@ -149,7 +192,7 @@ function render(){
     countByName[k] = (countByName[k]||0) + 1;
   });
 
-  var html = '<table><thead><tr><th>姓名</th><th>老师</th><th>版本</th><th>得分</th><th>正确/总</th><th>提交时间</th><th>操作</th></tr></thead><tbody>';
+  var html = '<table><thead><tr><th>姓名</th><th>老师</th><th>版本</th><th>得分</th><th>正确/总</th><th>用时</th><th>提交时间</th><th>操作</th></tr></thead><tbody>';
   allRows.forEach(function(r){
     var rate = r.total ? Math.round(r.correct / r.total * 100) : 0;
     var dup = countByName[(r.student_name||'').trim().toLowerCase()] > 1
@@ -160,6 +203,7 @@ function render(){
       + '<td>'+Common.escapeHtml(r.version)+'</td>'
       + '<td style="font-weight:bold;color:#dc325a;">'+r.score+'</td>'
       + '<td>'+r.correct+' / '+r.total+' ('+rate+'%)</td>'
+      + '<td style="font-weight:bold;color:#576b95;">'+fmtDur(r.duration)+'</td>'
       + '<td style="font-size:12px;color:#999">'+Common.formatDateTime(r.submitted_at)+'</td>'
       + '<td><button class="btn-del" data-del="'+r.id+'">删除</button></td>'
       + '</tr>';
@@ -218,11 +262,11 @@ document.getElementById('dedupeBtn').addEventListener('click', function(){
 // 导出 CSV
 document.getElementById('exportBtn').addEventListener('click', function(){
   if(!allRows.length){ Common.toast('暂无数据可导出', 'warning'); return; }
-  var head = ['姓名','老师','版本','得分','答对','总数','正确率%','提交时间'];
+  var head = ['姓名','老师','版本','得分','答对','总数','正确率%','用时(秒)','提交时间'];
   var lines = [head.join(',')];
   allRows.forEach(function(r){
     var rate = r.total ? Math.round(r.correct / r.total * 100) : 0;
-    lines.push([r.student_name, r.teacher, r.version, r.score, r.correct, r.total, rate, Common.formatDateTime(r.submitted_at)].join(','));
+    lines.push([r.student_name, r.teacher, r.version, r.score, r.correct, r.total, rate, (r.duration==null?'':r.duration), Common.formatDateTime(r.submitted_at)].join(','));
   });
   var csv = '﻿' + lines.join('\n');
   var blob = new Blob([csv], { type:'text/csv;charset=utf-8' });

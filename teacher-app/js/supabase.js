@@ -144,6 +144,7 @@ window.CloudBox = (function () {
         correct: rec.correct,
         score: rec.score,
         detail: rec.detail || [],
+        duration: (typeof rec.duration === 'number') ? rec.duration : null,
         submitted_at: rec.submittedAt,
         status: 'submitted'
       })
@@ -155,7 +156,7 @@ window.CloudBox = (function () {
     var filter = '';
     if (teacherName && teacherName !== '__all') filter += '&teacher=eq.' + encodeURIComponent(teacherName);
     if (version && version !== '__all') filter += '&version=eq.' + encodeURIComponent(version);
-    var path = WORD_TABLE + '?select=id,student_name,teacher,version,total,correct,score,detail,submitted_at'
+    var path = WORD_TABLE + '?select=id,student_name,teacher,version,total,correct,score,detail,duration,submitted_at'
       + filter + '&status=neq.deleted&order=submitted_at.desc';
     return request(path);
   }
