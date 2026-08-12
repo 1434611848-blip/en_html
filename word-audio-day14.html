@@ -84,6 +84,8 @@
 
 <p class="footer">点击卡片即播 · 再次点击或点击其他卡片切换</p>
 
+<audio id="player" preload="none" style="display:none;"></audio>
+
 <script>
 const audioPaths = [
   'audio/%E4%BA%BA%E6%95%99day14.mp3',
@@ -97,47 +99,64 @@ const audioPaths = [
   'audio/%E5%86%80%E6%95%99day14.mp3',
 ];
 
-let currentAudio = null;
-let currentCard = null;
+var player = document.getElementById('player');
+var currentIndex = -1;
+var currentCard = null;
+
+function resetCard() {
+  if (currentCard) { currentCard.classList.remove('playing', 'loading'); currentCard = null; }
+}
 
 function playAudio(card, index) {
-  // 停止当前播放
-  if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; currentAudio = null; }
-  if (currentCard) { currentCard.classList.remove('playing', 'loading'); }
   // 再次点击同一卡片：停止
-  if (currentCard === card) { currentCard = null; return; }
+  if (currentCard === card) {
+    player.pause();
+    player.currentTime = 0;
+    player.removeAttribute('src');
+    player.load();
+    currentIndex = -1;
+    resetCard();
+    return;
+  }
+
+  resetCard();
+  if (player.src) { player.pause(); player.removeAttribute('src'); player.load(); }
 
   currentCard = card;
+  currentIndex = index;
   card.classList.add('loading');
 
-  // 每次点击新建 Audio 实例，确保 play() 在用户交互上下文中
-  var audio = new Audio(audioPaths[index]);
-  audio.preload = 'auto';
-  currentAudio = audio;
+  player.src = audioPaths[index];
+  player.load();
 
-  audio.oncanplaythrough = function() {
+  player.oncanplay = function() {
     card.classList.remove('loading');
     card.classList.add('playing');
   };
-  audio.onended = function() {
-    card.classList.remove('playing', 'loading');
-    currentAudio = null; currentCard = null;
+  player.onplaying = function() {
+    card.classList.remove('loading');
+    card.classList.add('playing');
   };
-  audio.onerror = function() {
-    card.classList.remove('playing', 'loading');
-    currentAudio = null; currentCard = null;
+  player.onended = function() {
+    resetCard();
+    currentIndex = -1;
+    player.removeAttribute('src');
+    player.load();
+  };
+  player.onerror = function() {
+    resetCard();
+    currentIndex = -1;
     alert('音频加载失败，请检查网络后重试');
   };
 
-  // 关键：play() 必须在用户点击的同步上下文中调用
-  audio.play().then(function() {
-    card.classList.remove('loading');
-    card.classList.add('playing');
-  }).catch(function(e) {
-    card.classList.remove('playing', 'loading');
-    currentAudio = null; currentCard = null;
-    alert('播放失败：' + e.message);
-  });
+  // 在用户点击的同步上下文中调用 play()
+  var p = player.play();
+  if (p && p.catch) {
+    p.catch(function() {
+      resetCard();
+      currentIndex = -1;
+    });
+  }
 }
 </script>
 </body>
