@@ -166,7 +166,7 @@
     </div>
 
     <button class="enter-btn" id="enterBtn" onclick="enterGame()">🚀 进入游戏</button>
-    <div class="tip">5 关 × 每关 6 题 · 通关有大大的赞 👍 · 答错高亮正确答案 · 结束有错题本</div>
+    <div class="tip">5 关 × 每关 6 题 · 本关全对才算通关，有错可重做本关 👍 · 答错高亮正确答案 · 结束有错题本</div>
   </div>
 
   <!-- 选模式页：进入游戏后展示 -->
@@ -256,6 +256,8 @@ let queue = [];
 let poolSrc = [];             // 当前轮抽取来源（拼写模式会排除短语）
 let inRetry = false;
 let totalQ = 0;
+let roundWrong = 0;          // 本轮（本关）错误数
+let roundStartScore = 0;     // 本轮开始时的累计分（重做本关时回退）
 const TOTAL_ROUNDS = 5;
 const PER_ROUND = 6;
 
@@ -333,7 +335,7 @@ function startRound(){
   // 汉译英（拼写）模式排除短语，避免学生手敲长词组；英译汉模式含全部
   poolSrc = (mode==='zh') ? gameWords.filter(function(w){ return !isPhrase(w); }) : gameWords;
   pool = drawWords(PER_ROUND);
-  idx = 0; inRetry = false;
+  idx = 0; inRetry = false; roundWrong = 0; roundStartScore = score;
   document.getElementById('levelup').classList.add('hidden');
   updateTopbar();
   nextQuestion();
@@ -446,6 +448,7 @@ function resolveAnswer(correct, w){
   } else {
     combo = 0;
     c.textContent = '';
+    roundWrong++;
     wrongList.push(w);
     beep(200,0.18);
   }
@@ -453,13 +456,37 @@ function resolveAnswer(correct, w){
 
 function roundClear(){
   const emojis = ['🎉','🌟','🏆','💪','🔥'];
-  document.querySelector('#levelup .big').textContent = emojis[Math.min(round-1, emojis.length-1)];
-  document.getElementById('luTitle').textContent = `第 ${round} 关 通关！`;
-  document.getElementById('luSub').textContent = getPraise(round);
+  const bigEl = document.querySelector('#levelup .big');
   const btn = document.getElementById('luBtn');
-  btn.textContent = (round >= TOTAL_ROUNDS) ? '🏁 查看成绩' : '下一关 →';
+  if(roundWrong === 0){
+    // 本关全对 → 判定通关
+    bigEl.textContent = emojis[Math.min(round-1, emojis.length-1)];
+    document.getElementById('luTitle').textContent = `第 ${round} 关 通关！`;
+    document.getElementById('luSub').textContent = getPraise(round);
+    btn.textContent = (round >= TOTAL_ROUNDS) ? '🏁 查看成绩' : '下一关 →';
+    btn.setAttribute('onclick','nextRound()');
+    beep(880,0.16);
+  } else {
+    // 有错 → 未通关，需重做本关（全对才放行）
+    bigEl.textContent = '💪';
+    document.getElementById('luTitle').textContent = `第 ${round} 关 未通关`;
+    document.getElementById('luSub').textContent = `本关错了 ${roundWrong} 题，全对才能通关，再来一次吧！`;
+    btn.textContent = '🔁 重做本关';
+    btn.setAttribute('onclick','retryRound()');
+    beep(300,0.2);
+  }
   document.getElementById('levelup').classList.remove('hidden');
-  beep(880,0.16);
+}
+
+// 重做本关：回退本关得分，清掉本关已记的错题，复用本关这 6 题重新做
+function retryRound(){
+  score = roundStartScore;
+  document.getElementById('score').textContent = score;
+  wrongList = wrongList.filter(function(w){ return pool.indexOf(w) < 0; });
+  roundWrong = 0; idx = 0; inRetry = false;
+  document.getElementById('levelup').classList.add('hidden');
+  updateTopbar();
+  nextQuestion();
 }
 
 function getPraise(r){
