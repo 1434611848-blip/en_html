@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>单词检测 · 老师后台</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    background:#f5f6f8; color:#333; min-height:100vh; padding:16px;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; }
+  .header { background:linear-gradient(135deg,#576b95,#44557a); color:#fff; border-radius:16px; padding:18px 22px; margin-bottom:16px; }
+  .header h1 { font-size:20px; }
+  .header p { font-size:13px; opacity:.85; margin-top:4px; }
+
+  .toolbar { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom:14px; }
+  .toolbar .f { min-width:160px; }
+  .toolbar label { display:block; font-size:12px; color:#888; margin-bottom:5px; font-weight:bold; }
+  .toolbar select { width:100%; padding:9px 11px; font-size:14px; border:1px solid #dcdfe6; border-radius:8px; outline:none; background:#fff; }
+  .toolbar select:focus { border-color:#576b95; }
+
+  .overview { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px; }
+  .overview .cell { background:#fff; border-radius:10px; padding:14px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,.04); }
+  .overview .cell .n { font-size:24px; font-weight:700; color:#576b95; }
+  .overview .cell .l { font-size:12px; color:#888; margin-top:2px; }
+
+  .actions { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+  .btn { border:none; border-radius:8px; padding:11px 18px; font-size:14px; cursor:pointer; font-weight:600; }
+  .btn-primary { background:#07c160; color:#fff; }
+  .btn-warn { background:#fff; color:#a4262c; border:1px solid #f3c2c5; }
+  .btn-danger { background:#fff; color:#999; border:1px solid #e5e6e8; }
+  .btn:active { transform:scale(.98); }
+
+  .panel { background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.04); overflow:hidden; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  thead th { background:#f0f2f7; padding:11px 10px; text-align:left; color:#576b95; font-weight:bold; border-bottom:2px solid #e6e9f0; }
+  tbody td { padding:10px; border-bottom:1px solid #f0f0f0; color:#555; }
+  tbody tr:hover { background:#f9faff; }
+  .dup-tag { display:inline-block; font-size:11px; padding:1px 7px; border-radius:10px; background:#fff4e5; color:#a85b00; margin-left:6px; }
+  .btn-del { background:#f5f5f5; color:#999; border:1px solid #e5e5e5; border-radius:6px; font-size:12px; padding:4px 10px; cursor:pointer; }
+  .btn-del:hover { background:#fff0f0; color:#a4262c; border-color:#f3c2c5; }
+  .empty-state { text-align:center; padding:50px 20px; color:#999; font-size:15px; }
+  .src-info { font-size:12px; color:#888; margin:8px 2px 0; }
+  .src-info .ok { color:#0a7a3b; }
+  .src-info .err { color:#a4262c; font-weight:600; }
+  a.back { display:inline-block; margin-top:14px; color:#576b95; font-size:13px; text-decoration:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1>👩‍🏫 单词检测 · 老师后台</h1>
+    <p>查看学生参与情况 · 一键去重（保留每人最高分）· 删除重复记录</p>
+  </div>
+
+  <div class="toolbar">
+    <div class="f">
+      <label>老师 / 班级</label>
+      <select id="teacherSel"><option value="__all">全部老师</option></select>
+    </div>
+  </div>
+
+  <div class="overview">
+    <div class="cell"><div class="n" id="ovCount">0</div><div class="l">参与次数</div></div>
+    <div class="cell"><div class="n" id="ovStudents">0</div><div class="l">去重学生数</div></div>
+    <div class="cell"><div class="n" id="ovMax">—</div><div class="l">最高分</div></div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-warn" id="dedupeBtn">🧹 一键去重（保留每人最高分）</button>
+    <button class="btn btn-primary" id="exportBtn">导出 CSV</button>
+    <button class="btn btn-danger" id="clearBtn">清空该范围全部</button>
+  </div>
+
+  <div class="panel">
+    <div id="content"><div class="empty-state">⏳ 加载中…</div></div>
+  </div>
+  <div class="src-info" id="srcInfo"></div>
+  <a class="back" href="word-detect-game.html">‹ 返回游戏</a>
+</div>
+
+<script src="js/common.js?v=20260812wd"></script>
+<script src="js/supabase.js?v=20260812wd"></script>
+<script src="js/wordlists.js?v=20260812wd"></script>
+<script>
+Common.injectGlobalStyle();
+
+var teacherSel = document.getElementById('teacherSel');
+var content = document.getElementById('content');
+var allRows = [];
+var loading = false;
+
+// 初始化老师下拉
+CloudBox.fetchTeachers().then(function(ts){
+  ts.forEach(function(t){
+    var o = document.createElement('option');
+    o.value = t.name; o.textContent = t.name;
+    teacherSel.appendChild(o);
+  });
+  // 支持 ?teacher= 预选
+  var pre = Common.qs('teacher');
+  if(pre && ts.some(function(t){ return t.name === pre; })) teacherSel.value = pre;
+  load();
+}).catch(function(err){
+  console.warn('加载老师失败：', err);
+  load();
+});
+
+teacherSel.addEventListener('change', load);
+
+function load(){
+  loading = true;
+  var teacher = teacherSel.value;
+  content.innerHTML = '<div class="empty-state">⏳ 加载中…</div>';
+  CloudBox.fetchWordScores(teacher, '__all').then(function(rows){
+    allRows = rows; loading = false;
+    render();
+    document.getElementById('srcInfo').innerHTML = '<span class="ok">☁ 云端数据</span>';
+  }).catch(function(err){
+    loading = false;
+    content.innerHTML = '<div class="empty-state" style="color:#a4262c;">⚠ 加载失败：'+Common.escapeHtml(err.message)+'</div>';
+    document.getElementById('srcInfo').innerHTML = '<span class="err">⚠ 云端连接失败</span>';
+  });
+}
+
+function render(){
+  // 概览
+  document.getElementById('ovCount').textContent = allRows.length;
+  var uniq = {};
+  var max = 0;
+  allRows.forEach(function(r){
+    uniq[(r.student_name||'').trim().toLowerCase()] = true;
+    if(r.score > max) max = r.score;
+  });
+  document.getElementById('ovStudents').textContent = Object.keys(uniq).length;
+  document.getElementById('ovMax').textContent = allRows.length ? max : '—';
+
+  if(!allRows.length){
+    content.innerHTML = '<div class="empty-state">📭 暂无参与记录</div>';
+    return;
+  }
+
+  // 标记重复（同一学生出现多次）
+  var countByName = {};
+  allRows.forEach(function(r){
+    var k = (r.student_name||'').trim().toLowerCase();
+    countByName[k] = (countByName[k]||0) + 1;
+  });
+
+  var html = '<table><thead><tr><th>姓名</th><th>老师</th><th>版本</th><th>得分</th><th>正确/总</th><th>提交时间</th><th>操作</th></tr></thead><tbody>';
+  allRows.forEach(function(r){
+    var rate = r.total ? Math.round(r.correct / r.total * 100) : 0;
+    var dup = countByName[(r.student_name||'').trim().toLowerCase()] > 1
+      ? '<span class="dup-tag">重复</span>' : '';
+    html += '<tr>'
+      + '<td><b>'+Common.escapeHtml(r.student_name)+'</b>'+dup+'</td>'
+      + '<td>'+Common.escapeHtml(r.teacher)+'</td>'
+      + '<td>'+Common.escapeHtml(r.version)+'</td>'
+      + '<td style="font-weight:bold;color:#dc325a;">'+r.score+'</td>'
+      + '<td>'+r.correct+' / '+r.total+' ('+rate+'%)</td>'
+      + '<td style="font-size:12px;color:#999">'+Common.formatDateTime(r.submitted_at)+'</td>'
+      + '<td><button class="btn-del" data-del="'+r.id+'">删除</button></td>'
+      + '</tr>';
+  });
+  html += '</tbody></table>';
+  content.innerHTML = html;
+
+  content.querySelectorAll('.btn-del').forEach(function(b){
+    b.addEventListener('click', function(){
+      var id = b.dataset.del;
+      var rec = allRows.find(function(x){ return String(x.id) === String(id); });
+      var name = rec ? rec.student_name : '该记录';
+      if(!confirm('确定删除「'+name+'」的这条参与记录吗？')) return;
+      CloudBox.deleteWordScore(id).then(function(){
+        allRows = allRows.filter(function(x){ return String(x.id) !== String(id); });
+        Common.toast('已删除', 'success'); render();
+      }).catch(function(err){
+        console.warn(err);
+        Common.toast('删除失败：'+err.message, 'error');
+      });
+    });
+  });
+}
+
+// 一键去重：同一学生只保留最高分，其余软删除
+document.getElementById('dedupeBtn').addEventListener('click', function(){
+  if(!allRows.length){ Common.toast('暂无数据', 'warning'); return; }
+  var groups = {};
+  allRows.forEach(function(r){
+    var k = (r.student_name||'').trim().toLowerCase();
+    (groups[k] = groups[k] || []).push(r);
+  });
+  var toDelete = [];
+  Object.keys(groups).forEach(function(k){
+    var g = groups[k];
+    if(g.length <= 1) return;
+    g.sort(function(a,b){ return (b.score - a.score) || (new Date(b.submitted_at) - new Date(a.submitted_at)); });
+    for(var i=1;i<g.length;i++) toDelete.push(g[i].id);
+  });
+  if(!toDelete.length){ Common.toast('没有重复记录，无需去重', 'info'); return; }
+  if(!confirm('将删除 '+toDelete.length+' 条重复记录，每人只保留最高分。确定？')) return;
+
+  var done = 0, fail = 0;
+  function next(){
+    if(done + fail >= toDelete.length){
+      Common.toast('已清理 '+done+' 条'+(fail?('，'+fail+' 条失败'):''), fail?'warning':'success');
+      load();
+      return;
+    }
+    CloudBox.deleteWordScore(toDelete[done+fail]).then(function(){ done++; next(); })
+      .catch(function(){ fail++; next(); });
+  }
+  next();
+});
+
+// 导出 CSV
+document.getElementById('exportBtn').addEventListener('click', function(){
+  if(!allRows.length){ Common.toast('暂无数据可导出', 'warning'); return; }
+  var head = ['姓名','老师','版本','得分','答对','总数','正确率%','提交时间'];
+  var lines = [head.join(',')];
+  allRows.forEach(function(r){
+    var rate = r.total ? Math.round(r.correct / r.total * 100) : 0;
+    lines.push([r.student_name, r.teacher, r.version, r.score, r.correct, r.total, rate, Common.formatDateTime(r.submitted_at)].join(','));
+  });
+  var csv = '﻿' + lines.join('\n');
+  var blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = '单词检测-' + teacherSel.value + '-' + Date.now() + '.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  Common.toast('已导出 CSV', 'success');
+});
+
+// 清空该范围
+document.getElementById('clearBtn').addEventListener('click', function(){
+  if(!allRows.length){ Common.toast('暂无数据可清空', 'warning'); return; }
+  if(!confirm('确定清空当前范围内的 '+allRows.length+' 条记录吗？此操作不可恢复！')) return;
+  var ids = allRows.map(function(r){ return r.id; });
+  var done = 0, fail = 0;
+  function next(){
+    if(done + fail >= ids.length){
+      Common.toast('已清空 '+done+' 条'+(fail?('，'+fail+' 条失败'):''), fail?'warning':'success');
+      load(); return;
+    }
+    CloudBox.deleteWordScore(ids[done+fail]).then(function(){ done++; next(); })
+      .catch(function(){ fail++; next(); });
+  }
+  next();
+});
+</script>
+</body>
+</html>

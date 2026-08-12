@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>单词小侦探 · 新初一单词检测</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    background: linear-gradient(160deg, #ffe6f0 0%, #ffc8dc 100%);
+    color: #5a3a48;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 16px;
+    overflow-x: hidden;
+  }
+  .app {
+    width: 100%; max-width: 440px;
+    background: #fff;
+    border-radius: 28px;
+    box-shadow: 0 12px 40px rgba(220,80,140,.25);
+    padding: 26px 22px 30px;
+    position: relative;
+    overflow: hidden;
+  }
+  h1 { font-size: 26px; text-align: center; color: #dc325a; margin-bottom: 4px; }
+  .sub { text-align: center; font-size: 14px; color: #b07a8c; margin-bottom: 18px; }
+
+  /* 信息表单 */
+  .form-card { background:#fff6fb; border:2px solid #ffd0e0; border-radius:18px; padding:16px 16px 18px; margin-bottom:18px; }
+  .form-row { margin-bottom: 12px; }
+  .form-row:last-child { margin-bottom: 0; }
+  .form-row label { display:block; font-size:13px; color:#a86a7c; margin-bottom:6px; font-weight:bold; }
+  .field {
+    width:100%; padding:11px 12px; font-size:15px; border:1.5px solid #ffc6da;
+    border-radius:12px; outline:none; box-sizing:border-box; background:#fff; color:#5a3a48;
+    font-family:inherit;
+  }
+  .field:focus { border-color:#ff5e8a; }
+  .home-err { color:#dc325a; font-size:13px; min-height:18px; text-align:center; margin-top:4px; }
+
+  /* 首页模式按钮 */
+  .mode-grid { display: flex; flex-direction: column; gap: 14px; }
+  .mode-btn {
+    border: none; border-radius: 20px; padding: 22px 18px;
+    font-size: 19px; font-weight: bold; color: #fff; cursor: pointer;
+    display: flex; align-items: center; gap: 14px;
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .mode-btn:active { transform: scale(.97); }
+  .mode-btn.en { background: linear-gradient(135deg,#ff7eb3,#ff5e8a); box-shadow: 0 6px 16px rgba(255,94,138,.4); }
+  .mode-btn.zh { background: linear-gradient(135deg,#5ec6ff,#3a9bff); box-shadow: 0 6px 16px rgba(58,155,255,.4); }
+  .mode-btn .ico { font-size: 30px; }
+  .mode-btn small { display:block; font-size: 13px; font-weight: normal; opacity: .9; margin-top: 3px; }
+
+  .tip { margin-top: 18px; font-size: 12.5px; color: #c08; opacity: .7; line-height: 1.6; text-align:center; }
+
+  /* 游戏页 */
+  .topbar { display:flex; justify-content: space-between; align-items:center; margin-bottom: 14px; font-size: 14px; }
+  .topbar .score { font-weight: bold; color:#dc325a; font-size: 18px; }
+  .progress { height: 8px; background:#ffe0ea; border-radius: 6px; overflow:hidden; margin-bottom: 18px; }
+  .progress > div { height:100%; background: linear-gradient(90deg,#ff7eb3,#ff5e8a); width:0; transition: width .25s; }
+  .qnum { text-align:center; font-size:13px; color:#b07a8c; margin-bottom: 6px; }
+
+  .card {
+    background: linear-gradient(135deg,#fff6fb,#ffeef6);
+    border: 3px solid #ffd0e0; border-radius: 22px;
+    padding: 26px 16px; text-align:center; margin-bottom: 18px;
+    min-height: 120px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .card .label { font-size: 13px; color:#c87; margin-bottom: 8px; letter-spacing:1px; }
+  .card .word { font-size: 38px; font-weight: bold; color:#dc325a; word-break: break-word; }
+  .card .word.en { color:#3a9bff; }
+
+  .options { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .opt {
+    border: none; border-radius: 18px; padding: 18px 10px;
+    font-size: 19px; font-weight: bold; color:#5a3a48; cursor:pointer;
+    background:#f3f0ff; transition: transform .1s;
+  }
+  .opt:active { transform: scale(.96); }
+  .opt.c0 { background:#ffe6ef; } .opt.c1 { background:#e6f3ff; }
+  .opt.c2 { background:#e9ffe9; } .opt.c3 { background:#fff6e0; }
+  .opt.right { background:#7ad98a !important; color:#fff; animation: pop .3s; }
+  .opt.wrong { background:#ff7a7a !important; color:#fff; }
+  .opt.disabled { pointer-events:none; opacity:.55; }
+  @keyframes pop { 0%{transform:scale(1)} 50%{transform:scale(1.08)} 100%{transform:scale(1)} }
+
+  .combo { text-align:center; height: 22px; font-size:14px; font-weight:bold; color:#ff8a00; margin-top:10px; }
+
+  /* 拼写模式 */
+  .spell { display:flex; flex-direction:column; gap:12px; }
+  .spell-input {
+    width:100%; padding:16px 14px; font-size:22px; text-align:center;
+    border:3px solid #bcdcff; border-radius:16px; outline:none;
+    font-family:inherit; color:#3a9bff; background:#f5fbff;
+  }
+  .spell-input:focus { border-color:#3a9bff; }
+  .spell-input:disabled { background:#eee; color:#999; }
+  .spell-feedback { text-align:center; font-size:17px; font-weight:bold; min-height:22px; }
+  .spell-feedback.ok { color:#3a9bff; }
+  .spell-feedback.no { color:#ff7a7a; }
+
+  /* 结果页 */
+  .result { text-align:center; }
+  .result .big { font-size: 56px; margin: 6px 0; }
+  .result .score-num { font-size: 40px; font-weight: bold; color:#dc325a; }
+  .result .stat { font-size:15px; color:#7a5a68; margin: 4px 0 14px; }
+  .wrong-list { text-align:left; background:#fff6fb; border:2px solid #ffd0e0; border-radius:16px; padding:14px 16px; margin-bottom:16px; max-height: 240px; overflow:auto; }
+  .wrong-list h3 { font-size:14px; color:#dc325a; margin-bottom:8px; }
+  .wrong-item { font-size:14px; padding:5px 0; border-bottom:1px dashed #ffd9e6; display:flex; justify-content:space-between; }
+  .wrong-item:last-child { border:0; }
+  .wrong-item .en { color:#3a9bff; font-weight:bold; }
+  .wrong-item .zh { color:#5a3a48; }
+  .btn {
+    border:none; border-radius:18px; padding:15px; width:100%;
+    font-size:18px; font-weight:bold; color:#fff; cursor:pointer; margin-top:6px;
+  }
+  .btn.primary { background:linear-gradient(135deg,#ff7eb3,#ff5e8a); }
+  .btn.blue { background:linear-gradient(135deg,#5ec6ff,#3a9bff); }
+  .btn.ghost { background:#eee; color:#7a5a68; margin-top:10px; }
+  .enter-btn {
+    border:none; border-radius:18px; padding:16px; width:100%;
+    font-size:20px; font-weight:bold; color:#fff; cursor:pointer; margin-top:6px;
+    background:linear-gradient(135deg,#ff9a3c,#ff5e8a); box-shadow:0 8px 20px rgba(255,94,138,.45);
+  }
+  .enter-btn:active { transform:scale(.97); }
+  .hidden { display:none !important; }
+
+  /* 通关点赞弹层 */
+  #levelup {
+    position:absolute; inset:0; z-index:20;
+    background:rgba(255,205,225,.94);
+    display:flex; align-items:center; justify-content:center;
+    border-radius:28px;
+  }
+  .levelup-card { text-align:center; padding:24px; }
+  .levelup-card .big { font-size:60px; }
+  .lu-title { font-size:26px; font-weight:bold; color:#dc325a; margin:12px 0 8px; }
+  .lu-sub { font-size:15px; color:#a86a7c; line-height:1.6; margin-bottom:22px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- 首页：填信息 + 选模式 -->
+  <div id="home">
+    <h1>单词小侦探 🔍</h1>
+    <div class="sub">新初一单词检测 · 填好信息，点击进入</div>
+
+    <div class="form-card">
+      <div class="form-row">
+        <label>学生姓名 <span style="color:#dc325a">*</span></label>
+        <input type="text" id="nameInput" class="field" placeholder="请输入你的真实姓名" maxlength="20">
+      </div>
+      <div class="form-row">
+        <label>所属老师 <span style="color:#dc325a">*</span></label>
+        <select id="teacherSelect" class="field"><option value="">加载中…</option></select>
+      </div>
+      <div class="form-row">
+        <label>教材版本 <span style="color:#dc325a">*</span></label>
+        <select id="versionSelect" class="field"></select>
+      </div>
+      <div class="home-err" id="homeErr"></div>
+    </div>
+
+    <button class="enter-btn" id="enterBtn" onclick="enterGame()">🚀 进入游戏</button>
+    <div class="tip">5 关 × 每关 6 题 · 通关有大大的赞 👍 · 答错高亮正确答案 · 结束有错题本</div>
+  </div>
+
+  <!-- 选模式页：进入游戏后展示 -->
+  <div id="modeSelect" class="hidden">
+    <h1>选择挑战模式 🎮</h1>
+    <div class="sub" id="modeSummary"></div>
+    <div class="mode-grid">
+      <button class="mode-btn en" onclick="pickMode('en')">
+        <span class="ico">🔤</span>
+        <span>英译汉<small>看英文，选出中文意思</small></span>
+      </button>
+      <button class="mode-btn zh" onclick="pickMode('zh')">
+        <span class="ico">📘</span>
+        <span>汉译英<small>看中文，写出英文单词（短语自动改为选择题）</small></span>
+      </button>
+    </div>
+    <button class="btn ghost" style="width:auto;padding:8px 18px;margin-top:18px;" onclick="backHome()">‹ 返回修改</button>
+  </div>
+
+  <!-- 游戏页 -->
+  <div id="play" class="hidden">
+    <div class="topbar">
+      <button class="btn ghost" style="width:auto;padding:6px 14px;margin:0;font-size:14px;" onclick="backHome()">‹ 返回</button>
+      <span>得分 <span class="score" id="score">0</span></span>
+      <span id="modeLabel">英译汉</span>
+    </div>
+    <div class="progress"><div id="progressBar"></div></div>
+    <div class="qnum" id="qnum">第 1 / 6 题</div>
+    <div class="card">
+      <div class="label" id="qLabel">英文单词</div>
+      <div class="word" id="qWord">apple</div>
+    </div>
+    <div class="options" id="options"></div>
+    <div class="spell hidden" id="spell">
+      <input type="text" id="spellInput" class="spell-input" placeholder="✍️ 写出英文单词" autocomplete="off" autocapitalize="off" spellcheck="false" onkeydown="if(event.key==='Enter')submitSpell()">
+      <button class="btn primary" id="spellSubmit" onclick="submitSpell()">提交 ✓</button>
+      <div class="spell-feedback" id="spellFeedback"></div>
+    </div>
+    <div class="combo" id="combo"></div>
+  </div>
+
+  <!-- 结果页 -->
+  <div id="result" class="hidden">
+    <div class="result">
+      <div class="big" id="emoji">🎉</div>
+      <div>本次得分</div>
+      <div class="score-num" id="finalScore">0</div>
+      <div class="stat" id="finalStat"></div>
+      <div class="wrong-list hidden" id="wrongBox">
+        <h3>📒 错题本（点一下可朗读）</h3>
+        <div id="wrongItems"></div>
+      </div>
+      <button class="btn blue" id="lbBtn" onclick="goLeaderboard()">🏆 查看排行榜</button>
+      <button class="btn primary" onclick="retryWrong()">🔁 只练错题</button>
+      <button class="btn ghost" onclick="backHome()">🏠 返回首页</button>
+    </div>
+  </div>
+
+  <!-- 通关点赞弹层 -->
+  <div id="levelup" class="hidden">
+    <div class="levelup-card">
+      <div class="big">🎉</div>
+      <div class="lu-title" id="luTitle">第 1 关 通关！</div>
+      <div class="lu-sub" id="luSub">你真棒，获得一个大大的赞 👍</div>
+      <button class="btn primary" id="luBtn" onclick="nextRound()">下一关 →</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/common.js?v=20260812wd"></script>
+<script src="js/supabase.js?v=20260812wd"></script>
+<script src="js/wordlists.js?v=20260812wd"></script>
+<script>
+Common.injectGlobalStyle();
+
+/* ============ 全局状态 ============ */
+let mode = 'en';
+let gameWords = [];          // 当前版本词库
+let pool = [];
+let idx = 0;
+let score = 0;
+let combo = 0;
+let wrongList = [];
+let round = 1;
+let queue = [];
+let poolSrc = [];             // 当前轮抽取来源（拼写模式会排除短语）
+let inRetry = false;
+let totalQ = 0;
+const TOTAL_ROUNDS = 5;
+const PER_ROUND = 6;
+
+let studentName = '';
+let studentTeacher = '';
+let studentVersion = '';
+let alreadySubmitted = false;
+
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+
+// 短语判定：含空格或省略号（如 go on a school trip / from...to...），只走英译汉选择题，不进汉译英拼写
+function isPhrase(w){ return /\s/.test(w.en) || w.en.indexOf('...') >= 0; }
+
+/* ============ 首页初始化 ============ */
+(function initHome(){
+  const tSel = document.getElementById('teacherSelect');
+  CloudBox.fetchTeachers().then(function(ts){
+    if(!ts.length){ tSel.innerHTML='<option value="">未找到老师，请联系管理员</option>'; return; }
+    tSel.innerHTML = ts.map(function(t){
+      return '<option value="'+Common.escapeHtml(t.name)+'">'+Common.escapeHtml(t.name)+'</option>';
+    }).join('');
+  }).catch(function(err){
+    tSel.innerHTML = '<option value="">加载失败：'+Common.escapeHtml(err.message)+'</option>';
+  });
+
+  const vSel = document.getElementById('versionSelect');
+  vSel.innerHTML = Object.keys(WORD_LISTS).map(function(v){
+    return '<option value="'+Common.escapeHtml(v)+'">'+Common.escapeHtml(v)+'</option>';
+  }).join('');
+})();
+
+function validateInfo(){
+  const name = document.getElementById('nameInput').value.trim();
+  const teacher = document.getElementById('teacherSelect').value;
+  const version = document.getElementById('versionSelect').value;
+  const err = document.getElementById('homeErr');
+  if(!name){ err.textContent='请填写你的姓名'; return null; }
+  if(name.length < 2){ err.textContent='姓名至少 2 个字'; return null; }
+  if(!teacher){ err.textContent='请选择所属老师'; return null; }
+  if(!version){ err.textContent='请选择教材版本'; return null; }
+  err.textContent='';
+  return { name:name, teacher:teacher, version:version };
+}
+
+function enterGame(){
+  const info = validateInfo();
+  if(!info) return;
+  document.getElementById('modeSummary').textContent =
+    info.name + ' · ' + info.teacher + ' · ' + info.version;
+  show('modeSelect');
+}
+
+function pickMode(m){
+  const info = validateInfo();
+  if(!info) return;
+  studentName = info.name; studentTeacher = info.teacher; studentVersion = info.version;
+  gameWords = WORD_LISTS[studentVersion] || DEFAULT_WORDS;
+  alreadySubmitted = false;
+  startGame(m);
+}
+
+/* ============ 游戏流程 ============ */
+function startGame(m){
+  mode = m;
+  round = 1; score = 0; combo = 0; wrongList = []; totalQ = 0; inRetry = false;
+  queue = [];
+  document.getElementById('score').textContent = '0';
+  document.getElementById('combo').textContent = '';
+  document.getElementById('levelup').classList.add('hidden');
+  show('play');
+  startRound();
+}
+
+function startRound(){
+  // 汉译英（拼写）模式排除短语，避免学生手敲长词组；英译汉模式含全部
+  poolSrc = (mode==='zh') ? gameWords.filter(function(w){ return !isPhrase(w); }) : gameWords;
+  pool = drawWords(PER_ROUND);
+  idx = 0; inRetry = false;
+  document.getElementById('levelup').classList.add('hidden');
+  updateTopbar();
+  nextQuestion();
+}
+
+function updateTopbar(){
+  const modeName = mode==='en' ? '英译汉' : '汉译英';
+  document.getElementById('modeLabel').textContent = (inRetry ? '错题重练' : `${modeName} · 第${round}/${TOTAL_ROUNDS}关`);
+}
+
+function refillQueue(){ queue = shuffle([...poolSrc]); }
+function drawWords(n){
+  const out = [];
+  for(let i=0;i<n;i++){
+    if(queue.length===0) refillQueue();
+    out.push(queue.pop());
+  }
+  return out;
+}
+
+function nextQuestion(){
+  if(idx >= pool.length){ inRetry ? endGame() : roundClear(); return; }
+  const w = pool[idx];
+  document.getElementById('qnum').textContent = `第 ${idx+1} / ${pool.length} 题`;
+  document.getElementById('progressBar').style.width = (idx/pool.length*100)+'%';
+
+  const card = document.getElementById('qWord');
+  const label = document.getElementById('qLabel');
+  const box = document.getElementById('options');
+  const spell = document.getElementById('spell');
+
+  if(mode==='en'){
+    label.textContent = '英文单词';
+    card.className = 'word en'; card.textContent = w.en;
+    spell.classList.add('hidden');
+    box.classList.remove('hidden');
+    const answerKey = w.zh;
+    const allValues = gameWords.map(x=>x.zh);
+    const distractors = shuffle(allValues.filter(v=>v!==answerKey)).slice(0,3);
+    const opts = shuffle([answerKey, ...distractors]);
+    box.innerHTML = '';
+    opts.forEach((val, i)=>{
+      const b = document.createElement('button');
+      b.className = 'opt c'+i;
+      b.textContent = val;
+      b.onclick = ()=>choose(b, val, answerKey, w);
+      box.appendChild(b);
+    });
+  } else {
+    label.textContent = '中文意思';
+    card.className = 'word'; card.textContent = w.zh;
+    box.classList.add('hidden'); box.innerHTML='';
+    spell.classList.remove('hidden');
+    const inp = document.getElementById('spellInput');
+    inp.value=''; inp.disabled=false;
+    document.getElementById('spellSubmit').disabled=false;
+    const fb = document.getElementById('spellFeedback');
+    fb.textContent=''; fb.className='spell-feedback';
+    setTimeout(()=>inp.focus(),50);
+  }
+}
+
+function choose(btn, val, answerKey, w){
+  const opts = document.querySelectorAll('.opt');
+  opts.forEach(o=>o.classList.add('disabled'));
+  if(val === answerKey){
+    btn.classList.add('right');
+    resolveAnswer(true, w);
+  } else {
+    btn.classList.add('wrong');
+    opts.forEach(o=>{ if(o.textContent===answerKey) o.classList.add('right'); });
+    resolveAnswer(false, w);
+  }
+  idx++;
+  setTimeout(nextQuestion, 750);
+}
+
+function submitSpell(){
+  const w = pool[idx];
+  const inp = document.getElementById('spellInput');
+  const fb = document.getElementById('spellFeedback');
+  const val = inp.value.trim().toLowerCase();
+  if(val === '') return;
+  const answerKey = w.en.toLowerCase();
+  inp.disabled = true;
+  document.getElementById('spellSubmit').disabled = true;
+  if(val === answerKey){
+    fb.textContent = '✓ 正确！真棒！';
+    fb.className = 'spell-feedback ok';
+    resolveAnswer(true, w);
+  } else {
+    fb.textContent = '✗ 正确答案：' + w.en;
+    fb.className = 'spell-feedback no';
+    resolveAnswer(false, w);
+  }
+  idx++;
+  setTimeout(nextQuestion, 1300);
+}
+
+function resolveAnswer(correct, w){
+  totalQ++;
+  const c = document.getElementById('combo');
+  if(correct){
+    combo++;
+    const gain = 10 + Math.min(combo-1,5)*2;
+    score += gain;
+    document.getElementById('score').textContent = score;
+    c.textContent = combo>=2 ? `连对 x${combo}  +${gain}` : '';
+    beep(660,0.08);
+  } else {
+    combo = 0;
+    c.textContent = '';
+    wrongList.push(w);
+    beep(200,0.18);
+  }
+}
+
+function roundClear(){
+  const emojis = ['🎉','🌟','🏆','💪','🔥'];
+  document.querySelector('#levelup .big').textContent = emojis[Math.min(round-1, emojis.length-1)];
+  document.getElementById('luTitle').textContent = `第 ${round} 关 通关！`;
+  document.getElementById('luSub').textContent = getPraise(round);
+  const btn = document.getElementById('luBtn');
+  btn.textContent = (round >= TOTAL_ROUNDS) ? '🏁 查看成绩' : '下一关 →';
+  document.getElementById('levelup').classList.remove('hidden');
+  beep(880,0.16);
+}
+
+function getPraise(r){
+  const lines = [
+    '太棒啦！第一关轻松拿下，继续保持～',
+    '两关连过，你就是单词小能手！',
+    '第三关也闯过啦，越来越厉害！',
+    '第四关通关，胜利就在眼前！',
+    '五关全清，你是真正的单词小侦探！'
+  ];
+  return lines[Math.min(r-1, lines.length-1)];
+}
+
+function nextRound(){
+  if(round >= TOTAL_ROUNDS){ endGame(); return; }
+  round++;
+  startRound();
+}
+
+function endGame(){
+  document.getElementById('progressBar').style.width = '100%';
+  document.getElementById('levelup').classList.add('hidden');
+  const total = totalQ;
+  const right = total - wrongList.length;
+  const rate = total ? Math.round(right/total*100) : 0;
+  document.getElementById('finalScore').textContent = score;
+  document.getElementById('finalStat').textContent = `正确 ${right} / ${total} 题 · 正确率 ${rate}%`;
+  document.getElementById('emoji').textContent = rate>=90?'🏆':rate>=70?'🌟':'💪';
+
+  const wb = document.getElementById('wrongBox');
+  const wi = document.getElementById('wrongItems');
+  wi.innerHTML = '';
+  if(wrongList.length){
+    wb.classList.remove('hidden');
+    const seen = new Set();
+    wrongList.forEach(w=>{
+      const key = w.en;
+      if(seen.has(key)) return; seen.add(key);
+      const div = document.createElement('div');
+      div.className = 'wrong-item';
+      div.innerHTML = `<span class="en">${Common.escapeHtml(w.en)}</span><span class="zh">${Common.escapeHtml(w.zh)}</span>`;
+      div.onclick = ()=>speak(w.en);
+      wi.appendChild(div);
+    });
+  } else {
+    wb.classList.add('hidden');
+  }
+
+  // 上传成绩（只在本轮正式完成、且未提交过时上传一次）
+  if(!inRetry && !alreadySubmitted){
+    alreadySubmitted = true;
+    uploadScore({
+      name: studentName, teacher: studentTeacher, version: studentVersion,
+      total: total, correct: right, score: score,
+      detail: wrongList.map(function(w){ return { en:w.en, zh:w.zh }; })
+    });
+  }
+
+  show('result');
+}
+
+function uploadScore(rec){
+  rec.submittedAt = new Date().toISOString();
+  CloudBox.uploadWordScore(rec).then(function(){
+    Common.toast('成绩已上传到排行榜 🎉','success');
+  }).catch(function(err){
+    console.warn('上传失败：', err);
+    Common.toast('成绩上传失败，可稍后在排行榜页重试','error');
+  });
+}
+
+function goLeaderboard(){
+  location.href = 'word-detect-leaderboard.html?teacher=' + encodeURIComponent(studentTeacher)
+    + '&version=' + encodeURIComponent(studentVersion);
+}
+
+function retryWrong(){
+  if(!wrongList.length) return;
+  pool = shuffle([...wrongList]);
+  idx = 0; score = 0; combo = 0; wrongList = []; totalQ = 0; inRetry = true;
+  document.getElementById('score').textContent = '0';
+  document.getElementById('combo').textContent = '';
+  document.getElementById('levelup').classList.add('hidden');
+  updateTopbar();
+  show('play');
+  nextQuestion();
+}
+
+function backHome(){ document.getElementById('levelup').classList.add('hidden'); show('home'); }
+
+function show(id){
+  ['home','modeSelect','play','result'].forEach(function(s){ document.getElementById(s).classList.add('hidden'); });
+  document.getElementById(id).classList.remove('hidden');
+}
+
+/* 音效 & 朗读 */
+function beep(freq, dur){
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.frequency.value = freq; o.type='sine';
+    o.connect(g); g.connect(ctx.destination);
+    g.gain.setValueAtTime(0.15, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+dur);
+    o.start(); o.stop(ctx.currentTime+dur);
+  }catch(e){}
+}
+function speak(text){
+  try{ if(window.speechSynthesis) speechSynthesis.speak(new SpeechSynthesisUtterance(text)); }catch(e){}
+}
+</script>
+</body>
+</html>
