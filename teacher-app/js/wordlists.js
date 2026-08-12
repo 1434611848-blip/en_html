@@ -42,7 +42,7 @@ const WORD_LISTS = {
     {en:"yours",zh:"你的；您的"},{en:"send",zh:"发送；邮寄"},
     {en:"similar",zh:"类似的；相像的"},{en:"similar to",zh:"类似于；相像的"},
     {en:"sound",zh:"听起来；声音；响声"},{en:"bye for now",zh:"再见"},
-    {en:"Flora",zh:"弗洛拉（人名）"},{en:"useful",zh:"有用的；有益的"},
+    {en:"useful",zh:"有用的；有益的"},
     {en:"exciting",zh:"令人激动的；使人兴奋的"},{en:"past",zh:"过去；过去的；在……之后"},
     {en:"good with",zh:"灵巧的；善于应付……的"},{en:"number",zh:"数字；号码"},
     {en:"help sb. with sth.",zh:"帮助某人做某事"},{en:"reason",zh:"原因；理由"},
