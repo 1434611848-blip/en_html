@@ -68,55 +68,103 @@
     .feedback-panel.show { display: block; }
 
     .feedback-doc {
-      background: #fff; border-radius: 12px; padding: 24px;
-      box-shadow: 0 2px 12px rgba(0,0,0,.06); max-width: 680px; margin: 0 auto;
+      background: #fff; border-radius: 16px; overflow: hidden;
+      box-shadow: 0 8px 26px rgba(80,95,140,.14); max-width: 680px; margin: 0 auto;
     }
-    .feedback-doc .doc-title {
-      text-align: center; font-size: 20px; font-weight: 700; color: #576b95;
-      padding-bottom: 12px; border-bottom: 2px solid #576b95; margin-bottom: 16px;
+
+    /* 顶部成绩英雄卡（按阶段主题色） */
+    .doc-hero { text-align: center; color: #fff; padding: 22px 16px 20px; }
+    .feedback-doc.lvl-full .doc-hero { background: linear-gradient(135deg,#27cf86,#07a35a); }
+    .feedback-doc.lvl-good .doc-hero { background: linear-gradient(135deg,#54a6ff,#2f7de6); }
+    .feedback-doc.lvl-mid  .doc-hero { background: linear-gradient(135deg,#ffb15c,#ff8e33); }
+    .feedback-doc.lvl-low  .doc-hero { background: linear-gradient(135deg,#ff9090,#ef5d5d); }
+    .doc-hero-emoji { font-size: 30px; line-height: 1; }
+    .doc-hero-name { font-size: 18px; font-weight: 700; margin-top: 4px; }
+    .doc-hero-stage {
+      display: inline-block; margin: 10px 0 6px; padding: 3px 16px; border-radius: 15px;
+      background: rgba(255,255,255,.25); font-size: 13px; font-weight: 600;
     }
-    .feedback-doc .doc-info {
-      display: flex; justify-content: space-around; flex-wrap: wrap; gap: 8px;
-      background: #f5f6f8; border-radius: 8px; padding: 12px; margin-bottom: 16px; font-size: 13px; color: #444;
-    }
-    .feedback-doc .doc-info span { white-space: nowrap; }
-    .feedback-doc .doc-info b { color: #576b95; }
+    .doc-hero-score { font-size: 46px; font-weight: 800; line-height: 1.05; }
+    .doc-hero-score span { font-size: 18px; font-weight: 600; opacity: .85; }
+    .doc-hero-rate { font-size: 14px; margin-top: 4px; opacity: .95; }
+    .doc-hero-meta { font-size: 12px; margin-top: 10px; opacity: .9; }
+
+    .doc-body { padding: 0 20px 18px; }
+    .feedback-doc .doc-title { display: none; }
 
     .feedback-doc .section-title {
       font-size: 15px; font-weight: 700; color: #1f1f1f;
-      padding: 8px 12px; background: #eef1f7; border-radius: 6px; margin: 16px 0 10px;
+      padding: 9px 12px; background: #eef1f7; border-radius: 8px; margin: 18px 0 10px;
       border-left: 4px solid #576b95;
     }
 
-    /* 知识点分组 */
-    .kp-group {
-      background: #fff; border: 1px solid #ececec; border-radius: 8px;
-      padding: 14px; margin-bottom: 12px;
+    /* 薄弱考点简洁列表（错误数彩色徽章） */
+    .weak-list { margin: 0; padding: 0; list-style: none; }
+    .weak-list li {
+      display: flex; justify-content: space-between; align-items: center;
+      background: #fff; border: 1px solid #ececff; border-left: 4px solid #c9cdf5;
+      border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;
+      box-shadow: 0 2px 6px rgba(80,95,140,.05);
     }
+    .weak-list .wk-name { font-weight: 600; color: #333; font-size: 14px; }
+    .weak-list .wk-badge {
+      font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 12px; white-space: nowrap;
+    }
+    .weak-list li.wk-1 { border-left-color: #9bb8ff; }
+    .weak-list li.wk-1 .wk-badge { background: #eaf1ff; color: #2f7de6; }
+    .weak-list li.wk-2 { border-left-color: #ffc06b; }
+    .weak-list li.wk-2 .wk-badge { background: #fff1dd; color: #e8821a; }
+    .weak-list li.wk-3 { border-left-color: #ff8a8a; }
+    .weak-list li.wk-3 .wk-badge { background: #ffe3e3; color: #e53935; }
+
+    /* 知识点分组 / 复习建议卡 */
+    .kp-group {
+      background: #fff; border: 1px solid #ececec; border-radius: 12px;
+      padding: 14px; margin-bottom: 12px; border-left: 5px solid #bbb;
+    }
+    .kp-group.kp-basic { border-left-color: #e57373; background: linear-gradient(180deg,#fff6f6,#fff); }
+    .kp-group.kp-advanced { border-left-color: #5b9dff; background: linear-gradient(180deg,#f6f9ff,#fff); }
+    .kp-group.kp-instability { border-left-color: #ffa94d; background: linear-gradient(180deg,#fff8f0,#fff); }
     .kp-group .kp-header {
       display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
     }
     .kp-group .kp-name { font-size: 14px; font-weight: 600; color: #333; }
     .kp-group .kp-questions { font-size: 12px; color: #888; }
     .kp-group .kp-knowledge { font-size: 12.5px; color: #666; margin-bottom: 8px; line-height: 1.5; }
-    .kp-group .kp-type {
+    .kp-type {
       display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600;
     }
-    .kp-type.basic { background: #fdecec; color: #a4262c; }
+    .kp-type.basic { background: #fdecec; color: #c0392b; }
     .kp-type.advanced { background: #e8f0ff; color: #1a5ec0; }
     .kp-type.instability { background: #fff4e5; color: #a85b00; }
 
-    .solution-box {
-      background: #f8faff; border-radius: 8px; padding: 12px; margin-top: 8px;
+    .advice-card { margin-bottom: 12px; }
+    .advice-card .advice-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .advice-card .advice-name { font-size: 14.5px; font-weight: 700; color: #222; }
+    .advice-card .advice-body {
+      font-size: 13px; color: #444; line-height: 1.7;
+      background: #fafbff; border-radius: 8px; padding: 10px 12px;
     }
-    .solution-box .sol-item { font-size: 13px; margin-bottom: 6px; line-height: 1.6; }
-    .solution-box .sol-item:last-child { margin-bottom: 0; }
-    .solution-box .sol-icon { margin-right: 4px; }
+    .advice-card.kp-basic .advice-body { background: #fff7f7; }
+    .advice-card.kp-advanced .advice-body { background: #f7faff; }
+    .advice-card.kp-instability .advice-body { background: #fffaf2; }
 
-    .doc-footer {
-      text-align: center; padding-top: 12px; border-top: 1px dashed #ddd; margin-top: 16px;
-      font-size: 12px; color: #999;
+    /* 开学前计划 */
+    .plan-box {
+      background: linear-gradient(180deg,#f7f9ff,#fff); border: 1px solid #e8ecf5;
+      border-radius: 12px; padding: 16px; font-size: 13px; color: #333; line-height: 1.7;
     }
+    .plan-box .plan-title { font-weight: 700; color: #576b95; margin-bottom: 6px; }
+    .plan-box ul { margin: 6px 0; padding-left: 18px; }
+    .plan-box li { margin-bottom: 6px; }
+
+    /* 老师寄语彩色块 */
+    .teacher-msg {
+      background: linear-gradient(135deg,#eef4ff,#f4f0ff); border: 1px solid #dfe6f7;
+      border-radius: 12px; padding: 14px 16px; font-size: 13.5px; color: #2c3550;
+      line-height: 1.8; margin-bottom: 14px;
+    }
+    .teacher-msg .tm-emoji { font-size: 18px; margin-right: 4px; }
 
     .export-bar {
       display: flex; gap: 10px; margin-top: 14px; justify-content: center;
@@ -136,35 +184,6 @@
     .btn-del:active { background: #ffe0e0; }
 
     .empty-state { text-align: center; padding: 48px 20px; color: #999; font-size: 14px; }
-
-    /* 薄弱考点简洁列表 */
-    .weak-list { margin: 0; padding: 0; list-style: none; }
-    .weak-list li {
-      display: flex; justify-content: space-between; align-items: center;
-      background: #fff; border: 1px solid #ececec; border-radius: 8px;
-      padding: 12px 14px; margin-bottom: 8px; font-size: 13.5px;
-    }
-    .weak-list .wk-name { font-weight: 600; color: #333; }
-    .weak-list .wk-meta { color: #888; font-size: 12px; text-align: right; max-width: 55%; }
-
-    /* 复习建议卡片 */
-    .advice-card { margin-bottom: 10px; }
-    .advice-card .advice-title {
-      font-size: 14px; font-weight: 700; color: #576b95; margin-bottom: 6px;
-    }
-    .advice-card .advice-item {
-      font-size: 13px; color: #444; line-height: 1.6; padding-left: 22px; position: relative;
-    }
-    .advice-card .advice-item::before { position: absolute; left: 0; content: '📌'; }
-
-    /* 开学前计划 */
-    .plan-box {
-      background: #f8faff; border-radius: 8px; padding: 14px;
-      font-size: 13px; color: #333; line-height: 1.7;
-    }
-    .plan-box .plan-title { font-weight: 700; color: #576b95; margin-bottom: 6px; }
-    .plan-box ul { margin: 6px 0; padding-left: 18px; }
-    .plan-box li { margin-bottom: 6px; }
   </style>
 </head>
 <body>
@@ -203,11 +222,11 @@
     </main>
   </div>
 
-  <script src="js/common.js?v=20260813c"></script>
-  <script src="js/storage.js?v=20260813c"></script>
-  <script src="js/supabase.js?v=20260813c"></script>
-  <script src="js/data.js?v=20260813c"></script>
-  <script src="js/analyzer.js?v=20260813c"></script>
+  <script src="js/common.js?v=20260813d"></script>
+  <script src="js/storage.js?v=20260813d"></script>
+  <script src="js/supabase.js?v=20260813d"></script>
+  <script src="js/data.js?v=20260813d"></script>
+  <script src="js/analyzer.js?v=20260813d"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
     Common.injectGlobalStyle();
@@ -484,14 +503,26 @@
         summaryText = '基础扎实，只需针对以下 ' + displayPoints.length + ' 个薄弱点做最后冲刺：';
       }
 
-      var html = '<div class="feedback-doc" id="doc_' + r.id + '">';
-      html += '<div class="doc-title">📚 摸底测学习报告</div>';
-      html += '<div class="doc-info">';
-      html += '<span>学生：<b>' + Common.escapeHtml(r.name) + '</b></span>';
-      html += '<span>老师：<b>' + Common.escapeHtml(r.teacher) + '</b></span>';
-      html += '<span>得分：<b>' + a.totals.score + '/' + a.totals.full + '</b></span>';
-      html += '<span>日期：<b>' + Common.formatDateTime(r.submittedAt) + '</b></span>';
+      // 阶段与主题色
+      var lvlClass, stageLabel, heroEmoji;
+      if (isFull)      { lvlClass = 'lvl-full'; stageLabel = '满分';   heroEmoji = '🏆'; }
+      else if (isGood) { lvlClass = 'lvl-good'; stageLabel = '优秀';   heroEmoji = '🌟'; }
+      else if (isMid)  { lvlClass = 'lvl-mid';  stageLabel = '良好';   heroEmoji = '💪'; }
+      else             { lvlClass = 'lvl-low';  stageLabel = '待提升'; heroEmoji = '🌈'; }
+
+      var html = '<div class="feedback-doc ' + lvlClass + '" id="doc_' + r.id + '">';
+
+      // 顶部成绩英雄卡
+      html += '<div class="doc-hero">';
+      html += '<div class="doc-hero-emoji">' + heroEmoji + '</div>';
+      html += '<div class="doc-hero-name">' + Common.escapeHtml(r.name) + '</div>';
+      html += '<div class="doc-hero-stage">' + stageLabel + '</div>';
+      html += '<div class="doc-hero-score">' + score + '<span> / ' + full + '分</span></div>';
+      html += '<div class="doc-hero-rate">正确率 ' + rate + '%</div>';
+      html += '<div class="doc-hero-meta">' + Common.escapeHtml(r.teacher) + ' 老师 · ' + Common.formatDateTime(r.submittedAt) + '</div>';
       html += '</div>';
+
+      html += '<div class="doc-body">';
 
       // 第一部分：薄弱考点（丢分汇总）
       html += '<div class="section-title">一、薄弱考点（丢分汇总）</div>';
@@ -503,9 +534,10 @@
         html += '<p style="font-size:13px;color:#666;margin:0 0 10px;">' + summaryText + '</p>';
         html += '<ul class="weak-list">';
         displayPoints.forEach(function(wp) {
-          html += '<li>';
+          var wk = wp.wrongCount >= 3 ? 3 : wp.wrongCount;
+          html += '<li class="wk-' + wk + '">';
           html += '<span class="wk-name">' + Common.escapeHtml(wp.name) + '</span>';
-          html += '<span class="wk-meta">错 ' + wp.wrongCount + ' 题</span>';
+          html += '<span class="wk-badge">错 ' + wp.wrongCount + ' 题</span>';
           html += '</li>';
         });
         html += '</ul>';
@@ -520,14 +552,12 @@
       } else {
         displayPoints.forEach(function(wp) {
           var info = EXAM_DATA.matchLecture(wp.name);
-          var textbook = textbookFromLectures(info.lectures);
-          var isReading = /阅读/.test(wp.name);
-          var isCloze = /完形/.test(wp.name);
-          html += '<div class="advice-card kp-group">';
-          html += '<div class="advice-title">' + Common.escapeHtml(wp.name) + ' <span class="kp-type ' + info.type + '">' + typeLabel(info.type) + '</span></div>';
-          html += '<div class="advice-item">';
-          html += '该考点错了 ' + wp.wrongCount + ' 题。建议先看' + info.lectures.join('、') + '回放，再去完成暑假课本对应课节的练习题。';
+          html += '<div class="advice-card kp-group kp-' + info.type + '">';
+          html += '<div class="advice-head">';
+          html += '<span class="advice-name">' + Common.escapeHtml(wp.name) + '</span>';
+          html += '<span class="kp-type ' + info.type + '">' + typeLabel(info.type) + '</span>';
           html += '</div>';
+          html += '<div class="advice-body">该考点错了 ' + wp.wrongCount + ' 题。建议先看' + info.lectures.join('、') + '回放，再去完成暑假课本对应课节的练习题。</div>';
           html += '</div>';
         });
         html += '<p style="font-size:13px;color:#576b95;text-align:center;padding:10px 0 4px;margin:0;">💡 以上练习完成后还有疑问，可以找老师要对应考点的加餐题目练习。</p>';
@@ -536,17 +566,20 @@
       // 第三部分：开学前冲刺计划
       html += '<div class="section-title">三、开学前冲刺计划</div>';
       html += '<div class="plan-box">';
-      html += '<p class="plan-title">🌟 老师寄语</p>';
+
+      var msgText;
       if (score === full) {
-        html += '<p>太棒了，满分拿下！这份成绩是你认真听讲、扎实练习的结果。继续保持，新学期可以挑战更高难度的内容，也可以多帮助身边同学一起进步！</p>';
+        msgText = '太棒了，满分拿下！这份成绩是你认真听讲、扎实练习的结果。继续保持，新学期可以挑战更高难度的内容，也可以多帮助身边同学一起进步！';
       } else if (rate >= 80) {
-        html += '<p>基础非常扎实，这次检测表现优秀！开学前保持每天背单词的习惯，再适当挑战一些拓展题型，新学期你会更从容。</p>';
+        msgText = '基础非常扎实，这次检测表现优秀！开学前保持每天背单词的习惯，再适当挑战一些拓展题型，新学期你会更从容。';
       } else if (rate >= 60) {
-        html += '<p>整体掌握不错，但还有可以提升的空间。按照下面的建议针对薄弱点再集中突破一下，开学后一定能稳上新台阶。加油！</p>';
+        msgText = '整体掌握不错，但还有可以提升的空间。按照下面的建议针对薄弱点再集中突破一下，开学后一定能稳上新台阶。加油！';
       } else {
-        html += '<p>这次分数不代表你的能力，只是提醒我们哪些地方需要多花点时间。暑假还有时间，把基础考点逐个过关，老师也会帮你。加油！</p>';
+        msgText = '这次分数不代表你的能力，只是提醒我们哪些地方需要多花点时间。暑假还有时间，把基础考点逐个过关，老师也会帮你。加油！';
       }
-      html += '<p class="plan-title" style="margin-top:12px;">📖 复习建议</p>';
+      html += '<div class="teacher-msg"><span class="tm-emoji">🌟</span>' + msgText + '</div>';
+
+      html += '<div class="plan-title">📖 复习建议</div>';
       html += '<ul>';
       if (score === full) {
         html += '<li><b>单词：</b>每天抽 10 分钟复习七年级核心词汇，保持语感。七年级上册单词背完后，继续背七年级下册单词，优先用爱学 App 的背单词功能坚持打卡。</li>';
@@ -569,9 +602,10 @@
       if (a.stats.blank > 0) {
         html += '<p style="color:#a85b00;margin-top:8px;">⚠ 本次有 ' + a.stats.blank + ' 题未作答，下次考试要先做会做的，把基础分拿稳。</p>';
       }
-      html += '</div>';
+      html += '</div>'; // plan-box
 
-      html += '</div>';
+      html += '</div>'; // doc-body
+      html += '</div>'; // feedback-doc
 
       // 导出按钮
       html += '<div class="export-bar">';
