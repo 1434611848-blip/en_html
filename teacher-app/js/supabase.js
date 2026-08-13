@@ -128,12 +128,62 @@ window.CloudBox = (function () {
     });
   }
 
+  // ===== 单词检测（单词小侦探） =====
+  var WORD_TABLE = '/word_detection_scores';
+
+  // 上传一次成绩
+  function uploadWordScore(rec) {
+    return request(WORD_TABLE + '?select=id', {
+      method: 'POST',
+      headers: { 'Prefer': 'return=representation' },
+      body: JSON.stringify({
+        student_name: rec.name,
+        teacher: rec.teacher,
+        version: rec.version,
+        total: rec.total,
+        correct: rec.correct,
+        score: rec.score,
+        detail: rec.detail || [],
+        duration: (typeof rec.duration === 'number') ? rec.duration : null,
+        submitted_at: rec.submittedAt,
+        status: 'submitted'
+      })
+    });
+  }
+
+  // 查询成绩：可按老师 + 版本过滤（默认查全部未删除）
+  function fetchWordScores(teacherName, version) {
+    var filter = '';
+    if (teacherName && teacherName !== '__all') filter += '&teacher=eq.' + encodeURIComponent(teacherName);
+    if (version && version !== '__all') filter += '&version=eq.' + encodeURIComponent(version);
+    var path = WORD_TABLE + '?select=id,student_name,teacher,version,total,correct,score,detail,duration,submitted_at'
+      + filter + '&status=neq.deleted&order=submitted_at.desc';
+    return request(path);
+  }
+
+  // 软删除单条单词成绩（老师后台去重 / 删除）
+  function deleteWordScore(id) {
+    return request(WORD_TABLE + '?id=eq.' + encodeURIComponent(id), {
+      method: 'PATCH',
+      headers: { 'Prefer': 'return=representation' },
+      body: JSON.stringify({ status: 'deleted' })
+    }).then(function (rows) {
+      if (!rows || rows.length === 0) {
+        throw new Error('RLS 未授权 UPDATE，请在 Supabase SQL Editor 执行 word_detection_scores 的授权语句');
+      }
+      return rows;
+    });
+  }
+
   return {
     uploadRecord: uploadRecord,
     fetchTeacherRecords: fetchTeacherRecords,
     fetchRecordDetail: fetchRecordDetail,
     fetchRecordById: fetchRecordById,
     fetchTeachers: fetchTeachers,
-    deleteRecord: deleteRecord
+    deleteRecord: deleteRecord,
+    uploadWordScore: uploadWordScore,
+    fetchWordScores: fetchWordScores,
+    deleteWordScore: deleteWordScore
   };
 })();

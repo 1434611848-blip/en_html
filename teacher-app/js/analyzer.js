@@ -14,14 +14,17 @@
 window.Analyzer = (function () {
   const D = window.EXAM_DATA;
 
-  /** 标准化处理：去空白、小写、可选去除尾部句号 + 合并中间多空格 */
+  /** 标准化处理：去空白、小写、统一引号、去隐藏字符、合并中间多空格、去除尾部句号 */
   function norm(s) {
     if (s === null || s === undefined) return '';
     return String(s)
       .trim()
       .toLowerCase()
-      .replace(/\s+/g, ' ')         // 合并任意空白字符（多空格/制表/换行）为单空格
-      .replace(/[.\s]+$/g, '');     // 去掉尾部空格和句号
+      .replace(/[\u200B\u200C\u200D\uFEFF]/g, '')   // 去掉零宽空格/ZWNJ/ZWJ/BOM等隐藏字符
+      .replace(/[\u2018\u2019\u201B\u2032]/g, "'") // 统一中文/弯单引号为英文单引号
+      .replace(/[\u201C\u201D\u201F]/g, '"')       // 统一中文/弯双引号为英文双引号
+      .replace(/\s+/g, ' ')                          // 合并任意空白字符（多空格/制表/换行）为单空格
+      .replace(/[.\s]+$/g, '');                      // 去掉尾部空格和句号
   }
 
   /** 单题判定（选择题 / 任务型 / 语法填空通用） */
