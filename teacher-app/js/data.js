@@ -49,10 +49,10 @@ window.EXAM_DATA = {
         no: 3,
         stem: 'Please give me some ______.',
         options: { A: 'waters', B: 'water', C: 'a water', D: 'many water' },
-        answer: 'C',
-        knowledge: '不可数名词 water 表示"一杯水"时用 a glass/bottle of water；some 可修饰不可数名词。',
-        diagnosis: 'water 是不可数名词，不能直接加 -s；但可说 a water（一杯水）。some 修饰可数或不可数都可，但这里的最佳搭配是 a water。',
-        tip: '不可数名词不能直接加 s 表复数，但可借助量词：a glass of water / two bottles of water。'
+        answer: 'B',
+        knowledge: 'some 既可修饰可数名词复数，也可修饰不可数名词；water 是不可数名词，没有复数形式，也不能说 a water。',
+        diagnosis: 'water 是不可数名词，没有复数形式，不能用 many 修饰，也不能说 a water。some 可以修饰不可数名词，因此 some water 是正确的。',
+        tip: '不可数名词没有复数形式，不能直接用 a/an 或 many 修饰；表示数量时可借助量词，如 a glass of water / two bottles of water。'
       },
       {
         no: 4,
