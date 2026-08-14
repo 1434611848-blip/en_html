@@ -73,7 +73,7 @@ const WORD_LISTS = {
     {en:"ever",zh:"在任何时候；从来"},{en:"centre",zh:"中心"},
     {en:"greet",zh:"打招呼；欢迎；迎接"},{en:"distance",zh:"距离"},
     {en:"method",zh:"方法；措施"},{en:"simple",zh:"简单的"},
-    {en:"railway",zh:"铁路；铁道"},{en:"eachother",zh:"相互；彼此"},
+    {en:"railway",zh:"铁路；铁道"},{en:"each other",zh:"相互；彼此"},
     {en:"address",zh:"地址"},{en:"deliver",zh:"递送"},
     {en:"serve",zh:"服务"},{en:"trust",zh:"信任；信赖"},
     {en:"respect",zh:"尊重；敬重"},{en:"lively",zh:"活泼的；活跃的"},
