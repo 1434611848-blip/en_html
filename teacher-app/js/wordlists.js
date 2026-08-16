@@ -73,7 +73,7 @@ const WORD_LISTS = {
     {en:"ever",zh:"在任何时候；从来"},{en:"centre",zh:"中心"},
     {en:"greet",zh:"打招呼；欢迎；迎接"},{en:"distance",zh:"距离"},
     {en:"method",zh:"方法；措施"},{en:"simple",zh:"简单的"},
-    {en:"railway",zh:"铁路；铁道"},{en:"eachother",zh:"相互；彼此"},
+    {en:"railway",zh:"铁路；铁道"},{en:"each other",zh:"相互；彼此"},
     {en:"address",zh:"地址"},{en:"deliver",zh:"递送"},
     {en:"serve",zh:"服务"},{en:"trust",zh:"信任；信赖"},
     {en:"respect",zh:"尊重；敬重"},{en:"lively",zh:"活泼的；活跃的"},
@@ -82,7 +82,7 @@ const WORD_LISTS = {
     {en:"alarm",zh:"警报器"},{en:"stranger",zh:"陌生人"},
     {en:"lock",zh:"锁"},{en:"explore",zh:"探索；探究"},
     {en:"rock",zh:"（使）轻轻摇晃"},{en:"shower",zh:"淋浴"},
-    {en:"mode",zh:"模式；方式"},{en:"textmessage",zh:"（手机）短信息"}
+    {en:"mode",zh:"模式；方式"},{en:"text message",zh:"（手机）短信息"}
   ],
   "冀教": [
     {en:"laugh",zh:"笑；大笑"},{en:"present",zh:"礼物；礼品"},
@@ -112,31 +112,31 @@ const WORD_LISTS = {
     {en:"hairy",zh:"多毛的"},{en:"most",zh:"大多数；最多"}
   ],
   "北师大": [
-    {en:"pencilcase",zh:"铅笔盒"},{en:"everything",zh:"每件事；所有事物；一切"},
+    {en:"pencil case",zh:"铅笔盒"},{en:"everything",zh:"每件事；所有事物；一切"},
     {en:"ready",zh:"准备好；准备完毕"},{en:"check",zh:"检查；核查"},
     {en:"dining",zh:"进餐；用餐；吃饭"},{en:"hall",zh:"礼堂；大厅"},
-    {en:"dininghall",zh:"餐厅"},{en:"lab",zh:"实验室"},
+    {en:"dining hall",zh:"餐厅"},{en:"lab",zh:"实验室"},
     {en:"field",zh:"运动场；田地；场地"},{en:"gym",zh:"体育馆；健身房"},
     {en:"headteacher",zh:"(中小学)校长"},{en:"experiment",zh:"实验；试验"},
     {en:"skill",zh:"技能；技术"},{en:"special",zh:"特殊的；特别的"},
     {en:"Monday",zh:"星期一"},{en:"Tuesday",zh:"星期二"},
     {en:"outside",zh:"在外面；外部"},{en:"during",zh:"在……期间"},
-    {en:"enjoy",zh:"享受……的乐趣；欣赏；喜爱"},{en:"howmany",zh:"多少（后接可数名词复数）"},
-    {en:"everyday",zh:"每天"},{en:"tennis",zh:"网球"},
+    {en:"enjoy",zh:"享受……的乐趣；欣赏；喜爱"},{en:"how many",zh:"多少（后接可数名词复数）"},
+    {en:"every day",zh:"每天"},{en:"tennis",zh:"网球"},
     {en:"blog",zh:"博客"},{en:"post",zh:"帖子；发布；邮寄"},
     {en:"excuse",zh:"原谅；宽恕"},{en:"Excuse me",zh:"劳驾；请原谅"},
     {en:"carry",zh:"拿；提；搬"},{en:"weekday",zh:"工作日"},
     {en:"furniture",zh:"家具"},{en:"equipment",zh:"设备；器材"},
-    {en:"livingroom",zh:"客厅；起居室"},{en:"bathroom",zh:"浴室；洗手间；卫生间"},
+    {en:"living room",zh:"客厅；起居室"},{en:"bathroom",zh:"浴室；洗手间；卫生间"},
     {en:"bedroom",zh:"卧室"},{en:"bookcase",zh:"书架；书柜"},
     {en:"machine",zh:"机器；机械装置"},{en:"fridge",zh:"冰箱"},
     {en:"cooker",zh:"厨灶；炉具"},{en:"sofa",zh:"长沙发"},
     {en:"flat",zh:"公寓；单元房"},{en:"sound",zh:"听起来好像；声音；响声"},
     {en:"thing",zh:"物件；物品；事物"},{en:"shower",zh:"淋浴器；淋浴间；淋浴"},
     {en:"comfortable",zh:"使人舒服的；舒适的"},{en:"cream",zh:"奶油色的；奶油；乳脂"},
-    {en:"allkindsof",zh:"各种各样"},{en:"inside",zh:"在……里面；里面；内部"},
+    {en:"all kinds of",zh:"各种各样"},{en:"inside",zh:"在……里面；里面；内部"},
     {en:"dictionary",zh:"词典；字典；辞书"},{en:"bookshelf",zh:"书架"},
-    {en:"nextto",zh:"紧邻；在……近旁"},{en:"need",zh:"需要"}
+    {en:"next to",zh:"紧邻；在……近旁"},{en:"need",zh:"需要"}
   ],
   "仁爱版":   [
     {en:"question",zh:"问题"},{en:"short",zh:"短的；矮的"},
