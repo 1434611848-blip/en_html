@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>👩‍🏫 单词小侦探 · 老师后台</title>
+<style>
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body{ margin:0; font-family:"微软雅黑","PingFang SC",sans-serif; background:linear-gradient(160deg,#fdeff9 0%,#e3f2fd 100%); color:#4a4a4a; min-height:100vh; padding:16px; }
+  h1{ text-align:center; font-size:24px; color:#ff6b9d; margin:10px 0 4px; }
+  .sub{ text-align:center; font-size:13px; color:#888; margin-bottom:14px; }
+  .wrap{ max-width:720px; margin:0 auto; }
+  .toolbar{ display:flex; gap:10px; align-items:center; justify-content:center; margin-bottom:14px; flex-wrap:wrap; }
+  select, .btn{ padding:10px 16px; font-size:15px; border-radius:12px; border:2px solid #ffd6e7; background:#fff; color:#ff6b9d; font-weight:bold; cursor:pointer; }
+  .btn.pink{ background:#ff6b9d; color:#fff; border-color:#ff6b9d; }
+  .btn.danger{ background:#ff5252; color:#fff; border-color:#ff5252; }
+  .stat{ text-align:center; font-size:14px; color:#ff6b9d; font-weight:bold; margin-bottom:12px; }
+  .list{ display:flex; flex-direction:column; gap:8px; }
+  .row{ display:flex; align-items:center; background:#fff; border-radius:12px; padding:10px 12px; border:2px solid #ffd6e7; font-size:13px; }
+  .info{ flex:1; line-height:1.5; }
+  .info b{ color:#2b8fd6; }
+  .acc{ flex:0 0 60px; text-align:center; font-weight:bold; color:#ff6b9d; }
+  .del{ flex:0 0 auto; margin-left:10px; padding:6px 12px; font-size:13px; border-radius:10px; border:none; background:#ff5252; color:#fff; cursor:pointer; }
+  .del:active{ opacity:.7; }
+  .empty{ text-align:center; color:#aaa; padding:40px 0; }
+  .confirm{ font-size:12px; color:#ff5252; text-align:center; margin-top:8px; min-height:16px; }
+  a{ color:#2b8fd6; text-decoration:none; }
+</style>
+</head>
+<body>
+  <h1>👩‍🏫 老师后台</h1>
+  <div class="sub">查看每位学员的检测成绩，可删除单条或清空全部</div>
+  <div class="wrap">
+    <div class="toolbar">
+      <select id="teacherFilter"><option value="">全部老师</option><option>亚飞老师</option><option>亚楠老师</option></select>
+      <a class="btn" href="rank.html">🏆 排行榜</a>
+      <a class="btn" href="word_check_20260821.html">🕵️ 检测系统</a>
+    </div>
+    <div class="stat" id="stat"></div>
+    <div class="list" id="list"></div>
+    <div class="confirm" id="confirm"></div>
+    <div style="text-align:center;margin-top:16px">
+      <button class="btn danger" id="clearAll">🗑️ 清空全部成绩</button>
+    </div>
+  </div>
+
+<script>
+const REC_KEY='wordcheck_records';
+function getRecords(){ try{ return JSON.parse(localStorage.getItem(REC_KEY)||'[]'); }catch(e){ return []; } }
+function setRecords(a){ try{ localStorage.setItem(REC_KEY, JSON.stringify(a)); }catch(e){} }
+function fmtDate(ts){ const d=new Date(ts); const p=n=>(''+n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+
+let confirmClear=false;
+function render(){
+  const tf=$('teacherFilter').value;
+  let recs=getRecords();
+  if(tf) recs=recs.filter(r=>r.teacher===tf);
+  const list=$('list');
+  $('stat').textContent = `共 ${recs.length} 条成绩记录` + (tf? `（${tf}）`:'');
+  if(!recs.length){ list.innerHTML='<div class="empty">暂无成绩记录。</div>'; return; }
+  list.innerHTML=recs.map((r,i)=>`
+    <div class="row" data-i="${i}">
+      <div class="info">
+        <b>${r.name}</b> ｜ ${r.teacher} ｜ ${r.version} ｜ ${r.game}<br>
+        <span style="color:#999">正确率 ${r.accuracy}% ｜ 答对 ${r.correct}/${r.total}${r.score?(' ｜ 得分 '+r.score):''} ｜ ${fmtDate(r.date)}</span>
+      </div>
+      <div class="acc">${r.accuracy}%</div>
+      <button class="del" data-i="${i}">删除</button>
+    </div>`).join('');
+  list.querySelectorAll('.del').forEach(b=>{
+    b.addEventListener('click',()=>{ deleteOne(parseInt(b.dataset.i,10)); });
+  });
+}
+function deleteOne(i){
+  let recs=getRecords();
+  const tf=$('teacherFilter').value;
+  // 列表索引对应的是筛选后的顺序，需映射回全局
+  let view = tf? recs.filter(r=>r.teacher===tf) : recs;
+  const target = view[i];
+  if(!target) return;
+  const gi = recs.indexOf(target);
+  recs.splice(gi,1);
+  setRecords(recs);
+  render();
+}
+$('teacherFilter').addEventListener('change', ()=>{ confirmClear=false; $('confirm').textContent=''; render(); });
+$('clearAll').addEventListener('click', ()=>{
+  if(!confirmClear){
+    confirmClear=true;
+    $('confirm').textContent='⚠️ 再次点击「清空全部成绩」将永久删除所有记录，不可恢复！';
+    return;
+  }
+  setRecords([]);
+  confirmClear=false;
+  $('confirm').textContent='已清空全部成绩记录。';
+  render();
+});
+render();
+</script>
+</body>
+</html>

@@ -112,6 +112,9 @@
   .wrong-empty{ color:#4caf50; font-weight:bold; text-align:center; }
 
   .stage-tip{ text-align:center; color:#888; padding:30px 0; }
+  .tool-links{ text-align:center; margin-top:16px; font-size:14px; color:#ccc; }
+  .tool-links a{ color:#2b8fd6; text-decoration:none; font-weight:bold; }
+  .tool-links a:active{ opacity:.6; }
 </style>
 </head>
 <body>
@@ -126,8 +129,8 @@
 
       <label>👩‍🏫 选择老师</label>
       <div class="opts" id="teacherOpts">
-        <div class="opt" data-teacher="亚楠老师">亚楠老师</div>
         <div class="opt" data-teacher="亚飞老师">亚飞老师</div>
+        <div class="opt" data-teacher="亚楠老师">亚楠老师</div>
       </div>
 
       <label>📚 选择教材版本</label>
@@ -142,6 +145,11 @@
       </div>
 
       <button class="btn block" id="startBtn">开始检测 🚀</button>
+      <div class="tool-links">
+        <a href="rank.html" target="_blank">🏆 排行榜</a>
+        <span>·</span>
+        <a href="teacher-admin.html" target="_blank">👩‍🏫 老师后台</a>
+      </div>
     </div>
   </div>
 
@@ -426,6 +434,21 @@ function mergeWrong(a,b){
   return Object.values(map);
 }
 
+// ===================== 成绩存档（localStorage） =====================
+const REC_KEY='wordcheck_records';
+function getRecords(){ try{ return JSON.parse(localStorage.getItem(REC_KEY)||'[]'); }catch(e){ return []; } }
+function saveRecord(acc, correct, total, sc){
+  const rec={
+    name: curName, teacher: curTeacher, version: curVersion,
+    game: (flashPlayed&&balloonPlayed)?'两项都玩':(flashPlayed?'闪卡':'气球'),
+    accuracy: acc, correct, total, score: (balloonPlayed?sc:0),
+    date: Date.now()
+  };
+  const arr=getRecords(); arr.push(rec);
+  try{ localStorage.setItem(REC_KEY, JSON.stringify(arr)); }catch(e){}
+}
+
+
 // ===================== 表扬榜 + 错题本 =====================
 function showBoard(){
   showScreen('screen-board');
@@ -454,6 +477,7 @@ function showBoard(){
   } else {
     $('wrongBox').innerHTML = `<div class="wrong-empty">🎉 没有错题，全部掌握！</div>`;
   }
+  saveRecord(accuracy, correct, totalQ, score);
 }
 $('retryWrong').addEventListener('click', ()=>{
   if(!totalWrong.length){ alert('没有错题啦，直接返回首页吧～'); return; }

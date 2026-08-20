@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏆 单词小侦探 · 排行榜</title>
+<style>
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body{ margin:0; font-family:"微软雅黑","PingFang SC",sans-serif; background:linear-gradient(160deg,#fdeff9 0%,#e3f2fd 100%); color:#4a4a4a; min-height:100vh; padding:16px; }
+  h1{ text-align:center; font-size:24px; color:#ff6b9d; margin:10px 0 4px; }
+  .sub{ text-align:center; font-size:13px; color:#888; margin-bottom:14px; }
+  .wrap{ max-width:640px; margin:0 auto; }
+  .toolbar{ display:flex; gap:10px; align-items:center; justify-content:center; margin-bottom:14px; flex-wrap:wrap; }
+  select, .btn{ padding:10px 16px; font-size:15px; border-radius:12px; border:2px solid #ffd6e7; background:#fff; color:#ff6b9d; font-weight:bold; cursor:pointer; }
+  .btn.ghost{ background:#fff; }
+  .btn.pink{ background:#ff6b9d; color:#fff; border-color:#ff6b9d; }
+  .list{ display:flex; flex-direction:column; gap:10px; }
+  .row{ display:flex; align-items:center; background:#fff; border-radius:14px; padding:12px 14px; border:2px solid #ffd6e7; box-shadow:0 4px 14px rgba(255,107,157,.12); }
+  .rank{ font-size:20px; font-weight:bold; color:#ff6b9d; width:42px; text-align:center; flex:0 0 42px; }
+  .info{ flex:1; }
+  .name{ font-size:17px; font-weight:bold; color:#2b8fd6; }
+  .meta{ font-size:12px; color:#999; margin-top:2px; }
+  .acc{ flex:0 0 84px; text-align:right; }
+  .acc b{ font-size:22px; color:#ff6b9d; }
+  .acc span{ font-size:11px; color:#aaa; display:block; }
+  .empty{ text-align:center; color:#aaa; padding:40px 0; }
+  .star{ color:#ffcf3f; }
+  a{ color:#2b8fd6; text-decoration:none; }
+</style>
+</head>
+<body>
+  <h1>🏆 单词小侦探排行榜</h1>
+  <div class="sub">每位小侦探只显示最好成绩（已自动去重）</div>
+  <div class="wrap">
+    <div class="toolbar">
+      <select id="teacherFilter"><option value="">全部老师</option><option>亚飞老师</option><option>亚楠老师</option></select>
+      <a class="btn ghost" href="word_check_20260821.html">🕵️ 去检测</a>
+      <a class="btn ghost" href="teacher-admin.html">👩‍🏫 老师后台</a>
+    </div>
+    <div class="list" id="list"></div>
+  </div>
+
+<script>
+const REC_KEY='wordcheck_records';
+function getRecords(){ try{ return JSON.parse(localStorage.getItem(REC_KEY)||'[]'); }catch(e){ return []; } }
+function fmtDate(ts){ const d=new Date(ts); const p=n=>(''+n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+
+function render(){
+  const tf=$('teacherFilter').value;
+  let recs=getRecords().filter(r=> !tf || r.teacher===tf);
+  // 按学员(name)去重，取最好正确率（并列取最近一次）
+  const best={};
+  recs.forEach(r=>{
+    const k=r.name;
+    if(!best[k] || r.accuracy>best[k].accuracy || (r.accuracy===best[k].accuracy && r.date>best[k].date)){
+      best[k]=r;
+    }
+  });
+  const arr=Object.values(best).sort((a,b)=> b.accuracy-a.accuracy || b.date-a.date);
+  const list=$('list');
+  if(!arr.length){ list.innerHTML='<div class="empty">还没有成绩记录～<br>去检测系统测一测，成绩就会出现在这里啦！</div>'; return; }
+  list.innerHTML=arr.map((r,i)=>{
+    const stars='<span class="star">'+'⭐'.repeat(Math.max(1,Math.round(r.accuracy/20)))+'</span>';
+    const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1);
+    return `<div class="row">
+      <div class="rank">${medal}</div>
+      <div class="info">
+        <div class="name">${r.name}</div>
+        <div class="meta">${r.teacher} ｜ ${r.version} ｜ ${r.game} ｜ ${fmtDate(r.date)}</div>
+      </div>
+      <div class="acc"><b>${r.accuracy}%</b><span>${stars}</span></div>
+    </div>`;
+  }).join('');
+}
+$('teacherFilter').addEventListener('change', render);
+render();
+</script>
+</body>
+</html>
