@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>单词小侦探 · 检测系统</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; font-family: "微软雅黑","PingFang SC","Microsoft YaHei",sans-serif;
+    background: linear-gradient(160deg,#fdeff9 0%,#e3f2fd 100%); color:#4a4a4a;
+    min-height:100vh; padding:16px;
+  }
+  h1 { text-align:center; font-size:24px; color:#ff6b9d; margin:8px 0 4px; }
+  .sub { text-align:center; font-size:13px; color:#888; margin-bottom:14px; }
+  .screen { max-width:600px; margin:0 auto; }
+  .hidden { display:none !important; }
+
+  .card-box {
+    background:#fff; border-radius:18px; padding:22px; margin-bottom:14px;
+    box-shadow:0 6px 18px rgba(255,107,157,.14); border:2px solid #ffd6e7;
+  }
+  label { display:block; font-weight:bold; color:#ff6b9d; font-size:15px; margin:14px 0 8px; }
+  input[type=text]{
+    width:100%; padding:14px; font-size:18px; border:3px solid #ffd6e7; border-radius:14px; outline:none; text-align:center;
+  }
+  input[type=text]:focus{ border-color:#ff6b9d; }
+  .opts { display:flex; flex-wrap:wrap; gap:10px; }
+  .opt {
+    flex:1 1 calc(33% - 10px); min-width:90px; padding:14px 8px; border-radius:14px; background:#fff7fb;
+    border:2px solid #ffd6e7; color:#ff6b9d; font-weight:bold; font-size:15px; text-align:center; cursor:pointer; transition:.15s;
+  }
+  .opt.sel { background:#ff6b9d; color:#fff; border-color:#ff6b9d; transform:scale(1.03); }
+  .btn {
+    display:inline-block; background:#ff6b9d; color:#fff; border:none; border-radius:22px;
+    padding:13px 28px; font-size:17px; font-weight:bold; cursor:pointer; margin-top:16px;
+  }
+  .btn:active{ transform:scale(.96); }
+  .btn.ghost{ background:#fff; color:#ff6b9d; border:2px solid #ffd6e7; }
+  .btn.block{ width:100%; }
+
+  /* 闪卡 */
+  .progress{ font-size:13px; color:#888; text-align:center; margin-bottom:10px; }
+  .card{ width:100%; height:280px; perspective:1000px; cursor:pointer; margin-bottom:14px; }
+  .card-inner{ position:relative; width:100%; height:100%; transition:transform .5s; transform-style:preserve-3d; }
+  .card.flipped .card-inner{ transform:rotateY(180deg); }
+  .card-face{
+    position:absolute; width:100%; height:100%; backface-visibility:hidden; border-radius:18px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; padding:16px;
+  }
+  .card-front{ background:linear-gradient(135deg,#fff1f7,#ffe0ec); border:3px solid #ffb3d1; }
+  .card-back{ background:linear-gradient(135deg,#e0f7ff,#d3ecff); border:3px solid #9fd8ff; transform:rotateY(180deg); }
+  .word-en{ font-size:44px; font-weight:bold; color:#ff4f8b; }
+  .word-zh{ font-size:38px; font-weight:bold; color:#2b8fd6; }
+  .tap-hint{ font-size:13px; color:#bbb; margin-top:16px; }
+  .speaker{ font-size:30px; margin-top:8px; cursor:pointer; }
+  .flash-btns{ display:flex; gap:12px; justify-content:center; }
+  .flash-btns .btn{ margin-top:0; }
+  .btn.no{ background:#ff5252; } .btn.yes{ background:#4caf50; }
+
+  /* 气球 */
+  .game-bar{ display:flex; justify-content:space-between; background:#fff; border-radius:14px; padding:10px 16px; margin-bottom:10px; font-weight:bold; box-shadow:0 4px 14px rgba(255,107,157,.12); }
+  .game-bar .score{ color:#ff6b9d; } .game-bar .miss{ color:#ff5252; }
+  .stage{ position:relative; width:100%; height:420px; background:linear-gradient(180deg,#eaf6ff 0%,#fdeff9 100%); border-radius:16px; overflow:hidden; border:3px solid #ffd6e7; }
+  .balloon{ position:absolute; width:84px; text-align:center; }
+  .balloon .body{
+    background:radial-gradient(circle at 30% 30%,#fff,#ff9ec4); border-radius:50% 50% 50% 50%/45% 45% 55% 55%;
+    height:62px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:15px; color:#fff;
+    text-shadow:0 1px 2px rgba(0,0,0,.2); box-shadow:inset -6px -6px 12px rgba(0,0,0,.1); border:2px solid rgba(255,255,255,.6);
+  }
+  .balloon .string{ width:2px; height:16px; background:#ff9ec4; margin:0 auto; }
+  .balloon.pop .body{ animation:pop .3s forwards; }
+  @keyframes pop{ 0%{transform:scale(1)} 50%{transform:scale(1.3);opacity:.8} 100%{transform:scale(0);opacity:0} }
+  .pop-score{ position:absolute; top:-10px; left:50%; transform:translateX(-50%); color:#ff4f8b; font-weight:bold; font-size:16px; animation:rise .6s forwards; }
+  @keyframes rise{ to{ top:-30px; opacity:0; } }
+  .type-bar{ margin-top:12px; }
+  .type-bar input{ width:100%; padding:14px; font-size:18px; border:3px solid #ffd6e7; border-radius:14px; outline:none; text-align:center; }
+  .type-bar input:focus{ border-color:#ff6b9d; }
+
+  /* 表扬榜 */
+  .board{
+    background:linear-gradient(135deg,#fff0f7,#ffe3f1); border:4px solid #ffb3d1; border-radius:22px;
+    padding:24px; text-align:center; box-shadow:0 10px 28px rgba(255,107,157,.25); position:relative; overflow:hidden;
+  }
+  .board .deco{ font-size:30px; letter-spacing:6px; }
+  .board .title{ font-size:30px; font-weight:bold; color:#ff4f8b; margin:6px 0; }
+  .board .name{ font-size:22px; color:#2b8fd6; font-weight:bold; margin:10px 0; }
+  .board .praise{ font-size:17px; line-height:1.7; color:#5a5a5a; margin:14px 0; }
+  .board .slogan{ font-size:16px; color:#ff6b9d; font-weight:bold; }
+  .board .stats{ display:flex; justify-content:space-around; margin:16px 0; }
+  .board .stats div b{ display:block; font-size:28px; color:#ff6b9d; }
+  .board .stats div span{ font-size:13px; color:#888; }
+  .board .meta{ font-size:13px; color:#999; margin-top:8px; }
+
+  /* 错题本 */
+  .wrong-box{ background:#fff; border-radius:16px; padding:18px; margin-top:14px; border:2px solid #ffd6e7; }
+  .wrong-box h3{ color:#ff4f8b; margin:0 0 10px; font-size:16px; }
+  .wrong-item{ display:inline-block; background:#ffe0ec; color:#ff4f8b; border-radius:12px; padding:7px 13px; margin:4px; font-size:14px; }
+  .wrong-empty{ color:#4caf50; font-weight:bold; text-align:center; }
+
+  .stage-tip{ text-align:center; color:#888; padding:30px 0; }
+  details.lib summary{ cursor:pointer; font-weight:bold; color:#ff6b9d; }
+  details.lib textarea{ width:100%; height:120px; margin-top:8px; border:2px solid #ffd6e7; border-radius:10px; padding:10px; font-size:14px; font-family:monospace; }
+  .lib-row{ display:flex; gap:8px; align-items:center; margin-top:8px; }
+  .lib-row select{ flex:0 0 120px; padding:10px; border-radius:10px; border:2px solid #ffd6e7; font-size:14px; }
+</style>
+</head>
+<body>
+  <h1>🕵️ 单词小侦探 · 检测系统</h1>
+  <div class="sub">先填信息 → 闪卡翻翻卡(英译汉) → 气球打字(汉译英) → 表扬榜 + 错题本</div>
+
+  <!-- ===== 开始页 ===== -->
+  <div class="screen" id="screen-start">
+    <div class="card-box">
+      <label>🌟 小侦探名字</label>
+      <input type="text" id="stuName" placeholder="请输入你的名字" autocomplete="off">
+
+      <label>👩‍🏫 选择老师</label>
+      <div class="opts" id="teacherOpts">
+        <div class="opt" data-teacher="亚楠老师">亚楠老师</div>
+        <div class="opt" data-teacher="亚飞老师">亚飞老师</div>
+      </div>
+
+      <label>📚 选择教材版本</label>
+      <div class="opts" id="versionOpts"></div>
+
+      <button class="btn block" id="startBtn">开始检测 🚀</button>
+    </div>
+
+    <details class="lib card-box">
+      <summary>📖 词库管理（点开粘贴 9 个版本的单词）</summary>
+      <div class="lib-row">
+        <select id="libVersion"></select>
+        <button class="btn ghost" id="libSave" style="margin-top:0">保存此版本</button>
+      </div>
+      <textarea id="libInput" placeholder="每行一个：英文,中文（逗号可用中英文）"></textarea>
+      <div style="font-size:12px;color:#999;margin-top:6px">改完选好版本，点「保存此版本」。9 个版本都存好后，开始页就能选啦。</div>
+    </details>
+  </div>
+
+  <!-- ===== 闪卡页 ===== -->
+  <div class="screen hidden" id="screen-flash">
+    <div class="card-box">
+      <div class="progress" id="flashProgress"></div>
+      <div class="card" id="card">
+        <div class="card-inner">
+          <div class="card-face card-front">
+            <div class="word-en" id="cardEn"></div>
+            <div class="speaker" id="speaker" title="听发音">🔊</div>
+            <div class="tap-hint">点一下翻出中文 👆</div>
+          </div>
+          <div class="card-face card-back">
+            <div class="word-zh" id="cardZh"></div>
+            <div class="tap-hint">记住了吗？</div>
+          </div>
+        </div>
+      </div>
+      <div class="flash-btns hidden" id="flashBtns">
+        <button class="btn no" id="btnNo">✗ 没记住</button>
+        <button class="btn yes" id="btnYes">✓ 记住了</button>
+      </div>
+      <div id="flashStart"><button class="btn" id="flashStartBtn">开始翻卡（英译汉）</button></div>
+      <div id="flashResult" class="hidden"></div>
+    </div>
+  </div>
+
+  <!-- ===== 气球页 ===== -->
+  <div class="screen hidden" id="screen-balloon">
+    <div class="card-box">
+      <div class="game-bar">
+        <span class="score">得分：<span id="score">0</span></span>
+        <span>已戳破：<span id="popped">0</span></span>
+        <span class="miss">飞走：<span id="missed">0</span></span>
+      </div>
+      <div class="stage" id="stage"></div>
+      <div class="type-bar">
+        <input id="typeInput" type="text" placeholder="看气球中文，拼出英文，自动戳破" autocomplete="off" disabled>
+      </div>
+      <div id="balloonStart"><div class="stage-tip">下一关：气球打字（汉译英）<br><br><button class="btn" id="balloonStartBtn">开始气球挑战</button></div></div>
+      <div id="balloonResult" class="hidden"></div>
+    </div>
+  </div>
+
+  <!-- ===== 表扬榜 + 错题本 ===== -->
+  <div class="screen hidden" id="screen-board">
+    <div class="board" id="board"></div>
+    <div class="wrong-box" id="wrongBox"></div>
+    <div style="text-align:center;margin-top:14px">
+      <button class="btn" id="retryWrong">🔁 用错题重练</button>
+      <button class="btn ghost" id="backHome">返回首页</button>
+    </div>
+  </div>
+
+<script>
+// ===================== 版本与词库 =====================
+const VERSIONS = ["人教版","沪教五四","冀教版","北师大版","仁爱版","外研版","译林版","沪教牛津","鲁教版"];
+// 默认示例词（每个版本先放少量，请在「词库管理」粘贴完整词表）
+const SAMPLE = ["apple,苹果","banana,香蕉","school,学校","teacher,老师","student,学生","book,书","water,水","friend,朋友","family,家庭","happy,高兴的","animal,动物","red,红色"];
+let WORD_BANK = {};
+VERSIONS.forEach((v,i)=> WORD_BANK[v] = SAMPLE.map(s=>{const p=s.split(/[,，]/);return {en:p[0],zh:p[1]};}));
+WORD_BANK["沪教五四"] = [{"en": "bedroom", "zh": "卧室；寝室"}, {"en": "bathroom", "zh": "浴室；盥洗室"}, {"en": "suggest", "zh": "建议"}, {"en": "protect", "zh": "保护"}, {"en": "review", "zh": "评论；复习"}, {"en": "heating", "zh": "供暖；暖气设备"}, {"en": "guide", "zh": "指导；指引"}, {"en": "personal", "zh": "个人的；私人的"}, {"en": "owner", "zh": "物主；主人"}, {"en": "alarm clock", "zh": "闹钟"}, {"en": "keep track of", "zh": "跟踪；掌握"}, {"en": "schedule", "zh": "日程安排"}, {"en": "health care", "zh": "医疗（服务）"}, {"en": "order", "zh": "订购；点（菜）；顺序；次序"}, {"en": "signal", "zh": "信号；示意"}, {"en": "sense", "zh": "感觉到；意识到"}, {"en": "manage", "zh": "明智地使用；管理；完成（困难的事）"}, {"en": "remind", "zh": "提醒；使想起"}, {"en": "produce", "zh": "生产；出产"}, {"en": "sore", "zh": "疼痛的；酸痛的"}, {"en": "throat", "zh": "嗓子；喉咙"}, {"en": "understand", "zh": "懂；理解"}, {"en": "already", "zh": "已经"}, {"en": "depend", "zh": "依靠；根据……而定"}, {"en": "depend on", "zh": "依赖；依靠"}, {"en": "oven", "zh": "烤箱；烤炉"}, {"en": "truly", "zh": "确实地；真诚地"}, {"en": "expect", "zh": "期望；期待"}, {"en": "pleasant", "zh": "令人愉快的"}, {"en": "element", "zh": "要素"}, {"en": "plot", "zh": "故事情节"}, {"en": "main", "zh": "主要的"}, {"en": "director", "zh": "导演；（某一活动的）负责人"}, {"en": "polite", "zh": "有礼貌的"}, {"en": "impolite", "zh": "不礼貌的"}, {"en": "correct", "zh": "准确无误的"}, {"en": "incorrect", "zh": "不准确的"}, {"en": "screen", "zh": "银幕；屏幕"}, {"en": "web", "zh": "网"}, {"en": "spider", "zh": "蜘蛛"}, {"en": "friendship", "zh": "友谊；朋友关系"}, {"en": "subtitle", "zh": "字幕"}, {"en": "true", "zh": "真实的"}, {"en": "wrestle", "zh": "摔跤"}, {"en": "weekday", "zh": "工作日（星期一到星期五的任何一天）"}, {"en": "ocean", "zh": "海洋；大洋"}, {"en": "classic", "zh": "经典的；（书、电影或歌曲的）经典作品"}, {"en": "return", "zh": "回来"}, {"en": "common", "zh": "共同的；常见的"}, {"en": "generation", "zh": "一代人；一代"}];
+WORD_BANK["外研版"] = [{"en": "matter", "zh": "（尤指对某人自己或对发生之事）重要，要紧，有关系"}, {"en": "power", "zh": "给（车辆或机器）提供动力"}, {"en": "unusual", "zh": "不平常的"}, {"en": "university", "zh": "大学"}, {"en": "treat", "zh": "请客，款待，招待"}, {"en": "realise", "zh": "知道；明白；认识到"}, {"en": "dumpling", "zh": "水饺"}, {"en": "whole", "zh": "整个的，全部的"}, {"en": "cucumber", "zh": "黄瓜"}, {"en": "hang", "zh": "悬挂"}, {"en": "balloon", "zh": "气球"}, {"en": "lantern", "zh": "灯笼；提灯"}, {"en": "dish", "zh": "（烹制好的）菜肴，一道菜"}, {"en": "joke", "zh": "说笑话；开玩笑"}, {"en": "against the law", "zh": "违法"}, {"en": "shocked", "zh": "吃惊的，震惊的"}, {"en": "laugh", "zh": "发出笑声，（大）笑"}, {"en": "pork", "zh": "猪肉"}, {"en": "round", "zh": "圆形的，环形的"}, {"en": "shape", "zh": "形，形状；外形"}, {"en": "reunion", "zh": "团圆，团聚"}, {"en": "piece", "zh": "块；片；段；截"}, {"en": "knife", "zh": "刀"}, {"en": "smell", "zh": "气味"}, {"en": "fill", "zh": "弥漫，充满"}, {"en": "Christmas", "zh": "圣诞节（期间）"}, {"en": "waste", "zh": "废料，废弃物"}, {"en": "throw away", "zh": "扔掉，丢弃"}, {"en": "pollution", "zh": "污染"}, {"en": "plastic", "zh": "塑料制的"}, {"en": "celebrate", "zh": "庆祝"}, {"en": "meal", "zh": "一餐；饭"}, {"en": "duty", "zh": "职责，义务"}, {"en": "shine", "zh": "发光，发亮"}, {"en": "usually", "zh": "通常地；惯常地"}, {"en": "break", "zh": "中断，暂停"}, {"en": "emergency", "zh": "紧急情况，不测事件"}, {"en": "miss", "zh": "错过"}, {"en": "thirsty", "zh": "渴的，口渴的"}, {"en": "challenge", "zh": "挑战，具有挑战性的事物"}, {"en": "patient", "zh": "病人；患者"}, {"en": "situation", "zh": "形势，情况，状况，局面"}, {"en": "regret", "zh": "后悔（做了某事）；对……感到遗憾"}, {"en": "decision", "zh": "决定，抉择"}, {"en": "support", "zh": "支持"}, {"en": "medical", "zh": "医学的；医疗的"}, {"en": "firework", "zh": "烟火，烟花"}, {"en": "within", "zh": "在（建筑或地区）里"}, {"en": "quarter", "zh": "一刻钟，十五分钟"}, {"en": "workshop", "zh": "车间，工场"}];
+WORD_BANK["北师大版"] = [{"en": "either", "zh": "（用于否定）也；两者中的任何一个"}, {"en": "messy", "zh": "肮脏的，凌乱的"}, {"en": "guess", "zh": "猜测，估计"}, {"en": "easily", "zh": "容易地，不费力地"}, {"en": "building", "zh": "建筑物，楼房"}, {"en": "crop", "zh": "庄稼，作物"}, {"en": "mall", "zh": "购物商场，购物广场"}, {"en": "central", "zh": "在中心的，中央的"}, {"en": "community", "zh": "社区；社会"}, {"en": "around", "zh": "周围，四周；大约；环绕"}, {"en": "friendly", "zh": "友好的；善意的"}, {"en": "neighbourhood", "zh": "街区，城区"}, {"en": "luckily", "zh": "幸运地；幸好"}, {"en": "describe", "zh": "描述，形容"}, {"en": "dream", "zh": "梦想，理想；梦；做梦；想象"}, {"en": "fresh", "zh": "清新的；新鲜的"}, {"en": "view", "zh": "景色；看法；把…视为；以…看待"}, {"en": "magic", "zh": "有魔力的；魔法，云，云朵"}, {"en": "cloud", "zh": "云，云朵"}, {"en": "fantastic", "zh": "极好的，了不起的"}, {"en": "office", "zh": "办公室；问询处，服务处"}, {"en": "post office", "zh": "邮局"}, {"en": "of course", "zh": "当然"}, {"en": "onto", "zh": "向，朝"}, {"en": "opposite", "zh": "路，道路，公路；在……对面；对面的，相反的"}, {"en": "station", "zh": "站，所，局；火车站，汽车站，派出所"}, {"en": "police station", "zh": "警局，派出所"}, {"en": "along", "zh": "沿着，顺着"}, {"en": "past", "zh": "在另一边，到另一侧；过去的，昔日的；过去，昔日"}, {"en": "bookshop", "zh": "书店"}, {"en": "block", "zh": "大楼，一栋楼房；街区；堵塞"}, {"en": "row", "zh": "一排，一列，一行"}, {"en": "shape", "zh": "形状，外形"}, {"en": "ability", "zh": "才能，本领；能力"}, {"en": "practise", "zh": "练习，实习，训练"}, {"en": "guitar", "zh": "吉他"}, {"en": "interested", "zh": "感兴趣的，表现出兴趣的"}, {"en": "be interested in", "zh": "对……感兴趣"}, {"en": "crazy", "zh": "热衷的，狂热的；不理智的，疯狂的"}, {"en": "be crazy about", "zh": "热衷于……，狂热的，痴迷于"}, {"en": "future", "zh": "将来，未来；未来的，将来发生的"}, {"en": "ice-skate", "zh": "滑冰，溜冰"}, {"en": "ski", "zh": "滑雪；滑雪板"}, {"en": "swimmer", "zh": "游泳者"}, {"en": "artist", "zh": "艺术家，画家"}, {"en": "scientist", "zh": "科学家"}, {"en": "musician", "zh": "音乐家，作曲家"}, {"en": "singer", "zh": "歌唱家，歌手"}, {"en": "energetic", "zh": "精力充沛的，充满活力的"}, {"en": "hope", "zh": "希望，期望"}];
+WORD_BANK["冀教版"] = [{"en": "climb", "zh": "爬；攀登"}, {"en": "grey", "zh": "灰色（的）"}, {"en": "group", "zh": "群；组"}, {"en": "leaf", "zh": "叶子"}, {"en": "usually", "zh": "通常地"}, {"en": "bookstore", "zh": "书店"}, {"en": "underground", "zh": "地铁"}, {"en": "station", "zh": "站；车站"}, {"en": "direction", "zh": "方位；指导"}, {"en": "excuse", "zh": "原谅；宽恕"}, {"en": "madam", "zh": "女士；夫人"}, {"en": "east", "zh": "东方的；向东的"}, {"en": "road", "zh": "路；方法"}, {"en": "traffic", "zh": "交通；运输"}, {"en": "museum", "zh": "博物馆"}, {"en": "straight", "zh": "径直；直接；坦率地"}, {"en": "ancient", "zh": "古代的；古老的"}, {"en": "hall", "zh": "大厅；门厅"}, {"en": "history", "zh": "历史；历史课"}, {"en": "gentleman", "zh": "（称呼或指男子，尤其是不认识的）先生"}, {"en": "clerk", "zh": "接待员；职员；售货员"}, {"en": "stair", "zh": "楼梯；梯级"}, {"en": "pass", "zh": "走过；沿某方向前进"}, {"en": "miss", "zh": "错过；思念"}, {"en": "jade", "zh": "玉；玉制品"}, {"en": "dragon", "zh": "龙"}, {"en": "second", "zh": "秒（时间单位）"}, {"en": "shopping", "zh": "购物"}, {"en": "list", "zh": "清单；名单"}, {"en": "lamp", "zh": "灯"}, {"en": "pear", "zh": "梨"}, {"en": "strawberry", "zh": "草莓"}, {"en": "watermelon", "zh": "西瓜"}, {"en": "storybook", "zh": "儿童故事书"}, {"en": "chocolate", "zh": "巧克力"}, {"en": "checkout", "zh": "（超市的）付款台"}, {"en": "lunchtime", "zh": "午餐时间"}, {"en": "restaurant", "zh": "餐馆"}, {"en": "waitress", "zh": "女服务员"}, {"en": "dumpling", "zh": "饺子"}, {"en": "order", "zh": "点餐；命令；订购"}, {"en": "cell", "zh": "小隔室；细胞"}, {"en": "code", "zh": "密码；行为规范"}, {"en": "pleasure", "zh": "乐事；快乐"}, {"en": "menu", "zh": "菜单"}, {"en": "bowl", "zh": "碗"}, {"en": "beef", "zh": "牛肉"}, {"en": "problem", "zh": "难题；困难"}, {"en": "snack", "zh": "点心；小吃；快餐"}, {"en": "smart", "zh": "智能的；聪明的"}];
+WORD_BANK["仁爱版"] = [{"en": "father", "zh": "父亲；爸爸"}, {"en": "mother", "zh": "母亲；妈妈"}, {"en": "uncle", "zh": "叔；伯；舅；姑父；姨父"}, {"en": "aunt", "zh": "姑母；姨母；伯母；婶母；舅母"}, {"en": "sister", "zh": "姐；妹"}, {"en": "cousin", "zh": "堂兄（弟、姐、妹）；表兄（弟、姐、妹）"}, {"en": "student", "zh": "学生"}, {"en": "teacher", "zh": "教师；老师"}, {"en": "man", "zh": "成年男子；男人；人类"}, {"en": "always", "zh": "总是；一直"}, {"en": "wear", "zh": "穿；戴；佩戴"}, {"en": "worker", "zh": "工人；工作者；人员"}, {"en": "doctor", "zh": "医生；博士"}, {"en": "nurse", "zh": "护士"}, {"en": "white", "zh": "白色的；白色"}, {"en": "shirt", "zh": "衬衫"}, {"en": "colourful", "zh": "五颜六色的"}, {"en": "life", "zh": "生活；生命；一生（复数 lives）"}, {"en": "biology", "zh": "生物学"}, {"en": "Chinese", "zh": "汉语；中国人；中国的；中国人的"}, {"en": "geography", "zh": "地理（学）"}, {"en": "art", "zh": "美术；艺术"}, {"en": "history", "zh": "历史；历史课；历史"}, {"en": "computer", "zh": "计算机；电脑"}, {"en": "Wednesday", "zh": "星期三"}, {"en": "English", "zh": "英语；英格兰人；英格兰的；英语的；英格兰人的"}, {"en": "usually", "zh": "经常地；通常地"}, {"en": "come", "zh": "来；来到"}, {"en": "far", "zh": "远的"}, {"en": "never", "zh": "从不；绝不"}, {"en": "take", "zh": "乘坐；拿；带走；拍照"}, {"en": "seldom", "zh": "不常；很少"}, {"en": "walk", "zh": "走；步行；散步"}, {"en": "library", "zh": "图书馆；图书室"}, {"en": "building", "zh": "建筑物；楼房"}, {"en": "floor", "zh": "楼层；地板"}, {"en": "five", "zh": "五"}, {"en": "playground", "zh": "操场"}, {"en": "next", "zh": "下一个的；紧接着的；接下来的；紧接着；随后"}, {"en": "garden", "zh": "花园；菜园"}, {"en": "flower", "zh": "花；花卉"}, {"en": "tidy", "zh": "整洁的；整齐的；使整洁；整理"}, {"en": "bright", "zh": "明亮的；光线充足的"}, {"en": "club", "zh": "俱乐部；社团"}, {"en": "open", "zh": "开门；开业；打开；睁开；开放的；敞开的；公开的"}, {"en": "Tuesday", "zh": "星期二"}, {"en": "water", "zh": "水；浇水"}, {"en": "game", "zh": "游戏；运动项目；比赛"}, {"en": "fun", "zh": "有趣的；使人快乐的；乐趣；快乐"}, {"en": "Monday", "zh": "星期一"}];
+
+WORD_BANK["沪教牛津"] = [{"en": "oil", "zh": "石油；原油"}, {"en": "gas", "zh": "天然气"}, {"en": "harmful", "zh": "有害的"}, {"en": "website", "zh": "网站"}, {"en": "own", "zh": "自己的；本人的"}, {"en": "emperor", "zh": "皇帝"}, {"en": "hunt", "zh": "打猎"}, {"en": "war", "zh": "战争"}, {"en": "sandstorm", "zh": "沙暴"}, {"en": "solution", "zh": "解决办法"}, {"en": "blow", "zh": "刮；吹"}, {"en": "generation (", "zh": "统称)一代人"}, {"en": "solar system", "zh": "太阳系"}, {"en": "fact file", "zh": "事实档案"}, {"en": "be covered by", "zh": "被……覆盖"}, {"en": "as far as we know", "zh": "据我们所知"}, {"en": "sea level", "zh": "海平面"}, {"en": "what's more", "zh": "更重要的是"}, {"en": "provide with", "zh": "提供；供应；给予"}, {"en": "plastic pollution", "zh": "塑料污染"}, {"en": "cut down", "zh": "砍倒"}, {"en": "hundreds of", "zh": "数以百计"}, {"en": "blow away", "zh": "吹走"}, {"en": "spacesuit", "zh": "航天服；宇航服"}, {"en": "collect", "zh": "收集；采集"}, {"en": "leave", "zh": "离开"}, {"en": "kilometre", "zh": "千米；公里"}, {"en": "weak", "zh": "虚弱的；无力的"}, {"en": "tie (", "zh": "用线、绳等)拴"}, {"en": "low", "zh": "低于通常(或平均)数量(或水平、价值)的"}, {"en": "weigh", "zh": "有……重；重"}, {"en": "breathe", "zh": "呼吸"}, {"en": "facility", "zh": "设施；设备"}, {"en": "adventure", "zh": "冒险；冒险经历；奇遇"}, {"en": "pass", "zh": "沿某方向前进；向某方向移动"}, {"en": "experiment", "zh": "实验；试验"}, {"en": "prepare", "zh": "使做好准备；把……预备好"}, {"en": "dream", "zh": "梦想；理想 / v. 做梦；梦见"}, {"en": "chance", "zh": "机会；机遇"}, {"en": "send", "zh": "邮寄；发送"}, {"en": "introduction", "zh": "序言；引言"}, {"en": "view", "zh": "景色；风景"}, {"en": "someday", "zh": "总有一天；有朝一日"}, {"en": "experience", "zh": "经历；阅历"}, {"en": "lander", "zh": "着陆器"}, {"en": "island", "zh": "岛"}, {"en": "ancient", "zh": "古老的；很老的"}, {"en": "poem", "zh": "诗"}, {"en": "express", "zh": "表示；表达；表露"}, {"en": "determination", "zh": "决心；坚毅；坚定"}];
+WORD_BANK["鲁教版"] = [{"en": "holiday", "zh": "假期；假日"}, {"en": "break a promise", "zh": "违背诺言"}, {"en": "lie to sb", "zh": "对某人撒谎"}, {"en": "bite through", "zh": "咬穿；咬透"}, {"en": "set...free", "zh": "释放……"}, {"en": "laugh at", "zh": "嘲笑；取笑"}, {"en": "to one's surprise", "zh": "令人惊讶的是"}, {"en": "in the end", "zh": "最后；终于"}, {"en": "learn a lesson", "zh": "吸取教训"}, {"en": "live happily ever after", "zh": "从此幸福地生活在一起"}, {"en": "vacation", "zh": "假期（美式）"}, {"en": "ancient", "zh": "古代的；古老的"}, {"en": "landscape", "zh": "风景；景色"}, {"en": "strange", "zh": "奇怪的；陌生的"}, {"en": "fantastic", "zh": "极好的；奇妙的"}, {"en": "breath", "zh": "呼吸；气息"}, {"en": "especially", "zh": "尤其；特别"}, {"en": "steamed", "zh": "蒸的"}, {"en": "anywhere", "zh": "任何地方；任何一处"}, {"en": "nothing", "zh": "没有什么"}, {"en": "guide", "zh": "导游；指南；引导"}, {"en": "scenery", "zh": "风景；风光"}, {"en": "silk", "zh": "丝绸；丝织物"}, {"en": "comfortable", "zh": "舒适的；舒服的"}, {"en": "bored", "zh": "感到无聊的"}, {"en": "rainbow", "zh": "彩虹"}, {"en": "square", "zh": "广场；正方形的"}, {"en": "victory", "zh": "胜利；成功"}, {"en": "Russian", "zh": "俄罗斯的；俄语"}, {"en": "fight", "zh": "战斗；打架"}, {"en": "peace", "zh": "和平；太平"}, {"en": "sick", "zh": "生病的；恶心的"}, {"en": "metro", "zh": "地铁"}, {"en": "palace", "zh": "宫殿；王宫"}, {"en": "go on holiday / vacation", "zh": "去度假"}, {"en": "take a holiday", "zh": "休假；度假"}, {"en": "visit ancient buildings", "zh": "参观古建筑"}, {"en": "go to a festival", "zh": "参加节日活动"}, {"en": "go to a summer camp", "zh": "去夏令营"}, {"en": "take photos", "zh": "拍照"}, {"en": "pack", "zh": "打包；收拾"}, {"en": "bathroom", "zh": "浴室；洗手间"}, {"en": "sort", "zh": "分类；整理"}, {"en": "take one's breath away", "zh": "令人惊叹"}, {"en": "try local food", "zh": "品尝当地美食"}, {"en": "have a good time", "zh": "玩得开心"}, {"en": "in high spirits", "zh": "情绪高涨"}, {"en": "thousands of", "zh": "成千上万的"}, {"en": "remind sb of sth", "zh": "使某人想起某事"}, {"en": "look forward to", "zh": "期待；盼望"}];
+WORD_BANK["人教版"] = [{"en": "geography", "zh": "地理（学）"}, {"en": "history", "zh": "历史；历史课"}, {"en": "boring", "zh": "乏味的；令人生厌的"}, {"en": "scientist", "zh": "科学家"}, {"en": "Baker", "zh": "贝克（姓氏）"}, {"en": "Mike", "zh": "迈克（人名）"}, {"en": "Davis", "zh": "戴维斯（姓氏）"}, {"en": "Canada", "zh": "加拿大"}, {"en": "soon", "zh": "不久；很快"}, {"en": "than", "zh": "（用以引出比 较的第二部分）比 Day2"}, {"en": "more than", "zh": "多于"}, {"en": "mind", "zh": "头脑；心思"}, {"en": "fall", "zh": "进入；掉落；跌倒； n.秋天"}, {"en": "fall in love with", "zh": "爱上……"}, {"en": "take photos", "zh": "拍照"}, {"en": "collect", "zh": "收集；采集"}, {"en": "insect", "zh": "昆虫"}, {"en": "discover", "zh": "发现；发觉"}, {"en": "wildlife", "zh": "野生动物；野生生物"}, {"en": "club", "zh": "俱乐部；社团 Day3"}, {"en": "join", "zh": "参加；加入"}, {"en": "choose", "zh": "选择；挑选"}, {"en": "drama", "zh": "戏剧；戏剧表演"}, {"en": "play Chinese chess", "zh": "下中国象棋"}, {"en": "feeling", "zh": "感觉；情感"}, {"en": "news", "zh": "消息；新闻"}, {"en": "musical", "zh": "音乐的；有音乐天赋的"}, {"en": "musical instrument", "zh": "乐器"}, {"en": "exactly", "zh": "正是如此；准确地"}, {"en": "drum", "zh": "鼓 Day4"}, {"en": "ability", "zh": "能力；才能"}, {"en": "paint", "zh": "用颜料画；在…… 上刷 油漆；n. 油漆；涂料"}, {"en": "climb", "zh": "攀登；爬"}, {"en": "more", "zh": "更多（的）"}, {"en": "act", "zh": "扮演；行动；n.（戏剧等） 一幕；行动"}, {"en": "act out", "zh": "表演"}, {"en": "at home", "zh": "在家里"}, {"en": "interested", "zh": "感兴趣的"}, {"en": "interested in", "zh": "对…… 感兴趣"}, {"en": "nature", "zh": "自然界；大自然 Day5"}, {"en": "beef", "zh": "牛肉"}, {"en": "make use of", "zh": "使用……；利用……"}, {"en": "quarter", "zh": "一刻钟；四等份之一"}, {"en": "shower", "zh": "淋浴；淋浴器"}, {"en": "take a shower", "zh": "淋浴"}, {"en": "get dressed", "zh": "穿衣服"}, {"en": "brush  v.（用刷子）刷；", "zh": "刷子； 画笔"}, {"en": "tooth  (pl. teeth /tiːθ/)", "zh": "牙 齿"}, {"en": "duty", "zh": "值班；职责"}, {"en": "on duty", "zh": "值班"}];
+WORD_BANK["译林版"] = [{"en": "language", "zh": "语言"}, {"en": "amazing", "zh": "令人大为惊奇的"}, {"en": "biology", "zh": "生物学"}, {"en": "living", "zh": "活着的，活的"}, {"en": "nature", "zh": "大自然；天性"}, {"en": "practise", "zh": "vi. & vt.训练，练习；vi. & vt. 练 习"}, {"en": "field", "zh": "田，地；领域"}, {"en": "field", "zh": "trip — 野外考察，实地考察"}, {"en": "leave", "zh": "vi. & vt. 离开；让… 处于 （某种状态等）；留在某处； 让… 去"}, {"en": "leave", "zh": "for — 动身去，到… 地方去"}, {"en": "pick", "zh": "vt. 采，摘；挑选"}, {"en": "of", "zh": "course — 当然"}, {"en": "seldom", "zh": "很少"}, {"en": "tennis", "zh": "网球运动"}, {"en": "roller", "zh": "skate — 滑旱冰，溜旱冰"}, {"en": "grow", "zh": "vi. & vt.（使）生长，发育"}, {"en": "tour", "zh": "参观；旅行"}, {"en": "website", "zh": "网站"}, {"en": "video", "zh": "视频"}, {"en": "outside", "zh": "在（向）外面"}, {"en": "peace", "zh": "平静；和平"}, {"en": "teamwork", "zh": "团队合作"}, {"en": "better", "zh": "更好的"}, {"en": "tiring", "zh": "累人的"}, {"en": "duty", "zh": "职责，任务；责任，义务"}, {"en": "area", "zh": "区域；面积；领域"}, {"en": "take", "zh": "part in — 参加"}, {"en": "through", "zh": "以，凭借；通过；穿 过"}, {"en": "group", "zh": "组，群，批"}, {"en": "turn", "zh": "n.（依次轮到的）机会"}, {"en": "take", "zh": "turns — 轮流"}, {"en": "empty", "zh": "vt. 倒空，腾空"}, {"en": "bin", "zh": "垃圾桶"}, {"en": "care", "zh": "照顾；小心"}, {"en": "take", "zh": "care of — 照顾，照料"}, {"en": "lifestyle", "zh": "生活方式"}, {"en": "cucumber", "zh": "黄瓜"}, {"en": "lemon", "zh": "柠檬"}, {"en": "watermelon", "zh": "西瓜"}, {"en": "pepper", "zh": "甜椒；胡椒粉"}, {"en": "chocolate", "zh": "巧克力"}, {"en": "beef", "zh": "牛肉"}, {"en": "carrot", "zh": "胡萝卜"}, {"en": "pork", "zh": "猪肉"}, {"en": "sweet", "zh": "糖果；甜食"}, {"en": "snack", "zh": "零食，小吃"}, {"en": "health", "zh": "健康"}, {"en": "delicious", "zh": "美味的"}, {"en": "important", "zh": "重要的"}];
+</script>
+</body>
+</html>
