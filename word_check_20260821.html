@@ -85,6 +85,7 @@
   .type-bar{ margin-top:12px; }
   .type-bar input{ width:100%; padding:14px; font-size:18px; border:3px solid #ffd6e7; border-radius:14px; outline:none; text-align:center; }
   .type-bar input:focus{ border-color:#ff6b9d; }
+  .bal-tip{ font-size:12px; color:#aaa; text-align:center; margin-top:7px; }
   select.ver-sel{ width:100%; padding:14px; font-size:17px; border:3px solid #ffd6e7; border-radius:14px; outline:none; background:#fff; color:#4a4a4a; text-align:center; text-align-last:center; }
   select.ver-sel:focus{ border-color:#ff6b9d; }
   select.ver-sel option{ text-align:center; }
@@ -179,6 +180,7 @@
       <div class="type-bar">
         <input id="typeInput" type="text" placeholder="看气球中文，拼出英文，自动戳破" autocomplete="off" disabled>
       </div>
+      <div class="bal-tip">🔤 拼对 → 气球击破 ｜ 拼不对不会破 ｜ 点气球可跳过不会的词</div>
       <div id="balloonStart"><div class="stage-tip">🎈 气球打字（汉译英）<br><br><button class="btn" id="balloonStartBtn">开始气球挑战</button></div></div>
       <div id="balloonResult" class="hidden"></div>
     </div>
@@ -263,8 +265,8 @@ function startCheck(){
   if(!curVersion){ alert('请选择教材版本～'); return; }
   if(!curGame){ alert('请选择一个游戏～'); return; }
   flashPlayed=false; balloonPlayed=false; totalWrong=[];
-  flashList = shuffle(WORD_BANK[curVersion]);
-  balList = []; flashWrong=[]; balWrong=[];
+  flashList = shuffle(WORD_BANK[curVersion]).slice(0,30);
+  balList = shuffle(WORD_BANK[curVersion]).slice(0,30); flashWrong=[]; balWrong=[];
   if(curGame==='flash') startFlash();
   else startBalloon();
 }
@@ -341,74 +343,73 @@ function finishFlash(){
 }
 
 // ===================== 气球（汉译英） =====================
-let balloons=[], balTimer=null, balRAF=null, balRunning=false;
-let score=0, poppedCount=0, missedCount=0, SPAWN_GAP=1000;
+let balloons=[], balQueue=[], balRunning=false, MAX_ON=6;
+let score=0, poppedCount=0, missedCount=0;
 function startBalloon(){
   showScreen('screen-balloon');
   $('balloonResult').classList.add('hidden');
   $('stage').innerHTML='';
   score=0; poppedCount=0; missedCount=0; balloons=[]; balWrong=[];
+  balQueue = shuffle(WORD_BANK[curVersion]).slice(0,30);
   updateBar();
-  balList = shuffle(WORD_BANK[curVersion]);
   $('balloonStart').classList.remove('hidden');
   $('typeInput').disabled=true; $('typeInput').value='';
+  $('typeInput').placeholder='看气球上的中文，拼出英文，自动击破 🎈';
 }
 $('balloonStartBtn').addEventListener('click', ()=>{ $('balloonStart').classList.add('hidden'); beginBalloon(); });
 function beginBalloon(){
   balRunning=true;
   $('typeInput').disabled=false; $('typeInput').value=''; $('typeInput').focus();
-  balTimer=setInterval(()=>{ if(balList.length) spawnBalloon(); }, SPAWN_GAP);
-  balRAF=requestAnimationFrame(balLoop);
+  fillBalloons();
 }
-function spawnBalloon(){
-  if(!balList.length) return;
-  const w=balList.pop();
+// 气球静止显示，不再飘动；屏幕上最多 MAX_ON 个，破了/跳过了再补
+function fillBalloons(){
   const stage=$('stage');
-  const el=document.createElement('div'); el.className='balloon';
-  el.innerHTML=`<div class="body">${w.zh}</div><div class="string"></div>`;
-  const x=8+Math.random()*(stage.clientWidth-92);
-  const h=stage.clientHeight;
-  el.style.left=x+'px'; el.style.top=h+'px';
-  stage.appendChild(el);
-  balloons.push({el, en:w.en.toLowerCase(), zh:w.zh, x, y:h, speed:0.3+Math.random()*0.3});
-}
-function balLoop(){
-  if(!balRunning) return;
-  const stage=$('stage'); const h=stage.clientHeight;
-  for(let i=balloons.length-1;i>=0;i--){
-    const b=balloons[i];
-    b.y -= b.speed*16;
-    b.el.style.top=b.y+'px';
-    if(b.y<=0){ b.el.remove(); balloons.splice(i,1); missedCount++; balWrong.push({en:b.en,zh:b.zh}); updateBar(); }
+  while(balloons.length<MAX_ON && balQueue.length){
+    const w=balQueue.pop();
+    const el=document.createElement('div'); el.className='balloon';
+    el.innerHTML=`<div class="body">${w.zh}</div><div class="string"></div>`;
+    const x=8+Math.random()*(stage.clientWidth-92);
+    const y=12+Math.random()*(stage.clientHeight-90);
+    el.style.left=x+'px'; el.style.top=y+'px';
+    stage.appendChild(el);
+    const b={el, en:w.en.toLowerCase(), zh:w.zh};
+    el.style.cursor='pointer';
+    el.addEventListener('click',()=>{ if(balRunning) skipBalloon(b); });
+    balloons.push(b);
   }
-  if(balList.length===0 && balloons.length===0){ clearInterval(balTimer); balRunning=false; setTimeout(finishBalloon,300); return; }
-  balRAF=requestAnimationFrame(balLoop);
+  if(balQueue.length===0 && balloons.length===0){ setTimeout(finishBalloon,200); }
 }
+// 拼对 → 击破；拼不对 → 没有任何反应（不破）
 $('typeInput').addEventListener('input',()=>{
+  if(!balRunning) return;
   const v=$('typeInput').value.trim().toLowerCase();
   if(!v) return;
-  const stage=$('stage'); const h=stage.clientHeight;
   for(let i=balloons.length-1;i>=0;i--){
     const b=balloons[i];
     if(b.en===v){
-      const pts=Math.round(b.y/h*50)+10;
-      score+=pts; poppedCount++;
-      const ps=document.createElement('div'); ps.className='pop-score'; ps.textContent='+'+pts;
-      ps.style.left=b.x+'px'; ps.style.top=b.y+'px';
-      stage.appendChild(ps); setTimeout(()=>ps.remove(),650);
+      score+=10; poppedCount++;
       b.el.classList.add('pop'); setTimeout(()=>b.el.remove(),300);
       balloons.splice(i,1);
       $('typeInput').value=''; updateBar();
+      fillBalloons();
       return;
     }
   }
 });
+// 点气球 = 跳过这个不会的词（计入待攻克）
+function skipBalloon(b){
+  const i=balloons.indexOf(b); if(i<0) return;
+  balloons.splice(i,1); b.el.remove();
+  missedCount++; balWrong.push({en:b.en,zh:b.zh}); updateBar();
+  fillBalloons();
+}
 function updateBar(){ $('score').textContent=score; $('popped').textContent=poppedCount; $('missed').textContent=missedCount; }
 function finishBalloon(){
-  balRunning=false; clearInterval(balTimer);
+  balRunning=false;
   totalWrong = mergeWrong(flashWrong, balWrong);
   let h=`<div class="board" style="border-width:3px"><div class="deco">🎈</div><div class="title">气球挑战结束！</div>`;
-  h+=`<div class="praise">戳破 <b>${poppedCount}</b> 个，飞走 <b>${missedCount}</b> 个，得分 <b>${score}</b>！</div>`;
+  h+=`<div class="praise">击破 <b>${poppedCount}</b> 个，跳过 <b>${missedCount}</b> 个，得分 <b>${score}</b>！</div>`;
   if(balWrong.length){ h+=`<div style="margin:10px 0">`+balWrong.map(w=>`<span class="wrong-item">${w.zh} · ${w.en}</span>`).join('')+`</div>`; }
   h+=`<div style="text-align:center;margin-top:14px"><button class="btn" id="toBoard">查看表扬榜 🏆</button></div></div>`;
   $('balloonResult').innerHTML=h;
