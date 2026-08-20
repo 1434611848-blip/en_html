@@ -36,22 +36,33 @@ window.CloudBox = (function () {
 
   // 上传一次成绩。rec: {name, teacher, version, total, correct, score, game, detail, submittedAt}
   function uploadWordScore(rec) {
-    return request(WORD_TABLE + '?select=id', {
-      method: 'POST',
-      headers: { 'Prefer': 'return=representation' },
-      body: JSON.stringify({
-        student_name: rec.name,
-        teacher: rec.teacher,
-        version: rec.version,
-        total: rec.total,
-        correct: rec.correct,
-        score: (typeof rec.score === 'number') ? rec.score : 0,
-        game: rec.game || null,
-        detail: rec.detail || [],
-        duration: (typeof rec.duration === 'number') ? rec.duration : null,
-        submitted_at: rec.submittedAt || new Date().toISOString(),
-        status: 'submitted'
-      })
+    var body = {
+      student_name: rec.name,
+      teacher: rec.teacher,
+      version: rec.version,
+      total: rec.total,
+      correct: rec.correct,
+      score: (typeof rec.score === 'number') ? rec.score : 0,
+      detail: rec.detail || [],
+      duration: (typeof rec.duration === 'number') ? rec.duration : null,
+      submitted_at: rec.submittedAt || new Date().toISOString(),
+      status: 'submitted'
+    };
+    // 先带 game 上传；若 game 列尚未存在（400/PGRST），自动降级为不带 game 重试，保证成绩始终能入库
+    var withGame = Object.assign({}, body, { game: rec.game || null });
+    function post(payload){
+      return request(WORD_TABLE + '?select=id', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify(payload)
+      });
+    }
+    return post(withGame).catch(function(err){
+      var msg = String((err && err.message) || '');
+      if (msg.indexOf('game') >= 0 || msg.indexOf('column') >= 0 || msg.indexOf('PGRST') >= 0) {
+        return post(body);
+      }
+      throw err;
     });
   }
 
