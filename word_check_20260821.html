@@ -58,6 +58,15 @@
   .flash-btns .btn{ margin-top:0; }
   .btn.no{ background:#ff5252; } .btn.yes{ background:#4caf50; }
 
+  /* 闪卡三选一 */
+  .flash-q{ font-size:14px; color:#2b8fd6; margin-bottom:10px; }
+  .flash-opts{ display:flex; flex-direction:column; gap:9px; width:92%; }
+  .flash-opt{ padding:11px 10px; border-radius:12px; background:#fff7fb; border:2px solid #ffd6e7; color:#ff6b9d; font-weight:bold; font-size:16px; cursor:pointer; transition:.15s; }
+  .flash-opt:active{ transform:scale(.97); }
+  .flash-opt.sel-ok{ background:#4caf50; color:#fff; border-color:#4caf50; }
+  .flash-opt.sel-no{ background:#ff5252; color:#fff; border-color:#ff5252; }
+  .flash-feedback{ font-size:15px; font-weight:bold; margin-top:10px; min-height:18px; }
+
   /* 气球 */
   .game-bar{ display:flex; justify-content:space-between; background:#fff; border-radius:14px; padding:10px 16px; margin-bottom:10px; font-weight:bold; box-shadow:0 4px 14px rgba(255,107,157,.12); }
   .game-bar .score{ color:#ff6b9d; } .game-bar .miss{ color:#ff5252; }
@@ -106,7 +115,7 @@
 </head>
 <body>
   <h1>🕵️ 单词小侦探 · 检测系统</h1>
-  <div class="sub">先填信息 → 闪卡翻翻卡(英译汉) → 气球打字(汉译英) → 表扬榜 + 错题本</div>
+  <div class="sub">先填信息 → 选一个游戏 → 闯关检测 → 表扬榜 + 错题本</div>
 
   <!-- ===== 开始页 ===== -->
   <div class="screen" id="screen-start">
@@ -125,6 +134,12 @@
         <option value="">-- 请选择教材版本 --</option>
       </select>
 
+      <label>🎮 选择游戏</label>
+      <div class="opts" id="gameOpts">
+        <div class="opt" data-game="flash">🃏 闪卡翻翻卡<br><span style="font-size:12px;font-weight:normal">英译汉·三选一</span></div>
+        <div class="opt" data-game="balloon">🎈 气球打字<br><span style="font-size:12px;font-weight:normal">汉译英·拼单词</span></div>
+      </div>
+
       <button class="btn block" id="startBtn">开始检测 🚀</button>
     </div>
   </div>
@@ -141,16 +156,13 @@
             <div class="tap-hint">点一下翻出中文 👆</div>
           </div>
           <div class="card-face card-back">
-            <div class="word-zh" id="cardZh"></div>
-            <div class="tap-hint">记住了吗？</div>
+            <div class="flash-q">请选出正确释义 👇</div>
+            <div class="flash-opts" id="flashOpts"></div>
+            <div class="flash-feedback" id="flashFeedback"></div>
           </div>
         </div>
       </div>
-      <div class="flash-btns hidden" id="flashBtns">
-        <button class="btn no" id="btnNo">✗ 没记住</button>
-        <button class="btn yes" id="btnYes">✓ 记住了</button>
-      </div>
-      <div id="flashStart"><button class="btn" id="flashStartBtn">开始翻卡（英译汉）</button></div>
+      <div id="flashStart"><button class="btn" id="flashStartBtn">开始翻卡（英译汉·三选一）</button></div>
       <div id="flashResult" class="hidden"></div>
     </div>
   </div>
@@ -167,7 +179,7 @@
       <div class="type-bar">
         <input id="typeInput" type="text" placeholder="看气球中文，拼出英文，自动戳破" autocomplete="off" disabled>
       </div>
-      <div id="balloonStart"><div class="stage-tip">下一关：气球打字（汉译英）<br><br><button class="btn" id="balloonStartBtn">开始气球挑战</button></div></div>
+      <div id="balloonStart"><div class="stage-tip">🎈 气球打字（汉译英）<br><br><button class="btn" id="balloonStartBtn">开始气球挑战</button></div></div>
       <div id="balloonResult" class="hidden"></div>
     </div>
   </div>
@@ -200,9 +212,21 @@ WORD_BANK["鲁教版"] = [{"en": "holiday", "zh": "假期；假日"}, {"en": "br
 WORD_BANK["人教版"] = [{"en": "geography", "zh": "地理（学）"}, {"en": "history", "zh": "历史；历史课"}, {"en": "boring", "zh": "乏味的；令人生厌的"}, {"en": "scientist", "zh": "科学家"}, {"en": "Baker", "zh": "贝克（姓氏）"}, {"en": "Mike", "zh": "迈克（人名）"}, {"en": "Davis", "zh": "戴维斯（姓氏）"}, {"en": "Canada", "zh": "加拿大"}, {"en": "soon", "zh": "不久；很快"}, {"en": "than", "zh": "（用以引出比 较的第二部分）比 Day2"}, {"en": "more than", "zh": "多于"}, {"en": "mind", "zh": "头脑；心思"}, {"en": "fall", "zh": "进入；掉落；跌倒； n.秋天"}, {"en": "fall in love with", "zh": "爱上……"}, {"en": "take photos", "zh": "拍照"}, {"en": "collect", "zh": "收集；采集"}, {"en": "insect", "zh": "昆虫"}, {"en": "discover", "zh": "发现；发觉"}, {"en": "wildlife", "zh": "野生动物；野生生物"}, {"en": "club", "zh": "俱乐部；社团 Day3"}, {"en": "join", "zh": "参加；加入"}, {"en": "choose", "zh": "选择；挑选"}, {"en": "drama", "zh": "戏剧；戏剧表演"}, {"en": "play Chinese chess", "zh": "下中国象棋"}, {"en": "feeling", "zh": "感觉；情感"}, {"en": "news", "zh": "消息；新闻"}, {"en": "musical", "zh": "音乐的；有音乐天赋的"}, {"en": "musical instrument", "zh": "乐器"}, {"en": "exactly", "zh": "正是如此；准确地"}, {"en": "drum", "zh": "鼓 Day4"}, {"en": "ability", "zh": "能力；才能"}, {"en": "paint", "zh": "用颜料画；在…… 上刷 油漆；n. 油漆；涂料"}, {"en": "climb", "zh": "攀登；爬"}, {"en": "more", "zh": "更多（的）"}, {"en": "act", "zh": "扮演；行动；n.（戏剧等） 一幕；行动"}, {"en": "act out", "zh": "表演"}, {"en": "at home", "zh": "在家里"}, {"en": "interested", "zh": "感兴趣的"}, {"en": "interested in", "zh": "对…… 感兴趣"}, {"en": "nature", "zh": "自然界；大自然 Day5"}, {"en": "beef", "zh": "牛肉"}, {"en": "make use of", "zh": "使用……；利用……"}, {"en": "quarter", "zh": "一刻钟；四等份之一"}, {"en": "shower", "zh": "淋浴；淋浴器"}, {"en": "take a shower", "zh": "淋浴"}, {"en": "get dressed", "zh": "穿衣服"}, {"en": "brush  v.（用刷子）刷；", "zh": "刷子； 画笔"}, {"en": "tooth  (pl. teeth /tiːθ/)", "zh": "牙 齿"}, {"en": "duty", "zh": "值班；职责"}, {"en": "on duty", "zh": "值班"}];
 WORD_BANK["译林版"] = [{"en": "language", "zh": "语言"}, {"en": "amazing", "zh": "令人大为惊奇的"}, {"en": "biology", "zh": "生物学"}, {"en": "living", "zh": "活着的，活的"}, {"en": "nature", "zh": "大自然；天性"}, {"en": "practise", "zh": "vi. & vt.训练，练习；vi. & vt. 练 习"}, {"en": "field", "zh": "田，地；领域"}, {"en": "field", "zh": "trip — 野外考察，实地考察"}, {"en": "leave", "zh": "vi. & vt. 离开；让… 处于 （某种状态等）；留在某处； 让… 去"}, {"en": "leave", "zh": "for — 动身去，到… 地方去"}, {"en": "pick", "zh": "vt. 采，摘；挑选"}, {"en": "of", "zh": "course — 当然"}, {"en": "seldom", "zh": "很少"}, {"en": "tennis", "zh": "网球运动"}, {"en": "roller", "zh": "skate — 滑旱冰，溜旱冰"}, {"en": "grow", "zh": "vi. & vt.（使）生长，发育"}, {"en": "tour", "zh": "参观；旅行"}, {"en": "website", "zh": "网站"}, {"en": "video", "zh": "视频"}, {"en": "outside", "zh": "在（向）外面"}, {"en": "peace", "zh": "平静；和平"}, {"en": "teamwork", "zh": "团队合作"}, {"en": "better", "zh": "更好的"}, {"en": "tiring", "zh": "累人的"}, {"en": "duty", "zh": "职责，任务；责任，义务"}, {"en": "area", "zh": "区域；面积；领域"}, {"en": "take", "zh": "part in — 参加"}, {"en": "through", "zh": "以，凭借；通过；穿 过"}, {"en": "group", "zh": "组，群，批"}, {"en": "turn", "zh": "n.（依次轮到的）机会"}, {"en": "take", "zh": "turns — 轮流"}, {"en": "empty", "zh": "vt. 倒空，腾空"}, {"en": "bin", "zh": "垃圾桶"}, {"en": "care", "zh": "照顾；小心"}, {"en": "take", "zh": "care of — 照顾，照料"}, {"en": "lifestyle", "zh": "生活方式"}, {"en": "cucumber", "zh": "黄瓜"}, {"en": "lemon", "zh": "柠檬"}, {"en": "watermelon", "zh": "西瓜"}, {"en": "pepper", "zh": "甜椒；胡椒粉"}, {"en": "chocolate", "zh": "巧克力"}, {"en": "beef", "zh": "牛肉"}, {"en": "carrot", "zh": "胡萝卜"}, {"en": "pork", "zh": "猪肉"}, {"en": "sweet", "zh": "糖果；甜食"}, {"en": "snack", "zh": "零食，小吃"}, {"en": "health", "zh": "健康"}, {"en": "delicious", "zh": "美味的"}, {"en": "important", "zh": "重要的"}];
 
+// 清理注入残留（去掉 " DayN" 后缀、英文词混入的释义）
+Object.keys(WORD_BANK).forEach(v=>{
+  WORD_BANK[v]=WORD_BANK[v].map(w=>{
+    let zh=w.zh.replace(/\s*Day\d+\s*$/,'').replace(/\s+/g,'').trim();
+    let en=w.en.replace(/\s*Day\d+\s*$/,'').replace(/\s+/g,' ').trim();
+    const sp=en.indexOf(' ');
+    if(sp>0){ const rest=en.slice(sp+1); if(/[（(]|[一-鿿]/.test(rest)) en=en.slice(0,sp); }
+    return {en, zh};
+  });
+});
+
 // ===================== 状态 =====================
-let curName='', curTeacher='', curVersion='';
-let flashList=[], flashIdx=0, flashWrong=[];
+let curName='', curTeacher='', curVersion='', curGame='';
+let flashPlayed=false, balloonPlayed=false;
+let flashList=[], flashIdx=0, flashWrong=[], flashFlipped=false;
 let balList=[], balWrong=[];
 let totalWrong=[];
 
@@ -221,6 +245,13 @@ function initStart(){
       curTeacher = el.dataset.teacher;
     });
   });
+  qsa('#gameOpts .opt').forEach(el=>{
+    el.addEventListener('click',()=>{
+      qsa('#gameOpts .opt').forEach(x=>x.classList.remove('sel'));
+      el.classList.add('sel');
+      curGame = el.dataset.game;
+    });
+  });
   $('versionSel').innerHTML = '<option value="">-- 请选择教材版本 --</option>' + VERSIONS.map(v=>`<option value="${v}">${v}</option>`).join('');
   $('startBtn').addEventListener('click', startCheck);
 }
@@ -230,47 +261,83 @@ function startCheck(){
   if(!curName){ alert('请先输入小侦探的名字哦～'); $('stuName').focus(); return; }
   if(!curTeacher){ alert('请选择指导老师～'); return; }
   if(!curVersion){ alert('请选择教材版本～'); return; }
+  if(!curGame){ alert('请选择一个游戏～'); return; }
+  flashPlayed=false; balloonPlayed=false; totalWrong=[];
   flashList = shuffle(WORD_BANK[curVersion]);
-  flashIdx=0; flashWrong=[];
-  startFlash();
+  balList = []; flashWrong=[]; balWrong=[];
+  if(curGame==='flash') startFlash();
+  else startBalloon();
 }
 
 // ===================== 闪卡（英译汉） =====================
 function startFlash(){
   showScreen('screen-flash');
-  flashIdx=0; flashWrong=[];
+  flashIdx=0; flashWrong=[]; flashFlipped=false;
   $('flashResult').classList.add('hidden');
   $('flashStart').classList.remove('hidden');
-  $('flashBtns').classList.add('hidden');
   $('card').classList.remove('flipped');
-  $('flashProgress').textContent = `共 ${flashList.length} 个单词，点击卡片翻出中文`;
-  $('cardEn').textContent=''; $('cardZh').textContent='';
+  $('flashProgress').textContent = `共 ${flashList.length} 个单词，点击卡片翻过来`;
+  $('cardEn').textContent='';
 }
 $('flashStartBtn').addEventListener('click', ()=>{ $('flashStart').classList.add('hidden'); nextFlash(); });
 function nextFlash(){
   if(flashIdx>=flashList.length){ finishFlash(); return; }
   const w=flashList[flashIdx];
-  $('cardEn').textContent=w.en; $('cardZh').textContent=w.zh;
+  $('cardEn').textContent=w.en;
+  $('flashOpts').innerHTML='';
+  $('flashFeedback').textContent='';
+  flashFlipped=false;
   $('card').classList.remove('flipped');
-  $('flashBtns').classList.add('hidden');
   $('flashProgress').textContent = `第 ${flashIdx+1} / ${flashList.length} 个`;
-  $('card').onclick = ()=>{ $('card').classList.add('flipped'); $('flashBtns').classList.remove('hidden'); };
+  $('card').onclick = ()=>{
+    if(flashFlipped) return;
+    flashFlipped=true;
+    $('card').classList.add('flipped');
+    renderFlashOptions(w);
+  };
 }
-$('speaker').addEventListener('click',(e)=>{ e.stopPropagation(); speak($('cardEn').textContent); });
-$('btnYes').addEventListener('click',()=>{ flashIdx++; nextFlash(); });
-$('btnNo').addEventListener('click',()=>{ flashWrong.push(flashList[flashIdx]); flashIdx++; nextFlash(); });
-function finishFlash(){
-  $('flashBtns').classList.add('hidden');
-  let h=`<div class="board" style="border-width:3px"><div class="deco">🃏</div><div class="title">闪卡接龙完成！</div>`;
-  if(flashWrong.length){
-    h+=`<div class="praise">有 <b>${flashWrong.length}</b> 个还没记住，进入下一关再练～</div><div style="margin:10px 0">`+flashWrong.map(w=>`<span class="wrong-item">${w.en} · ${w.zh}</span>`).join('')+`</div>`;
+function renderFlashOptions(w){
+  const pool = WORD_BANK[curVersion].filter(x=>x.zh && x.zh!==w.zh);
+  const distract = shuffle(pool).slice(0,2).map(x=>x.zh);
+  const opts = shuffle([w.zh, ...distract]);
+  $('flashOpts').innerHTML = opts.map(o=>`<div class="flash-opt" data-zh="${o}">${o}</div>`).join('');
+  $('flashOpts').querySelectorAll('.flash-opt').forEach(el=>{
+    el.addEventListener('click',(e)=>{ e.stopPropagation(); chooseFlash(el, w); });
+  });
+}
+function chooseFlash(el, w){
+  if($('flashOpts').dataset.done) return;
+  $('flashOpts').dataset.done='1';
+  const correct = (el.dataset.zh === w.zh);
+  $('flashOpts').querySelectorAll('.flash-opt').forEach(o=>{
+    o.style.pointerEvents='none';
+    if(o.dataset.zh===w.zh) o.classList.add('sel-ok');
+    else if(o===el) o.classList.add('sel-no');
+  });
+  if(correct){
+    $('flashFeedback').textContent='✅ 太棒了，答对了！';
   } else {
-    h+=`<div class="praise">全部记住啦！你就是记忆小天才 🌟</div>`;
+    $('flashFeedback').textContent='❌ 正确是：'+w.zh;
+    flashWrong.push(w);
   }
-  h+=`<div style="text-align:center;margin-top:14px"><button class="btn" id="toBalloon">下一关：气球打字 →</button></div></div>`;
-  $('flashResult').innerHTML=h;
+  setTimeout(()=>{ $('flashOpts').removeAttribute('data-done'); flashIdx++; nextFlash(); }, 1100);
+}
+function finishFlash(){
+  flashPlayed=true;
   $('flashResult').classList.remove('hidden');
-  $('toBalloon').addEventListener('click', startBalloon);
+  const ok = flashList.length - flashWrong.length;
+  let h=`<div class="board" style="border-width:3px"><div class="deco">🃏</div><div class="title">闪卡挑战完成！</div>`;
+  h+=`<div class="praise">答对 <b>${ok}</b> / ${flashList.length} 个${ flashWrong.length? '，'+flashWrong.length+' 个待攻克' : '，全部拿下了！🌟' }</div>`;
+  if(flashWrong.length){
+    h+=`<div style="margin:10px 0">`+flashWrong.map(w=>`<span class="wrong-item">${w.en} · ${w.zh}</span>`).join('')+`</div>`;
+  }
+  h+=`<div style="text-align:center;margin-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">`;
+  h+=`<button class="btn" id="toBoardFromFlash">查看表扬榜 🏆</button>`;
+  h+=`<button class="btn ghost" id="playBalloon">换玩气球打字 🎈</button>`;
+  h+=`</div></div>`;
+  $('flashResult').innerHTML=h;
+  $('toBoardFromFlash').addEventListener('click', ()=>{ totalWrong = flashWrong.slice(); showBoard(); });
+  $('playBalloon').addEventListener('click', startBalloon);
 }
 
 // ===================== 气球（汉译英） =====================
@@ -346,8 +413,10 @@ function finishBalloon(){
   h+=`<div style="text-align:center;margin-top:14px"><button class="btn" id="toBoard">查看表扬榜 🏆</button></div></div>`;
   $('balloonResult').innerHTML=h;
   $('balloonResult').classList.remove('hidden');
+  balloonPlayed=true;
   $('toBoard').addEventListener('click', showBoard);
 }
+$('speaker').addEventListener('click',(e)=>{ e.stopPropagation(); speak($('cardEn').textContent); });
 
 // ===================== 错题合并 =====================
 function mergeWrong(a,b){
@@ -359,11 +428,15 @@ function mergeWrong(a,b){
 // ===================== 表扬榜 + 错题本 =====================
 function showBoard(){
   showScreen('screen-board');
-  const totalQ = flashList.length + balList.length;
-  const correct = (flashList.length - flashWrong.length) + poppedCount;
+  const fTotal = flashPlayed ? flashList.length : 0;
+  const fCorrect = flashPlayed ? (flashList.length - flashWrong.length) : 0;
+  const bTotal = balloonPlayed ? (poppedCount + missedCount) : 0;
+  const bCorrect = balloonPlayed ? poppedCount : 0;
+  const totalQ = fTotal + bTotal;
+  const correct = fCorrect + bCorrect;
   const accuracy = totalQ ? Math.round(correct/totalQ*100) : 0;
   let emoji, tier, title, praise, slogan;
-  if(accuracy>=90){ emoji='🥇'; tier='金牌小侦探'; title='太棒了！'; praise='你的单词又稳又准，闪卡全记住、气球全戳破，你就是最亮的那颗星！继续保持，老师为你骄傲～'; slogan='词汇小达人，闪耀每一课！'; }
+  if(accuracy>=90){ emoji='🥇'; tier='金牌小侦探'; title='太棒了！'; praise='你的单词又稳又准，全部拿下了，你就是最亮的那颗星！继续保持，老师为你骄傲～'; slogan='词汇小达人，闪耀每一课！'; }
   else if(accuracy>=70){ emoji='🥈'; tier='银牌小侦探'; title='很不错！'; praise='大部分单词都拿下了！把错题本里的小怪兽一个个打败，下次你就是满分王！'; slogan='错题变垫脚石，下次冲金牌！'; }
   else { emoji='🌱'; tier='潜力小侦探'; title='继续加油！'; praise='每个高手都是从不会开始的，今天你已经勇敢迈出第一步啦。多练几遍错题本，你一定可以的，老师相信你！'; slogan='每天进步一点点，未来闪闪发光！'; }
   const stars='⭐'.repeat(Math.max(1,Math.round(accuracy/20)));
@@ -383,9 +456,10 @@ function showBoard(){
 }
 $('retryWrong').addEventListener('click', ()=>{
   if(!totalWrong.length){ alert('没有错题啦，直接返回首页吧～'); return; }
+  flashPlayed=false; balloonPlayed=false;
   flashList = shuffle(totalWrong.slice());
-  balList = shuffle(totalWrong.slice());
-  flashIdx=0; flashWrong=[]; balWrong=[];
+  balList = [];
+  flashWrong=[]; balWrong=[];
   startFlash();
 });
 $('backHome').addEventListener('click', ()=>{
