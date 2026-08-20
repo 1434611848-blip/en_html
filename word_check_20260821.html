@@ -76,6 +76,9 @@
   .type-bar{ margin-top:12px; }
   .type-bar input{ width:100%; padding:14px; font-size:18px; border:3px solid #ffd6e7; border-radius:14px; outline:none; text-align:center; }
   .type-bar input:focus{ border-color:#ff6b9d; }
+  select.ver-sel{ width:100%; padding:14px; font-size:17px; border:3px solid #ffd6e7; border-radius:14px; outline:none; background:#fff; color:#4a4a4a; text-align:center; text-align-last:center; }
+  select.ver-sel:focus{ border-color:#ff6b9d; }
+  select.ver-sel option{ text-align:center; }
 
   /* 表扬榜 */
   .board{
@@ -118,7 +121,9 @@
       </div>
 
       <label>📚 选择教材版本</label>
-      <div class="opts" id="versionOpts"></div>
+      <select class="ver-sel" id="versionSel">
+        <option value="">-- 请选择教材版本 --</option>
+      </select>
 
       <button class="btn block" id="startBtn">开始检测 🚀</button>
     </div>
@@ -194,6 +199,206 @@ WORD_BANK["沪教牛津"] = [{"en": "oil", "zh": "石油；原油"}, {"en": "gas
 WORD_BANK["鲁教版"] = [{"en": "holiday", "zh": "假期；假日"}, {"en": "break a promise", "zh": "违背诺言"}, {"en": "lie to sb", "zh": "对某人撒谎"}, {"en": "bite through", "zh": "咬穿；咬透"}, {"en": "set...free", "zh": "释放……"}, {"en": "laugh at", "zh": "嘲笑；取笑"}, {"en": "to one's surprise", "zh": "令人惊讶的是"}, {"en": "in the end", "zh": "最后；终于"}, {"en": "learn a lesson", "zh": "吸取教训"}, {"en": "live happily ever after", "zh": "从此幸福地生活在一起"}, {"en": "vacation", "zh": "假期（美式）"}, {"en": "ancient", "zh": "古代的；古老的"}, {"en": "landscape", "zh": "风景；景色"}, {"en": "strange", "zh": "奇怪的；陌生的"}, {"en": "fantastic", "zh": "极好的；奇妙的"}, {"en": "breath", "zh": "呼吸；气息"}, {"en": "especially", "zh": "尤其；特别"}, {"en": "steamed", "zh": "蒸的"}, {"en": "anywhere", "zh": "任何地方；任何一处"}, {"en": "nothing", "zh": "没有什么"}, {"en": "guide", "zh": "导游；指南；引导"}, {"en": "scenery", "zh": "风景；风光"}, {"en": "silk", "zh": "丝绸；丝织物"}, {"en": "comfortable", "zh": "舒适的；舒服的"}, {"en": "bored", "zh": "感到无聊的"}, {"en": "rainbow", "zh": "彩虹"}, {"en": "square", "zh": "广场；正方形的"}, {"en": "victory", "zh": "胜利；成功"}, {"en": "Russian", "zh": "俄罗斯的；俄语"}, {"en": "fight", "zh": "战斗；打架"}, {"en": "peace", "zh": "和平；太平"}, {"en": "sick", "zh": "生病的；恶心的"}, {"en": "metro", "zh": "地铁"}, {"en": "palace", "zh": "宫殿；王宫"}, {"en": "go on holiday / vacation", "zh": "去度假"}, {"en": "take a holiday", "zh": "休假；度假"}, {"en": "visit ancient buildings", "zh": "参观古建筑"}, {"en": "go to a festival", "zh": "参加节日活动"}, {"en": "go to a summer camp", "zh": "去夏令营"}, {"en": "take photos", "zh": "拍照"}, {"en": "pack", "zh": "打包；收拾"}, {"en": "bathroom", "zh": "浴室；洗手间"}, {"en": "sort", "zh": "分类；整理"}, {"en": "take one's breath away", "zh": "令人惊叹"}, {"en": "try local food", "zh": "品尝当地美食"}, {"en": "have a good time", "zh": "玩得开心"}, {"en": "in high spirits", "zh": "情绪高涨"}, {"en": "thousands of", "zh": "成千上万的"}, {"en": "remind sb of sth", "zh": "使某人想起某事"}, {"en": "look forward to", "zh": "期待；盼望"}];
 WORD_BANK["人教版"] = [{"en": "geography", "zh": "地理（学）"}, {"en": "history", "zh": "历史；历史课"}, {"en": "boring", "zh": "乏味的；令人生厌的"}, {"en": "scientist", "zh": "科学家"}, {"en": "Baker", "zh": "贝克（姓氏）"}, {"en": "Mike", "zh": "迈克（人名）"}, {"en": "Davis", "zh": "戴维斯（姓氏）"}, {"en": "Canada", "zh": "加拿大"}, {"en": "soon", "zh": "不久；很快"}, {"en": "than", "zh": "（用以引出比 较的第二部分）比 Day2"}, {"en": "more than", "zh": "多于"}, {"en": "mind", "zh": "头脑；心思"}, {"en": "fall", "zh": "进入；掉落；跌倒； n.秋天"}, {"en": "fall in love with", "zh": "爱上……"}, {"en": "take photos", "zh": "拍照"}, {"en": "collect", "zh": "收集；采集"}, {"en": "insect", "zh": "昆虫"}, {"en": "discover", "zh": "发现；发觉"}, {"en": "wildlife", "zh": "野生动物；野生生物"}, {"en": "club", "zh": "俱乐部；社团 Day3"}, {"en": "join", "zh": "参加；加入"}, {"en": "choose", "zh": "选择；挑选"}, {"en": "drama", "zh": "戏剧；戏剧表演"}, {"en": "play Chinese chess", "zh": "下中国象棋"}, {"en": "feeling", "zh": "感觉；情感"}, {"en": "news", "zh": "消息；新闻"}, {"en": "musical", "zh": "音乐的；有音乐天赋的"}, {"en": "musical instrument", "zh": "乐器"}, {"en": "exactly", "zh": "正是如此；准确地"}, {"en": "drum", "zh": "鼓 Day4"}, {"en": "ability", "zh": "能力；才能"}, {"en": "paint", "zh": "用颜料画；在…… 上刷 油漆；n. 油漆；涂料"}, {"en": "climb", "zh": "攀登；爬"}, {"en": "more", "zh": "更多（的）"}, {"en": "act", "zh": "扮演；行动；n.（戏剧等） 一幕；行动"}, {"en": "act out", "zh": "表演"}, {"en": "at home", "zh": "在家里"}, {"en": "interested", "zh": "感兴趣的"}, {"en": "interested in", "zh": "对…… 感兴趣"}, {"en": "nature", "zh": "自然界；大自然 Day5"}, {"en": "beef", "zh": "牛肉"}, {"en": "make use of", "zh": "使用……；利用……"}, {"en": "quarter", "zh": "一刻钟；四等份之一"}, {"en": "shower", "zh": "淋浴；淋浴器"}, {"en": "take a shower", "zh": "淋浴"}, {"en": "get dressed", "zh": "穿衣服"}, {"en": "brush  v.（用刷子）刷；", "zh": "刷子； 画笔"}, {"en": "tooth  (pl. teeth /tiːθ/)", "zh": "牙 齿"}, {"en": "duty", "zh": "值班；职责"}, {"en": "on duty", "zh": "值班"}];
 WORD_BANK["译林版"] = [{"en": "language", "zh": "语言"}, {"en": "amazing", "zh": "令人大为惊奇的"}, {"en": "biology", "zh": "生物学"}, {"en": "living", "zh": "活着的，活的"}, {"en": "nature", "zh": "大自然；天性"}, {"en": "practise", "zh": "vi. & vt.训练，练习；vi. & vt. 练 习"}, {"en": "field", "zh": "田，地；领域"}, {"en": "field", "zh": "trip — 野外考察，实地考察"}, {"en": "leave", "zh": "vi. & vt. 离开；让… 处于 （某种状态等）；留在某处； 让… 去"}, {"en": "leave", "zh": "for — 动身去，到… 地方去"}, {"en": "pick", "zh": "vt. 采，摘；挑选"}, {"en": "of", "zh": "course — 当然"}, {"en": "seldom", "zh": "很少"}, {"en": "tennis", "zh": "网球运动"}, {"en": "roller", "zh": "skate — 滑旱冰，溜旱冰"}, {"en": "grow", "zh": "vi. & vt.（使）生长，发育"}, {"en": "tour", "zh": "参观；旅行"}, {"en": "website", "zh": "网站"}, {"en": "video", "zh": "视频"}, {"en": "outside", "zh": "在（向）外面"}, {"en": "peace", "zh": "平静；和平"}, {"en": "teamwork", "zh": "团队合作"}, {"en": "better", "zh": "更好的"}, {"en": "tiring", "zh": "累人的"}, {"en": "duty", "zh": "职责，任务；责任，义务"}, {"en": "area", "zh": "区域；面积；领域"}, {"en": "take", "zh": "part in — 参加"}, {"en": "through", "zh": "以，凭借；通过；穿 过"}, {"en": "group", "zh": "组，群，批"}, {"en": "turn", "zh": "n.（依次轮到的）机会"}, {"en": "take", "zh": "turns — 轮流"}, {"en": "empty", "zh": "vt. 倒空，腾空"}, {"en": "bin", "zh": "垃圾桶"}, {"en": "care", "zh": "照顾；小心"}, {"en": "take", "zh": "care of — 照顾，照料"}, {"en": "lifestyle", "zh": "生活方式"}, {"en": "cucumber", "zh": "黄瓜"}, {"en": "lemon", "zh": "柠檬"}, {"en": "watermelon", "zh": "西瓜"}, {"en": "pepper", "zh": "甜椒；胡椒粉"}, {"en": "chocolate", "zh": "巧克力"}, {"en": "beef", "zh": "牛肉"}, {"en": "carrot", "zh": "胡萝卜"}, {"en": "pork", "zh": "猪肉"}, {"en": "sweet", "zh": "糖果；甜食"}, {"en": "snack", "zh": "零食，小吃"}, {"en": "health", "zh": "健康"}, {"en": "delicious", "zh": "美味的"}, {"en": "important", "zh": "重要的"}];
+
+// ===================== 状态 =====================
+let curName='', curTeacher='', curVersion='';
+let flashList=[], flashIdx=0, flashWrong=[];
+let balList=[], balWrong=[];
+let totalWrong=[];
+
+const $ = id => document.getElementById(id);
+const qsa = sel => document.querySelectorAll(sel);
+function showScreen(id){ qsa('.screen').forEach(s=>s.classList.add('hidden')); $(id).classList.remove('hidden'); }
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function speak(t){ if('speechSynthesis' in window){ const u=new SpeechSynthesisUtterance(t); u.lang='en-US'; u.rate=.9; try{speechSynthesis.cancel(); speechSynthesis.speak(u);}catch(e){} } }
+
+// ===================== 开始页 =====================
+function initStart(){
+  qsa('#teacherOpts .opt').forEach(el=>{
+    el.addEventListener('click',()=>{
+      qsa('#teacherOpts .opt').forEach(x=>x.classList.remove('sel'));
+      el.classList.add('sel');
+      curTeacher = el.dataset.teacher;
+    });
+  });
+  $('versionSel').innerHTML = '<option value="">-- 请选择教材版本 --</option>' + VERSIONS.map(v=>`<option value="${v}">${v}</option>`).join('');
+  $('startBtn').addEventListener('click', startCheck);
+}
+function startCheck(){
+  curName = $('stuName').value.trim();
+  curVersion = $('versionSel').value;
+  if(!curName){ alert('请先输入小侦探的名字哦～'); $('stuName').focus(); return; }
+  if(!curTeacher){ alert('请选择指导老师～'); return; }
+  if(!curVersion){ alert('请选择教材版本～'); return; }
+  flashList = shuffle(WORD_BANK[curVersion]);
+  flashIdx=0; flashWrong=[];
+  startFlash();
+}
+
+// ===================== 闪卡（英译汉） =====================
+function startFlash(){
+  showScreen('screen-flash');
+  flashIdx=0; flashWrong=[];
+  $('flashResult').classList.add('hidden');
+  $('flashStart').classList.remove('hidden');
+  $('flashBtns').classList.add('hidden');
+  $('card').classList.remove('flipped');
+  $('flashProgress').textContent = `共 ${flashList.length} 个单词，点击卡片翻出中文`;
+  $('cardEn').textContent=''; $('cardZh').textContent='';
+}
+$('flashStartBtn').addEventListener('click', ()=>{ $('flashStart').classList.add('hidden'); nextFlash(); });
+function nextFlash(){
+  if(flashIdx>=flashList.length){ finishFlash(); return; }
+  const w=flashList[flashIdx];
+  $('cardEn').textContent=w.en; $('cardZh').textContent=w.zh;
+  $('card').classList.remove('flipped');
+  $('flashBtns').classList.add('hidden');
+  $('flashProgress').textContent = `第 ${flashIdx+1} / ${flashList.length} 个`;
+  $('card').onclick = ()=>{ $('card').classList.add('flipped'); $('flashBtns').classList.remove('hidden'); };
+}
+$('speaker').addEventListener('click',(e)=>{ e.stopPropagation(); speak($('cardEn').textContent); });
+$('btnYes').addEventListener('click',()=>{ flashIdx++; nextFlash(); });
+$('btnNo').addEventListener('click',()=>{ flashWrong.push(flashList[flashIdx]); flashIdx++; nextFlash(); });
+function finishFlash(){
+  $('flashBtns').classList.add('hidden');
+  let h=`<div class="board" style="border-width:3px"><div class="deco">🃏</div><div class="title">闪卡接龙完成！</div>`;
+  if(flashWrong.length){
+    h+=`<div class="praise">有 <b>${flashWrong.length}</b> 个还没记住，进入下一关再练～</div><div style="margin:10px 0">`+flashWrong.map(w=>`<span class="wrong-item">${w.en} · ${w.zh}</span>`).join('')+`</div>`;
+  } else {
+    h+=`<div class="praise">全部记住啦！你就是记忆小天才 🌟</div>`;
+  }
+  h+=`<div style="text-align:center;margin-top:14px"><button class="btn" id="toBalloon">下一关：气球打字 →</button></div></div>`;
+  $('flashResult').innerHTML=h;
+  $('flashResult').classList.remove('hidden');
+  $('toBalloon').addEventListener('click', startBalloon);
+}
+
+// ===================== 气球（汉译英） =====================
+let balloons=[], balTimer=null, balRAF=null, balRunning=false;
+let score=0, poppedCount=0, missedCount=0, SPAWN_GAP=1000;
+function startBalloon(){
+  showScreen('screen-balloon');
+  $('balloonResult').classList.add('hidden');
+  $('stage').innerHTML='';
+  score=0; poppedCount=0; missedCount=0; balloons=[]; balWrong=[];
+  updateBar();
+  balList = shuffle(WORD_BANK[curVersion]);
+  $('balloonStart').classList.remove('hidden');
+  $('typeInput').disabled=true; $('typeInput').value='';
+}
+$('balloonStartBtn').addEventListener('click', ()=>{ $('balloonStart').classList.add('hidden'); beginBalloon(); });
+function beginBalloon(){
+  balRunning=true;
+  $('typeInput').disabled=false; $('typeInput').value=''; $('typeInput').focus();
+  balTimer=setInterval(()=>{ if(balList.length) spawnBalloon(); }, SPAWN_GAP);
+  balRAF=requestAnimationFrame(balLoop);
+}
+function spawnBalloon(){
+  if(!balList.length) return;
+  const w=balList.pop();
+  const stage=$('stage');
+  const el=document.createElement('div'); el.className='balloon';
+  el.innerHTML=`<div class="body">${w.zh}</div><div class="string"></div>`;
+  const x=8+Math.random()*(stage.clientWidth-92);
+  const h=stage.clientHeight;
+  el.style.left=x+'px'; el.style.top=h+'px';
+  stage.appendChild(el);
+  balloons.push({el, en:w.en.toLowerCase(), zh:w.zh, x, y:h, speed:0.3+Math.random()*0.3});
+}
+function balLoop(){
+  if(!balRunning) return;
+  const stage=$('stage'); const h=stage.clientHeight;
+  for(let i=balloons.length-1;i>=0;i--){
+    const b=balloons[i];
+    b.y -= b.speed*16;
+    b.el.style.top=b.y+'px';
+    if(b.y<=0){ b.el.remove(); balloons.splice(i,1); missedCount++; balWrong.push({en:b.en,zh:b.zh}); updateBar(); }
+  }
+  if(balList.length===0 && balloons.length===0){ clearInterval(balTimer); balRunning=false; setTimeout(finishBalloon,300); return; }
+  balRAF=requestAnimationFrame(balLoop);
+}
+$('typeInput').addEventListener('input',()=>{
+  const v=$('typeInput').value.trim().toLowerCase();
+  if(!v) return;
+  const stage=$('stage'); const h=stage.clientHeight;
+  for(let i=balloons.length-1;i>=0;i--){
+    const b=balloons[i];
+    if(b.en===v){
+      const pts=Math.round(b.y/h*50)+10;
+      score+=pts; poppedCount++;
+      const ps=document.createElement('div'); ps.className='pop-score'; ps.textContent='+'+pts;
+      ps.style.left=b.x+'px'; ps.style.top=b.y+'px';
+      stage.appendChild(ps); setTimeout(()=>ps.remove(),650);
+      b.el.classList.add('pop'); setTimeout(()=>b.el.remove(),300);
+      balloons.splice(i,1);
+      $('typeInput').value=''; updateBar();
+      return;
+    }
+  }
+});
+function updateBar(){ $('score').textContent=score; $('popped').textContent=poppedCount; $('missed').textContent=missedCount; }
+function finishBalloon(){
+  balRunning=false; clearInterval(balTimer);
+  totalWrong = mergeWrong(flashWrong, balWrong);
+  let h=`<div class="board" style="border-width:3px"><div class="deco">🎈</div><div class="title">气球挑战结束！</div>`;
+  h+=`<div class="praise">戳破 <b>${poppedCount}</b> 个，飞走 <b>${missedCount}</b> 个，得分 <b>${score}</b>！</div>`;
+  if(balWrong.length){ h+=`<div style="margin:10px 0">`+balWrong.map(w=>`<span class="wrong-item">${w.zh} · ${w.en}</span>`).join('')+`</div>`; }
+  h+=`<div style="text-align:center;margin-top:14px"><button class="btn" id="toBoard">查看表扬榜 🏆</button></div></div>`;
+  $('balloonResult').innerHTML=h;
+  $('balloonResult').classList.remove('hidden');
+  $('toBoard').addEventListener('click', showBoard);
+}
+
+// ===================== 错题合并 =====================
+function mergeWrong(a,b){
+  const map={};
+  a.concat(b).forEach(w=>{ map[w.en]=w; });
+  return Object.values(map);
+}
+
+// ===================== 表扬榜 + 错题本 =====================
+function showBoard(){
+  showScreen('screen-board');
+  const totalQ = flashList.length + balList.length;
+  const correct = (flashList.length - flashWrong.length) + poppedCount;
+  const accuracy = totalQ ? Math.round(correct/totalQ*100) : 0;
+  let emoji, tier, title, praise, slogan;
+  if(accuracy>=90){ emoji='🥇'; tier='金牌小侦探'; title='太棒了！'; praise='你的单词又稳又准，闪卡全记住、气球全戳破，你就是最亮的那颗星！继续保持，老师为你骄傲～'; slogan='词汇小达人，闪耀每一课！'; }
+  else if(accuracy>=70){ emoji='🥈'; tier='银牌小侦探'; title='很不错！'; praise='大部分单词都拿下了！把错题本里的小怪兽一个个打败，下次你就是满分王！'; slogan='错题变垫脚石，下次冲金牌！'; }
+  else { emoji='🌱'; tier='潜力小侦探'; title='继续加油！'; praise='每个高手都是从不会开始的，今天你已经勇敢迈出第一步啦。多练几遍错题本，你一定可以的，老师相信你！'; slogan='每天进步一点点，未来闪闪发光！'; }
+  const stars='⭐'.repeat(Math.max(1,Math.round(accuracy/20)));
+  let h=`<div class="deco">${stars}</div>`;
+  h+=`<div class="title">${emoji} ${tier}</div>`;
+  h+=`<div class="name">${curName} 小朋友</div>`;
+  h+=`<div class="praise">${title}<br>${praise}</div>`;
+  h+=`<div class="stats"><div><b>${accuracy}%</b><span>正确率</span></div><div><b>${correct}</b><span>答对</span></div><div><b>${totalWrong.length}</b><span>待攻克</span></div></div>`;
+  h+=`<div class="slogan">${slogan}</div>`;
+  h+=`<div class="meta">指导老师：${curTeacher} ｜ 教材版本：${curVersion}</div>`;
+  $('board').innerHTML=h;
+  if(totalWrong.length){
+    $('wrongBox').innerHTML = `<h3>📕 错题本（点「用错题重练」反复练）</h3>` + totalWrong.map(w=>`<span class="wrong-item">${w.en} · ${w.zh}</span>`).join('');
+  } else {
+    $('wrongBox').innerHTML = `<div class="wrong-empty">🎉 没有错题，全部掌握！</div>`;
+  }
+}
+$('retryWrong').addEventListener('click', ()=>{
+  if(!totalWrong.length){ alert('没有错题啦，直接返回首页吧～'); return; }
+  flashList = shuffle(totalWrong.slice());
+  balList = shuffle(totalWrong.slice());
+  flashIdx=0; flashWrong=[]; balWrong=[];
+  startFlash();
+});
+$('backHome').addEventListener('click', ()=>{
+  showScreen('screen-start');
+  $('stuName').value='';
+  qsa('#teacherOpts .opt').forEach(x=>x.classList.remove('sel'));
+  curTeacher=''; $('versionSel').value='';
+  $('flashResult').classList.add('hidden');
+  $('balloonResult').classList.add('hidden');
+});
+
+// ===================== 启动 =====================
+initStart();
 </script>
 </body>
 </html>
