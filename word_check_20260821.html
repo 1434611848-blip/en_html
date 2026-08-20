@@ -99,10 +99,6 @@
   .wrong-empty{ color:#4caf50; font-weight:bold; text-align:center; }
 
   .stage-tip{ text-align:center; color:#888; padding:30px 0; }
-  details.lib summary{ cursor:pointer; font-weight:bold; color:#ff6b9d; }
-  details.lib textarea{ width:100%; height:120px; margin-top:8px; border:2px solid #ffd6e7; border-radius:10px; padding:10px; font-size:14px; font-family:monospace; }
-  .lib-row{ display:flex; gap:8px; align-items:center; margin-top:8px; }
-  .lib-row select{ flex:0 0 120px; padding:10px; border-radius:10px; border:2px solid #ffd6e7; font-size:14px; }
 </style>
 </head>
 <body>
@@ -126,16 +122,6 @@
 
       <button class="btn block" id="startBtn">开始检测 🚀</button>
     </div>
-
-    <details class="lib card-box">
-      <summary>📖 词库管理（点开粘贴 9 个版本的单词）</summary>
-      <div class="lib-row">
-        <select id="libVersion"></select>
-        <button class="btn ghost" id="libSave" style="margin-top:0">保存此版本</button>
-      </div>
-      <textarea id="libInput" placeholder="每行一个：英文,中文（逗号可用中英文）"></textarea>
-      <div style="font-size:12px;color:#999;margin-top:6px">改完选好版本，点「保存此版本」。9 个版本都存好后，开始页就能选啦。</div>
-    </details>
   </div>
 
   <!-- ===== 闪卡页 ===== -->
