@@ -27,6 +27,7 @@
   .star{ color:#ffcf3f; }
   a{ color:#2b8fd6; text-decoration:none; }
 </style>
+<script src="supabase.js"></script>
 </head>
 <body>
   <h1>🏆 单词小侦探排行榜</h1>
@@ -41,23 +42,45 @@
   </div>
 
 <script>
-const REC_KEY='wordcheck_records';
-function getRecords(){ try{ return JSON.parse(localStorage.getItem(REC_KEY)||'[]'); }catch(e){ return []; } }
-function fmtDate(ts){ const d=new Date(ts); const p=n=>(''+n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+function fmtDate(ts){ const d=new Date(ts); if(isNaN(d)) return ''; const p=n=>(''+n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
 
-function render(){
+// 云端行 → 前端记录
+function mapRec(r){
+  return {
+    name: r.student_name||'',
+    teacher: r.teacher||'',
+    version: r.version||'',
+    game: r.game||'',
+    correct: r.correct||0,
+    total: r.total||0,
+    accuracy: r.total ? Math.round((r.correct||0)/r.total*100) : 0,
+    date: r.submitted_at
+  };
+}
+
+async function loadRecords(){
+  if(!window.CloudBox) return [];
+  try{
+    const rows = await CloudBox.fetchWordScores();
+    return (rows||[]).map(mapRec);
+  }catch(e){ console.error('读取云端成绩失败：', e); return []; }
+}
+
+async function render(){
+  const list=$('list');
+  list.innerHTML='<div class="empty">加载中…</div>';
   const tf=$('teacherFilter').value;
-  let recs=getRecords().filter(r=> !tf || r.teacher===tf);
+  let recs=(await loadRecords()).filter(r=> !tf || r.teacher===tf);
   // 按学员(name)去重，取最好正确率（并列取最近一次）
   const best={};
   recs.forEach(r=>{
     const k=r.name;
-    if(!best[k] || r.accuracy>best[k].accuracy || (r.accuracy===best[k].accuracy && r.date>best[k].date)){
+    const rd=new Date(r.date).getTime(), bd=best[k]?new Date(best[k].date).getTime():0;
+    if(!best[k] || r.accuracy>best[k].accuracy || (r.accuracy===best[k].accuracy && rd>bd)){
       best[k]=r;
     }
   });
-  const arr=Object.values(best).sort((a,b)=> b.accuracy-a.accuracy || b.date-a.date);
-  const list=$('list');
+  const arr=Object.values(best).sort((a,b)=> b.accuracy-a.accuracy || new Date(b.date)-new Date(a.date));
   if(!arr.length){ list.innerHTML='<div class="empty">还没有成绩记录～<br>去检测系统测一测，成绩就会出现在这里啦！</div>'; return; }
   list.innerHTML=arr.map((r,i)=>{
     const stars='<span class="star">'+'⭐'.repeat(Math.max(1,Math.round(r.accuracy/20)))+'</span>';

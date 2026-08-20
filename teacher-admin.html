@@ -26,10 +26,11 @@
   .confirm{ font-size:12px; color:#ff5252; text-align:center; margin-top:8px; min-height:16px; }
   a{ color:#2b8fd6; text-decoration:none; }
 </style>
+<script src="supabase.js"></script>
 </head>
 <body>
   <h1>👩‍🏫 老师后台</h1>
-  <div class="sub">查看每位学员的检测成绩，可删除单条或清空全部</div>
+  <div class="sub">查看每位学员的检测成绩，可删除单条或清空全部（云端）</div>
   <div class="wrap">
     <div class="toolbar">
       <select id="teacherFilter"><option value="">全部老师</option><option>亚飞老师</option><option>亚楠老师</option></select>
@@ -45,54 +46,79 @@
   </div>
 
 <script>
-const REC_KEY='wordcheck_records';
-function getRecords(){ try{ return JSON.parse(localStorage.getItem(REC_KEY)||'[]'); }catch(e){ return []; } }
-function setRecords(a){ try{ localStorage.setItem(REC_KEY, JSON.stringify(a)); }catch(e){} }
-function fmtDate(ts){ const d=new Date(ts); const p=n=>(''+n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
-
 let confirmClear=false;
-function render(){
-  const tf=$('teacherFilter').value;
-  let recs=getRecords();
-  if(tf) recs=recs.filter(r=>r.teacher===tf);
+
+function fmtDate(ts){ const d=new Date(ts); if(isNaN(d)) return ''; const p=n=>(''+n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+
+function mapRec(r){
+  return {
+    id: r.id,
+    name: r.student_name||'',
+    teacher: r.teacher||'',
+    version: r.version||'',
+    game: r.game||'',
+    correct: r.correct||0,
+    total: r.total||0,
+    score: r.score||0,
+    accuracy: r.total ? Math.round((r.correct||0)/r.total*100) : 0,
+    date: r.submitted_at
+  };
+}
+
+async function loadRecords(){
+  if(!window.CloudBox) return [];
+  try{
+    const rows = await CloudBox.fetchWordScores();
+    return (rows||[]).map(mapRec);
+  }catch(e){ console.error('读取云端成绩失败：', e); return []; }
+}
+
+async function render(){
   const list=$('list');
+  list.innerHTML='<div class="empty">加载中…</div>';
+  const tf=$('teacherFilter').value;
+  let recs=(await loadRecords());
+  if(tf) recs=recs.filter(r=>r.teacher===tf);
   $('stat').textContent = `共 ${recs.length} 条成绩记录` + (tf? `（${tf}）`:'');
   if(!recs.length){ list.innerHTML='<div class="empty">暂无成绩记录。</div>'; return; }
-  list.innerHTML=recs.map((r,i)=>`
-    <div class="row" data-i="${i}">
+  list.innerHTML=recs.map((r)=>`
+    <div class="row" data-id="${r.id}">
       <div class="info">
         <b>${r.name}</b> ｜ ${r.teacher} ｜ ${r.version} ｜ ${r.game}<br>
         <span style="color:#999">正确率 ${r.accuracy}% ｜ 答对 ${r.correct}/${r.total}${r.score?(' ｜ 得分 '+r.score):''} ｜ ${fmtDate(r.date)}</span>
       </div>
       <div class="acc">${r.accuracy}%</div>
-      <button class="del" data-i="${i}">删除</button>
+      <button class="del" data-id="${r.id}">删除</button>
     </div>`).join('');
   list.querySelectorAll('.del').forEach(b=>{
-    b.addEventListener('click',()=>{ deleteOne(parseInt(b.dataset.i,10)); });
+    b.addEventListener('click',()=>{ deleteOne(b.dataset.id); });
   });
 }
-function deleteOne(i){
-  let recs=getRecords();
-  const tf=$('teacherFilter').value;
-  // 列表索引对应的是筛选后的顺序，需映射回全局
-  let view = tf? recs.filter(r=>r.teacher===tf) : recs;
-  const target = view[i];
-  if(!target) return;
-  const gi = recs.indexOf(target);
-  recs.splice(gi,1);
-  setRecords(recs);
-  render();
+
+async function deleteOne(id){
+  if(!confirm('确定删除这条成绩吗？')) return;
+  try{
+    await CloudBox.deleteWordScore(id);
+    render();
+  }catch(e){ alert('删除失败：'+(e.message||e)); }
 }
+
 $('teacherFilter').addEventListener('change', ()=>{ confirmClear=false; $('confirm').textContent=''; render(); });
-$('clearAll').addEventListener('click', ()=>{
+$('clearAll').addEventListener('click', async ()=>{
   if(!confirmClear){
     confirmClear=true;
     $('confirm').textContent='⚠️ 再次点击「清空全部成绩」将永久删除所有记录，不可恢复！';
     return;
   }
-  setRecords([]);
   confirmClear=false;
-  $('confirm').textContent='已清空全部成绩记录。';
+  const recs=await loadRecords();
+  $('confirm').textContent='正在清空…';
+  try{
+    await Promise.all(recs.map(r=>CloudBox.deleteWordScore(r.id)));
+    $('confirm').textContent='已清空全部成绩记录。';
+  }catch(e){
+    $('confirm').textContent='清空失败：'+(e.message||e);
+  }
   render();
 });
 render();

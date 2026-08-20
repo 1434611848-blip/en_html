@@ -116,6 +116,7 @@
   .tool-links a{ color:#2b8fd6; text-decoration:none; font-weight:bold; }
   .tool-links a:active{ opacity:.6; }
 </style>
+<script src="supabase.js"></script>
 </head>
 <body>
   <h1>🕵️ 单词小侦探 · 检测系统</h1>
@@ -437,15 +438,29 @@ function mergeWrong(a,b){
 // ===================== 成绩存档（localStorage） =====================
 const REC_KEY='wordcheck_records';
 function getRecords(){ try{ return JSON.parse(localStorage.getItem(REC_KEY)||'[]'); }catch(e){ return []; } }
+// 本地兜底：仅当云端提交失败时保留一份，避免丢孩子成绩（不进榜单）
+function fallbackLocal(rec){
+  const arr=getRecords();
+  arr.push(Object.assign({ date: Date.now() }, rec));
+  try{ localStorage.setItem(REC_KEY, JSON.stringify(arr)); }catch(e){}
+}
+// 成绩云端存档（Supabase），失败回退本地
 function saveRecord(acc, correct, total, sc){
   const rec={
     name: curName, teacher: curTeacher, version: curVersion,
     game: (flashPlayed&&balloonPlayed)?'两项都玩':(flashPlayed?'闪卡':'气球'),
-    accuracy: acc, correct, total, score: (balloonPlayed?sc:0),
-    date: Date.now()
+    total, correct, score: (balloonPlayed?sc:0),
+    detail: (typeof totalWrong!=='undefined') ? totalWrong.map(w=>({en:w.en,zh:w.zh})) : [],
+    submittedAt: new Date().toISOString()
   };
-  const arr=getRecords(); arr.push(rec);
-  try{ localStorage.setItem(REC_KEY, JSON.stringify(arr)); }catch(e){}
+  if(window.CloudBox){
+    CloudBox.uploadWordScore(rec).catch(function(err){
+      console.error('云端保存失败，回退本地兜底：', err);
+      fallbackLocal(rec);
+    });
+  } else {
+    fallbackLocal(rec);
+  }
 }
 
 
