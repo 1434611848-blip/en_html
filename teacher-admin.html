@@ -76,7 +76,7 @@ async function render(){
   list.innerHTML=allRecs.map((r)=>`
     <div class="row">
       <div class="info">
-        <b>${r.name}</b> ｜ ${r.teacher} ｜ ${r.version} ｜ ${r.game}<br>
+        <b>${r.name}</b> ｜ ${r.teacher} ｜ ${r.version}${r.game?(' ｜ '+r.game):''}<br>
         <span style="color:#999">正确率 ${r.accuracy}% ｜ 答对 ${r.correct}/${r.total}${r.score?(' ｜ 得分 '+r.score):''} ｜ ${fmtDate(r.date)}</span>
       </div>
       <div class="acc">${r.accuracy}%</div>

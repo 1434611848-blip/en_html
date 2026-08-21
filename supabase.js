@@ -67,13 +67,22 @@ window.CloudBox = (function () {
   }
 
   // 查询成绩：可按老师 + 版本过滤（默认全部未删除，按提交时间倒序）
+  // 容错：若 game 列尚未存在（400/PGRST），自动去掉 game 重试，保证记录始终能读出来
   function fetchWordScores(teacherName, version) {
     var filter = '';
     if (teacherName && teacherName !== '__all') filter += '&teacher=eq.' + encodeURIComponent(teacherName);
     if (version && version !== '__all') filter += '&version=eq.' + encodeURIComponent(version);
-    var path = WORD_TABLE + '?select=id,student_name,teacher,version,total,correct,score,game,detail,duration,submitted_at'
+    var base = WORD_TABLE + '?select=id,student_name,teacher,version,total,correct,score,detail,duration,submitted_at'
       + filter + '&status=neq.deleted&order=submitted_at.desc';
-    return request(path);
+    var withGame = WORD_TABLE + '?select=id,student_name,teacher,version,total,correct,score,game,detail,duration,submitted_at'
+      + filter + '&status=neq.deleted&order=submitted_at.desc';
+    return request(withGame).catch(function (err) {
+      var msg = String((err && err.message) || '');
+      if (msg.indexOf('game') >= 0 || msg.indexOf('column') >= 0 || msg.indexOf('PGRST') >= 0) {
+        return request(base);
+      }
+      throw err;
+    });
   }
 
   // 软删除单条（老师后台去重 / 删除）
