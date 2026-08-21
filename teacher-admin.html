@@ -21,6 +21,9 @@
   .info b{ color:#2b8fd6; }
   .acc{ flex:0 0 60px; text-align:center; font-weight:bold; color:#ff6b9d; }
   .empty{ text-align:center; color:#aaa; padding:40px 0; }
+  .del{ flex:0 0 auto; margin-left:8px; padding:6px 12px; font-size:13px; border-radius:10px; border:2px solid #ffd0d0; background:#fff; color:#e74c3c; font-weight:bold; cursor:pointer; }
+  .del:active{ opacity:.6; }
+  .btn.red{ background:#e74c3c; color:#fff; border-color:#e74c3c; }
 </style>
 <script src="supabase.js"></script>
 </head>
@@ -30,6 +33,7 @@
   <div class="wrap">
     <div class="toolbar">
       <button class="btn pink" id="downloadBtn">⬇️ 下载记录（CSV）</button>
+      <button class="btn red" id="clearBtn">🗑 清空全部记录</button>
     </div>
     <div class="stat" id="stat"></div>
     <div class="list" id="list"></div>
@@ -80,6 +84,7 @@ async function render(){
         <span style="color:#999">正确率 ${r.accuracy}% ｜ 答对 ${r.correct}/${r.total}${r.score?(' ｜ 得分 '+r.score):''} ｜ ${fmtDate(r.date)}</span>
       </div>
       <div class="acc">${r.accuracy}%</div>
+      <button class="del" data-id="${r.id}">删除</button>
     </div>`).join('');
 }
 
@@ -100,7 +105,38 @@ function downloadCSV(){
   document.body.removeChild(a);
 }
 
+async function deleteOne(id){
+  if(!confirm('确定删除这条记录？')) return;
+  try{
+    await CloudBox.deleteWordScore(id);
+    allRecs = allRecs.filter(r=>r.id!==id);
+    $('stat').textContent = `共 ${allRecs.length} 条参与记录`;
+    renderList();
+  }catch(e){
+    alert('删除失败：' + (e && e.message ? e.message : e));
+  }
+}
+
+async function clearAll(){
+  if(!allRecs.length){ alert('暂无记录可清空'); return; }
+  if(!confirm('确定清空全部 ' + allRecs.length + ' 条记录？删除后将从云端移除（可在 Supabase 中恢复）。')) return;
+  try{
+    for(const r of allRecs){ await CloudBox.deleteWordScore(r.id); }
+    allRecs = [];
+    $('stat').textContent = '共 0 条参与记录';
+    renderList();
+    alert('已清空全部记录');
+  }catch(e){
+    alert('清空失败：' + (e && e.message ? e.message : e));
+  }
+}
+
 $('downloadBtn').addEventListener('click', downloadCSV);
+$('clearBtn').addEventListener('click', clearAll);
+$('list').addEventListener('click', function(e){
+  const btn = e.target.closest('.del');
+  if(btn){ deleteOne(btn.getAttribute('data-id')); }
+});
 render();
 </script>
 </body>
