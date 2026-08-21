@@ -181,7 +181,7 @@
       <div class="type-bar">
         <input id="typeInput" type="text" placeholder="看气球中文，拼出英文，自动戳破" autocomplete="off" disabled>
       </div>
-      <div class="bal-tip">🔤 拼对 → 气球击破 ｜ 拼不对不会破 ｜ 点气球可跳过不会的词</div>
+      <div class="bal-tip">🔤 拼对击破 ｜ 点气球跳过(自动收进错题本) ｜ 一次出3个，整批测完才出下一批</div>
       <div id="balloonStart"><div class="stage-tip">🎈 气球打字（汉译英）<br><br><button class="btn" id="balloonStartBtn">开始气球挑战</button></div></div>
       <div id="balloonResult" class="hidden"></div>
     </div>
@@ -363,10 +363,13 @@ function beginBalloon(){
   $('typeInput').disabled=false; $('typeInput').value=''; $('typeInput').focus();
   fillBalloons();
 }
-// 气球静止显示，不再飘动；屏幕上最多 MAX_ON 个，破了/跳过了再补
+// 气球分批显示：一次出 MAX_ON 个（一批），整批都拼破/跳过后才出下一批
 function fillBalloons(){
   const stage=$('stage');
-  while(balloons.length<MAX_ON && balQueue.length){
+  if(balloons.length>0) return;                 // 本批还没测完，先不补
+  if(balQueue.length===0){ setTimeout(finishBalloon,200); return; }
+  const n=Math.min(MAX_ON, balQueue.length);
+  for(let k=0;k<n;k++){
     const w=balQueue.pop();
     const el=document.createElement('div'); el.className='balloon';
     el.innerHTML=`<div class="body">${w.zh}</div><div class="string"></div>`;
@@ -379,7 +382,6 @@ function fillBalloons(){
     el.addEventListener('click',()=>{ if(balRunning) skipBalloon(b); });
     balloons.push(b);
   }
-  if(balQueue.length===0 && balloons.length===0){ setTimeout(finishBalloon,200); }
 }
 // 拼对 → 击破；拼不对 → 没有任何反应（不破）
 $('typeInput').addEventListener('input',()=>{
