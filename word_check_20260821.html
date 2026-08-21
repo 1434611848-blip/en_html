@@ -70,11 +70,11 @@
   /* 气球 */
   .game-bar{ display:flex; justify-content:space-between; background:#fff; border-radius:14px; padding:10px 16px; margin-bottom:10px; font-weight:bold; box-shadow:0 4px 14px rgba(255,107,157,.12); }
   .game-bar .score{ color:#ff6b9d; } .game-bar .miss{ color:#ff5252; }
-  .stage{ position:relative; width:100%; height:420px; background:linear-gradient(180deg,#eaf6ff 0%,#fdeff9 100%); border-radius:16px; overflow:hidden; border:3px solid #ffd6e7; }
-  .balloon{ position:absolute; width:84px; text-align:center; }
+  .stage{ position:relative; width:100%; height:300px; background:linear-gradient(180deg,#eaf6ff 0%,#fdeff9 100%); border-radius:16px; overflow:hidden; border:3px solid #ffd6e7; }
+  .balloon{ position:absolute; width:62px; text-align:center; }
   .balloon .body{
     background:radial-gradient(circle at 30% 30%,#fff,#ff9ec4); border-radius:50% 50% 50% 50%/45% 45% 55% 55%;
-    height:62px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:15px; color:#fff;
+    height:46px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:13px; color:#fff;
     text-shadow:0 1px 2px rgba(0,0,0,.2); box-shadow:inset -6px -6px 12px rgba(0,0,0,.1); border:2px solid rgba(255,255,255,.6);
   }
   .balloon .string{ width:2px; height:16px; background:#ff9ec4; margin:0 auto; }
@@ -237,7 +237,20 @@ const $ = id => document.getElementById(id);
 const qsa = sel => document.querySelectorAll(sel);
 function showScreen(id){ qsa('.screen').forEach(s=>s.classList.add('hidden')); $(id).classList.remove('hidden'); }
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
-function speak(t){ if('speechSynthesis' in window){ const u=new SpeechSynthesisUtterance(t); u.lang='en-US'; u.rate=.9; try{speechSynthesis.cancel(); speechSynthesis.speak(u);}catch(e){} } }
+function speak(t){
+  t=(t||'').trim(); if(!t) return;
+  if(!('speechSynthesis' in window)) return;
+  try{
+    if(speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
+    if(speechSynthesis.resume) try{ speechSynthesis.resume(); }catch(e){}
+    const u=new SpeechSynthesisUtterance(t);
+    u.lang='en-US'; u.rate=0.9; u.pitch=1;
+    const vs=speechSynthesis.getVoices()||[];
+    const en=vs.find(function(v){return /en[-_]?US/i.test(v.lang);}) || vs.find(function(v){return /^en/i.test(v.lang);});
+    if(en) u.voice=en;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
 
 // ===================== 开始页 =====================
 function initStart(){
@@ -363,6 +376,22 @@ function beginBalloon(){
   $('typeInput').disabled=false; $('typeInput').value=''; $('typeInput').focus();
   fillBalloons();
 }
+// 在已有气球之外找一个尽量不重叠的位置（气球约 66×74）
+function placeBalloon(stage){
+  const bw=66, bh=74;
+  const maxX=Math.max(10, stage.clientWidth-bw-6);
+  const maxY=Math.max(10, stage.clientHeight-bh-6);
+  for(let t=0;t<40;t++){
+    const x=6+Math.random()*maxX, y=8+Math.random()*maxY;
+    let ok=true;
+    for(const b of balloons){
+      const bx=parseFloat(b.el.style.left)||0, by=parseFloat(b.el.style.top)||0;
+      if(Math.abs(x-bx)<bw+6 && Math.abs(y-by)<bh+6){ ok=false; break; }
+    }
+    if(ok) return {x,y};
+  }
+  return { x:6+Math.random()*maxX, y:8+Math.random()*maxY };
+}
 // 气球分批显示：一次出 MAX_ON 个（一批），整批都拼破/跳过后才出下一批
 function fillBalloons(){
   const stage=$('stage');
@@ -373,9 +402,8 @@ function fillBalloons(){
     const w=balQueue.pop();
     const el=document.createElement('div'); el.className='balloon';
     el.innerHTML=`<div class="body">${w.zh}</div><div class="string"></div>`;
-    const x=8+Math.random()*(stage.clientWidth-92);
-    const y=12+Math.random()*(stage.clientHeight-90);
-    el.style.left=x+'px'; el.style.top=y+'px';
+    const pos=placeBalloon(stage);
+    el.style.left=pos.x+'px'; el.style.top=pos.y+'px';
     stage.appendChild(el);
     const b={el, en:w.en.toLowerCase(), zh:w.zh};
     el.style.cursor='pointer';
