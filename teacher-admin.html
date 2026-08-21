@@ -24,6 +24,9 @@
   .del{ flex:0 0 auto; margin-left:8px; padding:6px 12px; font-size:13px; border-radius:10px; border:2px solid #ffd0d0; background:#fff; color:#e74c3c; font-weight:bold; cursor:pointer; }
   .del:active{ opacity:.6; }
   .btn.red{ background:#e74c3c; color:#fff; border-color:#e74c3c; }
+  .seg{ display:inline-flex; border:2px solid #ffd6e7; border-radius:12px; overflow:hidden; }
+  .seg-btn{ padding:9px 16px; font-size:14px; border:none; background:#fff; color:#ff6b9d; font-weight:bold; cursor:pointer; }
+  .seg-btn.active{ background:#ff6b9d; color:#fff; }
 </style>
 <script src="supabase.js"></script>
 </head>
@@ -32,6 +35,10 @@
   <div class="sub">全部学生的单词检测参与记录（云端）</div>
   <div class="wrap">
     <div class="toolbar">
+      <div class="seg">
+        <button class="seg-btn active" id="weekBtn">本周</button>
+        <button class="seg-btn" id="allBtn">全部</button>
+      </div>
       <button class="btn pink" id="downloadBtn">⬇️ 下载记录（CSV）</button>
       <button class="btn red" id="clearBtn">🗑 清空全部记录</button>
     </div>
@@ -61,10 +68,24 @@ function mapRec(r){
   };
 }
 
+let mode = 'week';
+
+// 本周一 00:00（按设备本地时区，通常为北京时间）对应的 ISO 字符串
+function weekStartISO(){
+  const now = new Date();
+  const d = now.getDay();              // 0=周日,1=周一...6=周六
+  const diff = (d === 0 ? -6 : 1 - d); // 回退到本周一
+  const mon = new Date(now);
+  mon.setDate(now.getDate() + diff);
+  mon.setHours(0, 0, 0, 0);
+  return mon.toISOString();
+}
+
 async function loadRecords(){
   if(!window.CloudBox) return [];
   try{
-    const rows = await CloudBox.fetchWordScores();
+    const since = (mode === 'week') ? weekStartISO() : null;
+    const rows = await CloudBox.fetchWordScores(null, null, since);
     return (rows||[]).map(mapRec);
   }catch(e){ console.error('读取云端成绩失败：', e); return []; }
 }
@@ -75,7 +96,7 @@ async function render(){
   const list=$('list');
   list.innerHTML='<div class="empty">加载中…</div>';
   allRecs = await loadRecords();
-  $('stat').textContent = `共 ${allRecs.length} 条参与记录`;
+  $('stat').textContent = (mode === 'week' ? '本周' : '全部') + `共 ${allRecs.length} 条参与记录`;
   if(!allRecs.length){ list.innerHTML='<div class="empty">暂无参与记录。</div>'; return; }
   list.innerHTML=allRecs.map((r)=>`
     <div class="row">
@@ -131,8 +152,18 @@ async function clearAll(){
   }
 }
 
+function setMode(m){
+  if(mode === m) return;
+  mode = m;
+  $('weekBtn').classList.toggle('active', m === 'week');
+  $('allBtn').classList.toggle('active', m === 'all');
+  render();
+}
+
 $('downloadBtn').addEventListener('click', downloadCSV);
 $('clearBtn').addEventListener('click', clearAll);
+$('weekBtn').addEventListener('click', () => setMode('week'));
+$('allBtn').addEventListener('click', () => setMode('all'));
 $('list').addEventListener('click', function(e){
   const btn = e.target.closest('.del');
   if(btn){ deleteOne(btn.getAttribute('data-id')); }

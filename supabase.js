@@ -66,12 +66,14 @@ window.CloudBox = (function () {
     });
   }
 
-  // 查询成绩：可按老师 + 版本过滤（默认全部未删除，按提交时间倒序）
+  // 查询成绩：可按老师 + 版本 + 起始时间过滤（默认全部未删除，按提交时间倒序）
+  // sinceISO：可选，只返回 submitted_at >= sinceISO 的记录（用于"只显示本周"）
   // 容错：若 game 列尚未存在（400/PGRST），自动去掉 game 重试，保证记录始终能读出来
-  function fetchWordScores(teacherName, version) {
+  function fetchWordScores(teacherName, version, sinceISO) {
     var filter = '';
     if (teacherName && teacherName !== '__all') filter += '&teacher=eq.' + encodeURIComponent(teacherName);
     if (version && version !== '__all') filter += '&version=eq.' + encodeURIComponent(version);
+    if (sinceISO) filter += '&submitted_at=gte.' + encodeURIComponent(sinceISO);
     var base = WORD_TABLE + '?select=id,student_name,teacher,version,total,correct,score,detail,duration,submitted_at'
       + filter + '&status=neq.deleted&order=submitted_at.desc';
     var withGame = WORD_TABLE + '?select=id,student_name,teacher,version,total,correct,score,game,detail,duration,submitted_at'
