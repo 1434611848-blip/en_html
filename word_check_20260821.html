@@ -455,6 +455,22 @@ function saveRecord(acc, correct, total, sc){
   }
 }
 
+// 启动补传：把本地兜底（旧版缓存/断网时滞留的成绩）自动上传云端，避免历史数据丢失
+(function syncFallbackRecords(){
+  try{
+    const arr=getRecords();
+    if(!arr.length || !window.CloudBox) return;
+    (async function(){
+      for(const r of arr){
+        const sub = r.submittedAt || (r.date ? new Date(r.date).toISOString() : new Date().toISOString());
+        try{ await CloudBox.uploadWordScore(Object.assign({}, r, {submittedAt: sub})); }
+        catch(e){ return; } // 任意一条失败则保留剩余本地记录，下次再试
+      }
+      localStorage.removeItem(REC_KEY);
+    })();
+  }catch(e){}
+})();
+
 
 // ===================== 表扬榜 + 错题本 =====================
 function showBoard(){
