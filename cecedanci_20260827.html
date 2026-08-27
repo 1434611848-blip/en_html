@@ -223,6 +223,7 @@ let flashPlayed=false, xxPlayed=false;
 let flashList=[], flashIdx=0, flashWrong=[], flashFlipped=false;
 let xxList=[], xxWrong=[], xxIdx=0, score=0;
 let totalWrong=[];
+let retryMode=false; // 重练模式：用错题重玩时，消消乐保留错词而非全新词
 
 const $ = id => document.getElementById(id);
 const qsa = sel => document.querySelectorAll(sel);
@@ -269,7 +270,7 @@ function startCheck(){
   if(!curTeacher){ alert('请选择指导老师～'); return; }
   if(!curVersion){ alert('请选择教材版本～'); return; }
   if(!curGame){ alert('请选择一个游戏～'); return; }
-  flashPlayed=false; xxPlayed=false; totalWrong=[];
+  flashPlayed=false; xxPlayed=false; totalWrong=[]; retryMode=false;
   flashList = shuffle(WORD_BANK[curVersion]).slice(0,30);
   xxList = shuffle(WORD_BANK[curVersion]).slice(0,30); flashWrong=[]; xxWrong=[];
   if(curGame==='flash') startFlash();
@@ -353,7 +354,7 @@ function startXiaoxiaole(){
   showScreen('screen-xiaoxiaole');
   $('xxResult').classList.add('hidden');
   score=0; xxWrong=[]; xxIdx=0; xxSel=null;
-  xxList = shuffle(WORD_BANK[curVersion]).slice(0,30);
+  if(!retryMode) xxList = shuffle(WORD_BANK[curVersion]).slice(0,30); // 重练模式保留错词
   $('xxStart').classList.remove('hidden');
   $('xxArea').classList.add('hidden');
 }
@@ -502,7 +503,7 @@ function showBoard(){
   h+=`<div class="meta">指导老师：${curTeacher} ｜ 教材版本：${curVersion}</div>`;
   $('board').innerHTML=h;
   if(totalWrong.length){
-    $('wrongBox').innerHTML = `<h3>📕 错题本（点「用错题重练」反复练）</h3>` + totalWrong.map(w=>`<span class="wrong-item">${w.en} · ${w.zh}</span>`).join('');
+    $('wrongBox').innerHTML = `<h3>📕 错题本（点「用错题重练」闪卡+消消乐一起练）</h3>` + totalWrong.map(w=>`<span class="wrong-item">${w.en} · ${w.zh}</span>`).join('');
   } else {
     $('wrongBox').innerHTML = `<div class="wrong-empty">🎉 没有错题，全部掌握！</div>`;
   }
@@ -510,9 +511,10 @@ function showBoard(){
 }
 $('retryWrong').addEventListener('click', ()=>{
   if(!totalWrong.length){ alert('没有错题啦，直接返回首页吧～'); return; }
+  retryMode=true;
   flashPlayed=false; xxPlayed=false;
   flashList = shuffle(totalWrong.slice());
-  xxList = [];
+  xxList = shuffle(totalWrong.slice());
   flashWrong=[]; xxWrong=[];
   startFlash();
 });
