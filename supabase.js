@@ -34,15 +34,54 @@ window.CloudBox = (function () {
     });
   }
 
-  // 上传一次成绩。rec: {name, teacher, version, total, correct, score, game, detail, submittedAt}
+  // 取某学生（姓名+老师+版本）下未删除的已有成绩，返回 {best, all}
+  function bestExisting(name, teacher, version) {
+    var path = WORD_TABLE + '?select=id,score,submitted_at'
+      + '&student_name=eq.' + encodeURIComponent(name)
+      + '&teacher=eq.' + encodeURIComponent(teacher)
+      + '&version=eq.' + encodeURIComponent(version)
+      + '&status=neq.deleted';
+    return request(path).then(function (rows) {
+      if (!rows || !rows.length) return { best: null, all: [] };
+      var best = rows[0];
+      rows.forEach(function (r) {
+        // 分数高者优先；同分取最新提交
+        if (r.score > best.score ||
+            (r.score === best.score && new Date(r.submitted_at) > new Date(best.submitted_at))) {
+          best = r;
+        }
+      });
+      return { best: best, all: rows };
+    });
+  }
+
+  // 自动去重：同一学生（姓名+老师+版本）只保留最高分那一条，其余软删除
+  function keepBestOnly(rows) {
+    if (!rows || rows.length <= 1) return Promise.resolve();
+    var best = rows[0];
+    rows.forEach(function (r) {
+      if (r.score > best.score ||
+          (r.score === best.score && new Date(r.submitted_at) > new Date(best.submitted_at))) best = r;
+    });
+    var toDel = rows.filter(function (r) { return r.id !== best.id; })
+                    .map(function (r) { return r.id; });
+    if (!toDel.length) return Promise.resolve();
+    return Promise.all(toDel.map(function (id) {
+      return deleteWordScore(id).catch(function () { /* 单条失败忽略，下次提交再清理 */ });
+    }));
+  }
+
+  // 上传一次成绩，并自动“只保留该生最高分”（提交即去重）。
+  // rec: {name, teacher, version, total, correct, score, game, detail, submittedAt}
   function uploadWordScore(rec) {
+    var score = (typeof rec.score === 'number') ? rec.score : 0;
     var body = {
       student_name: rec.name,
       teacher: rec.teacher,
       version: rec.version,
       total: rec.total,
       correct: rec.correct,
-      score: (typeof rec.score === 'number') ? rec.score : 0,
+      score: score,
       detail: rec.detail || [],
       duration: (typeof rec.duration === 'number') ? rec.duration : null,
       submitted_at: rec.submittedAt || new Date().toISOString(),
@@ -57,12 +96,26 @@ window.CloudBox = (function () {
         body: JSON.stringify(payload)
       });
     }
-    return post(withGame).catch(function(err){
-      var msg = String((err && err.message) || '');
-      if (msg.indexOf('game') >= 0 || msg.indexOf('column') >= 0 || msg.indexOf('PGRST') >= 0) {
-        return post(body);
+    function doInsert(){
+      return post(withGame).catch(function(err){
+        var msg = String((err && err.message) || '');
+        if (msg.indexOf('game') >= 0 || msg.indexOf('column') >= 0 || msg.indexOf('PGRST') >= 0) {
+          return post(body);
+        }
+        throw err;
+      });
+    }
+    // 先查已有最高分：已有更高/相等则跳过新增（最高分已保留），仅清理历史重复；
+    // 新成绩更高或无记录则插入后再清理旧低分，保证最终每人每版只留一条最高分。
+    return bestExisting(rec.name, rec.teacher, rec.version).then(function (res) {
+      if (res.best && res.best.score >= score) {
+        return keepBestOnly(res.all);
       }
-      throw err;
+      return doInsert().then(function () {
+        return bestExisting(rec.name, rec.teacher, rec.version).then(function (fresh) {
+          return keepBestOnly(fresh.all);
+        });
+      });
     });
   }
 

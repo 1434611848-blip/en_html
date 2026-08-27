@@ -428,9 +428,18 @@ function mergeWrong(a,b){
 const REC_KEY='wordcheck_records';
 function getRecords(){ try{ return JSON.parse(localStorage.getItem(REC_KEY)||'[]'); }catch(e){ return []; } }
 // 本地兜底：仅当云端提交失败时保留一份，避免丢孩子成绩（不进榜单）
+// 按 姓名|老师|版本 去重，只留最高分，避免本地堆积重复
 function fallbackLocal(rec){
   const arr=getRecords();
-  arr.push(Object.assign({ date: Date.now() }, rec));
+  const key=(rec.name||'')+'|'+(rec.teacher||'')+'|'+(rec.version||'');
+  const idx=arr.findIndex(r=>key===((r.name||'')+'|'+(r.teacher||'')+'|'+(r.version||'')));
+  const score=(typeof rec.score==='number')?rec.score:0;
+  if(idx>=0){
+    const old=(typeof arr[idx].score==='number')?arr[idx].score:0;
+    if(score>old){ arr[idx]=Object.assign({date:Date.now()},rec); }
+  } else {
+    arr.push(Object.assign({date:Date.now()},rec));
+  }
   try{ localStorage.setItem(REC_KEY, JSON.stringify(arr)); }catch(e){}
 }
 // 成绩云端存档（Supabase），失败回退本地
