@@ -131,7 +131,7 @@
 
       <label>🎮 选择游戏</label>
       <div class="opts" id="gameOpts">
-        <div class="opt" data-game="flash">🃏 闪卡翻翻卡<br><span style="font-size:12px;font-weight:normal">英译汉·三选一</span></div>
+        <div class="opt" data-game="flash">🃏 闪卡翻翻卡<br><span style="font-size:12px;font-weight:normal">汉译英·三选一</span></div>
         <div class="opt" data-game="xiaoxiaole">🧩 单词消消乐<br><span style="font-size:12px;font-weight:normal">英汉配对·消除</span></div>
       </div>
 
@@ -148,16 +148,16 @@
           <div class="card-face card-front">
             <div class="word-en" id="cardEn"></div>
             <div class="speaker" id="speaker" title="听发音">🔊</div>
-            <div class="tap-hint">点一下翻出中文 👆</div>
+            <div class="tap-hint">点一下翻出英文 👆</div>
           </div>
           <div class="card-face card-back">
-            <div class="flash-q">请选出正确释义 👇</div>
+            <div class="flash-q">请选出正确英文 👇</div>
             <div class="flash-opts" id="flashOpts"></div>
             <div class="flash-feedback" id="flashFeedback"></div>
           </div>
         </div>
       </div>
-      <div id="flashStart"><button class="btn" id="flashStartBtn">开始翻卡（英译汉·三选一）</button></div>
+      <div id="flashStart"><button class="btn" id="flashStartBtn">开始翻卡（汉译英·三选一）</button></div>
       <div id="flashResult" class="hidden"></div>
     </div>
   </div>
@@ -220,7 +220,7 @@ Object.keys(WORD_BANK).forEach(v=>{
 // ===================== 状态 =====================
 let curName='', curTeacher='', curVersion='', curGame='';
 let flashPlayed=false, xxPlayed=false;
-let flashList=[], flashIdx=0, flashWrong=[], flashFlipped=false;
+let flashList=[], flashIdx=0, flashWrong=[], flashFlipped=false, curFlashWord=null;
 let xxList=[], xxWrong=[], xxIdx=0, score=0;
 let totalWrong=[];
 let retryMode=false; // 重练模式：用错题重玩时，消消乐保留错词而非全新词
@@ -277,7 +277,7 @@ function startCheck(){
   else startXiaoxiaole();
 }
 
-// ===================== 闪卡（英译汉） =====================
+// ===================== 闪卡（汉译英） =====================
 function startFlash(){
   showScreen('screen-flash');
   flashIdx=0; flashWrong=[]; flashFlipped=false;
@@ -291,7 +291,8 @@ $('flashStartBtn').addEventListener('click', ()=>{ $('flashStart').classList.add
 function nextFlash(){
   if(flashIdx>=flashList.length){ finishFlash(); return; }
   const w=flashList[flashIdx];
-  $('cardEn').textContent=w.en;
+  curFlashWord=w;
+  $('cardEn').textContent=w.zh;
   $('flashOpts').innerHTML='';
   $('flashFeedback').textContent='';
   flashFlipped=false;
@@ -305,10 +306,10 @@ function nextFlash(){
   };
 }
 function renderFlashOptions(w){
-  const pool = WORD_BANK[curVersion].filter(x=>x.zh && x.zh!==w.zh);
-  const distract = shuffle(pool).slice(0,2).map(x=>x.zh);
-  const opts = shuffle([w.zh, ...distract]);
-  $('flashOpts').innerHTML = opts.map(o=>`<div class="flash-opt" data-zh="${o}">${o}</div>`).join('');
+  const pool = WORD_BANK[curVersion].filter(x=>x.en && x.en!==w.en);
+  const distract = shuffle(pool).slice(0,2).map(x=>x.en);
+  const opts = shuffle([w.en, ...distract]);
+  $('flashOpts').innerHTML = opts.map(o=>`<div class="flash-opt" data-en="${o}">${o}</div>`).join('');
   $('flashOpts').querySelectorAll('.flash-opt').forEach(el=>{
     el.addEventListener('click',(e)=>{ e.stopPropagation(); chooseFlash(el, w); });
   });
@@ -316,16 +317,16 @@ function renderFlashOptions(w){
 function chooseFlash(el, w){
   if($('flashOpts').dataset.done) return;
   $('flashOpts').dataset.done='1';
-  const correct = (el.dataset.zh === w.zh);
+  const correct = (el.dataset.en === w.en);
   $('flashOpts').querySelectorAll('.flash-opt').forEach(o=>{
     o.style.pointerEvents='none';
-    if(o.dataset.zh===w.zh) o.classList.add('sel-ok');
+    if(o.dataset.en===w.en) o.classList.add('sel-ok');
     else if(o===el) o.classList.add('sel-no');
   });
   if(correct){
     $('flashFeedback').textContent='✅ 太棒了，答对了！';
   } else {
-    $('flashFeedback').textContent='❌ 正确是：'+w.zh;
+    $('flashFeedback').textContent='❌ 正确是：'+w.en;
     flashWrong.push(w);
   }
   setTimeout(()=>{ $('flashOpts').removeAttribute('data-done'); flashIdx++; nextFlash(); }, 1100);
@@ -416,7 +417,7 @@ function finishXX(){
   xxPlayed=true;
   $('toBoard').addEventListener('click', showBoard);
 }
-$('speaker').addEventListener('click',(e)=>{ e.stopPropagation(); speak($('cardEn').textContent); });
+$('speaker').addEventListener('click',(e)=>{ e.stopPropagation(); speak(curFlashWord ? curFlashWord.en : ''); });
 
 // ===================== 错题合并 =====================
 function mergeWrong(a,b){
