@@ -487,7 +487,7 @@ async function goToEdition() {
       const id = this.value;
       const ed = window._weekendEditions.find(e => e.id === id);
       if (ed) {
-        selectedEdition = { id: ed.id, name: ed.name, words: (ed.words || []).map(w => ({ en: w[0], cn: w[1] })) };
+        selectedEdition = { id: ed.id, name: ed.name, words: (ed.words || []).map(w => Array.isArray(w) ? { en: w[0], cn: w[1] } : { en: w.en, cn: w.cn }) };
       } else {
         selectedEdition = null;
       }
